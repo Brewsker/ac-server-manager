@@ -58,6 +58,27 @@ export class ManagedProcess extends EventEmitter {
   }
 
   /**
+   * Cleanup all event listeners and stop process
+   */
+  cleanup() {
+    if (this.process) {
+      // Remove all listeners before stopping
+      this.process.stdout?.removeAllListeners();
+      this.process.stderr?.removeAllListeners();
+      this.process.removeAllListeners();
+      this.removeAllListeners(); // Remove EventEmitter listeners
+      
+      // Stop process if still running
+      if (!this.process.killed) {
+        this.process.kill('SIGTERM');
+      }
+      
+      this.process = null;
+      this.startTime = null;
+    }
+  }
+
+  /**
    * Check if process is running
    */
   isRunning() {

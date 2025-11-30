@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../api/client';
 
 function ActiveDrivers() {
@@ -6,24 +6,38 @@ function ActiveDrivers() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     fetchPlayers();
     const interval = setInterval(fetchPlayers, 5000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const fetchPlayers = async () => {
     try {
       const data = await api.getPlayers();
-      setPlayers(data.players || []);
-      setSession(data.session);
-      setError(null);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setPlayers(data.players || []);
+        setSession(data.session);
+        setError(null);
+      }
     } catch (error) {
       console.error('Failed to fetch players:', error);
-      setError(error.message);
+      if (isMountedRef.current) {
+        setError(error.message);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 

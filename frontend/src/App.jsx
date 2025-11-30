@@ -14,17 +14,30 @@ function App() {
   const [setupComplete, setSetupComplete] = useState(null);
 
   useEffect(() => {
-    checkSetup();
+    const abortController = new AbortController();
+    
+    checkSetup(abortController.signal);
+    
+    return () => {
+      abortController.abort();
+    };
   }, []);
 
-  const checkSetup = async () => {
+  const checkSetup = async (signal) => {
     try {
-      const response = await fetch('/api/setup/status');
+      const response = await fetch('/api/setup/status', { signal });
       const data = await response.json();
-      setSetupComplete(data.configured);
+      if (!signal.aborted) {
+        setSetupComplete(data.configured);
+      }
     } catch (error) {
+      // Ignore AbortError when component unmounts
+      if (error.name === 'AbortError') return;
+      
       console.error('Failed to check setup status:', error);
-      setSetupComplete(false);
+      if (!signal.aborted) {
+        setSetupComplete(false);
+      }
     }
   };
 

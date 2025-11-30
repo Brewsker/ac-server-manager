@@ -23,6 +23,7 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    let mediaQueryListener = null;
     
     const applyTheme = (isDark) => {
       console.log('[ThemeContext] Applying theme:', isDark ? 'dark' : 'light');
@@ -46,12 +47,18 @@ export function ThemeProvider({ children }) {
       // Listen for system theme changes
       const handleChange = (e) => applyTheme(e.matches);
       mediaQuery.addEventListener('change', handleChange);
-      
-      return () => mediaQuery.removeEventListener('change', handleChange);
+      mediaQueryListener = { mediaQuery, handleChange };
     } else {
       // Use explicit theme
       applyTheme(theme === 'dark');
     }
+    
+    // Cleanup function runs on unmount or when theme changes
+    return () => {
+      if (mediaQueryListener) {
+        mediaQueryListener.mediaQuery.removeEventListener('change', mediaQueryListener.handleChange);
+      }
+    };
   }, [theme]);
 
   const setThemeMode = (newTheme) => {

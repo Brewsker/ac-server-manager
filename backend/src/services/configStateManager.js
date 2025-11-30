@@ -9,6 +9,7 @@
  */
 
 import * as configService from './configService.js';
+import * as serverService from './serverService.js';
 import fs from 'fs/promises';
 import path from 'path';
 import ini from 'ini';
@@ -39,15 +40,179 @@ export async function getActiveConfig() {
 }
 
 /**
+ * Get comprehensive default configuration
+ * These match the frontend "Load Tab Defaults" values
+ */
+function getComprehensiveDefaults() {
+  return {
+    SERVER: {
+      NAME: 'AC Server',
+      TRACK: '',
+      CARS: '',
+      MAX_CLIENTS: 18,
+      PASSWORD: '',
+      ADMIN_PASSWORD: 'mypassword',
+      UDP_PORT: 9600,
+      TCP_PORT: 9600,
+      HTTP_PORT: 8081,
+      PICKUP_MODE_ENABLED: 0,
+      WELCOME_MESSAGE: '',
+      CLIENT_SEND_INTERVAL_HZ: 18,
+      NUM_THREADS: 2,
+      REGISTER_TO_LOBBY: 1,
+      CSP_PHYSICS_LEVEL: 0,
+      CSP_USE_RAIN_CLOUDS: 0,
+      CSP_RAIN_CLOUDS_CONTROL: 0,
+      CSP_SHADOWS_STATE: 0,
+      CSP_EXTRA_OPTIONS: '',
+      ABS_ALLOWED: 1,
+      TC_ALLOWED: 1,
+      STABILITY_ALLOWED: 0,
+      AUTOCLUTCH_ALLOWED: 0,
+      TYRE_BLANKETS_ALLOWED: 0,
+      FORCE_VIRTUAL_MIRROR: 1,
+      FUEL_RATE: 100,
+      DAMAGE_MULTIPLIER: 100,
+      TYRE_WEAR_RATE: 100,
+      ALLOWED_TYRES_OUT: 2,
+      START_RULE: 1,
+      RACE_GAS_PENALTY_DISABLED: 0,
+      KICK_QUORUM: 85,
+      VOTING_QUORUM: 80,
+      VOTE_DURATION: 20,
+      BLACKLIST_MODE: 1,
+      MAX_CONTACTS_PER_KM: -1,
+      SUN_ANGLE: 960,
+      TIME_OF_DAY_MULT: 1,
+      LOCKED_ENTRY_LIST: 0,
+      LOOP_MODE: 1,
+      RACE_OVER_TIME: 180,
+      PLUGIN_ADDRESS: '',
+      PLUGIN_LOCAL_PORT: '',
+      AUTH_PLUGIN_ADDRESS: '',
+      USE_CM_AS_PLUGIN: 0,
+      WEB_LINK: '',
+      LEGAL_TYRES: '',
+    },
+    DYNAMIC_TRACK: {
+      SESSION_START: 95,
+      RANDOMNESS: 2,
+      SESSION_TRANSFER: 90,
+      LAP_GAIN: 10,
+    },
+    BOOKING: {
+      IS_OPEN: 0,
+      TIME: 10,
+    },
+    PRACTICE: {
+      IS_OPEN: 1,
+      TIME: 10,
+      CAN_JOIN: 1,
+    },
+    QUALIFY: {
+      IS_OPEN: 1,
+      TIME: 10,
+      CAN_JOIN: 1,
+      QUALIFY_MAX_WAIT_PERC: 120,
+    },
+    RACE: {
+      IS_OPEN: 1,
+      LAPS: 5,
+      WAIT_TIME: 60,
+      RESULT_SCREEN_TIME: 60,
+      RACE_JOIN_TYPE: 0,
+      MANDATORY_PIT: 0,
+      MANDATORY_PIT_FROM: 0,
+      MANDATORY_PIT_TO: 0,
+      REVERSED_GRID_RACE_POSITIONS: 0,
+    },
+    FTP: {
+      HOST: '',
+      LOGIN: '',
+      PASSWORD: '',
+      FOLDER: '',
+      UPLOAD_DATA_ONLY: 0,
+      TARGET: 'windows',
+    },
+  };
+}
+
+/**
  * Get the working configuration (what user is currently editing)
- * If no working config exists, load from active config
+ * If no working config exists, load from active config or defaults
  */
 export async function getWorkingConfig() {
   if (!workingConfig) {
-    console.log('[ConfigStateManager] No working config, loading from active config...');
-    workingConfig = await getActiveConfig();
+    console.log('[ConfigStateManager] No working config, initializing...');
+    
+    try {
+      // Try to load active server config first
+      const activeConfig = await getActiveConfig();
+      
+      // Merge with defaults to ensure all fields exist
+      const defaults = getComprehensiveDefaults();
+      workingConfig = mergeWithDefaults(activeConfig, defaults);
+      console.log('[ConfigStateManager] Loaded active server configuration with defaults merged');
+    } catch (error) {
+      console.warn('[ConfigStateManager] Could not load active config:', error.message);
+      
+      // Fallback to default config file
+      try {
+        const defaultFileConfig = await getDefaultConfig();
+        const defaults = getComprehensiveDefaults();
+        workingConfig = mergeWithDefaults(defaultFileConfig, defaults);
+        console.log('[ConfigStateManager] Loaded default file configuration');
+      } catch (defaultError) {
+        console.error('[ConfigStateManager] Could not load default file:', defaultError.message);
+        
+        // Use comprehensive defaults
+        workingConfig = getComprehensiveDefaults();
+        console.log('[ConfigStateManager] Using comprehensive default configuration');
+      }
+    }
   }
   return workingConfig;
+}
+
+/**
+ * Merge active config with defaults to ensure all fields exist
+ * Also converts string values to proper types (numbers, booleans)
+ */
+function mergeWithDefaults(config, defaults) {
+  const merged = { ...defaults };
+  
+  // Merge each section
+  Object.keys(defaults).forEach(section => {
+    if (config[section]) {
+      merged[section] = {
+        ...defaults[section],
+        ...config[section]
+      };
+      
+      // Convert string values to proper types based on defaults
+      Object.keys(merged[section]).forEach(key => {
+        const defaultValue = defaults[section][key];
+        const configValue = config[section][key];
+        
+        if (configValue !== undefined && configValue !== null) {
+          // If default is a number, convert string to number
+          if (typeof defaultValue === 'number') {
+            merged[section][key] = Number(configValue);
+          }
+          // Keep strings as strings, everything else as-is
+        }
+      });
+    }
+  });
+  
+  // Also include any sections from config that aren't in defaults
+  Object.keys(config).forEach(section => {
+    if (!merged[section]) {
+      merged[section] = config[section];
+    }
+  });
+  
+  return merged;
 }
 
 /**
@@ -75,8 +240,7 @@ export async function applyWorkingConfig() {
   console.log('[ConfigStateManager] Applying working config to active config...');
   
   // Check if server is running
-  const { getServerStatus, restartServer } = await import('./serverService.js');
-  const serverStatus = await getServerStatus();
+  const serverStatus = await serverService.getServerStatus();
   const wasRunning = serverStatus.running;
   
   // Apply config
@@ -87,7 +251,7 @@ export async function applyWorkingConfig() {
   if (wasRunning) {
     console.log('[ConfigStateManager] Server was running, restarting to apply changes...');
     try {
-      await restartServer();
+      await serverService.restartServer();
       console.log('[ConfigStateManager] Server restarted successfully');
       return {
         ...result,

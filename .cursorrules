@@ -1,0 +1,280 @@
+# AC Server Manager - AI Development Guidelines
+
+## 🎯 Primary Objectives
+
+When implementing features or fixing bugs:
+
+1. **Deliver Production-Ready Code** 🔧
+   - Bug-free, well-tested implementations
+   - Comprehensive error handling
+   - Clear, meaningful comments explaining WHY, not just WHAT
+   - Follow existing project patterns and conventions
+
+2. **Full Implementation Required** 📏
+   - Write complete, detailed code - no placeholders or TODOs
+   - Implement entire architecture from core classes to utilities
+   - Start with foundational components, build upward
+   - Include all necessary imports, dependencies, and exports
+
+3. **Code Output Format** 📑
+   ```
+   path/to/filename.ext
+   ```lang
+   [Complete file content]
+   ```
+   ```
+   - Always start with entrypoint files (routes → services → utils)
+   - Ensure cross-file compatibility
+   - Follow project naming conventions
+
+4. **Dependency Management** 🔗
+   - For Node.js: Update package.json with new dependencies
+   - Document peer dependencies and version requirements
+   - Add inline comments for complex dependency chains
+
+5. **Documentation Standards** 📖
+   - JSDoc comments for all exported functions/classes
+   - Inline comments for complex logic, algorithms, or business rules
+   - PropTypes for all React components
+   - README updates for new features
+
+## 🏗️ Project-Specific Patterns
+
+### Backend Architecture (Node.js + Express)
+
+**Service Layer Pattern:**
+```javascript
+// services/exampleService.js
+/**
+ * Retrieves example data from the server configuration
+ * @returns {Promise<Object>} Parsed example data
+ * @throws {Error} If file read or parsing fails
+ */
+export async function getExampleData() {
+  try {
+    // Implementation with detailed error context
+    return result;
+  } catch (error) {
+    throw new Error(`Failed to get example data: ${error.message}`);
+  }
+}
+```
+
+**Route Layer Pattern:**
+```javascript
+// routes/exampleRoutes.js
+import express from 'express';
+import * as exampleService from '../services/exampleService.js';
+
+const router = express.Router();
+
+/**
+ * GET /api/example
+ * Returns example data from server configuration
+ */
+router.get('/', async (req, res, next) => {
+  try {
+    const data = await exampleService.getExampleData();
+    res.json(data);
+  } catch (error) {
+    next(error); // Let error middleware handle it
+  }
+});
+
+export default router;
+```
+
+### Frontend Architecture (React + Vite + Tailwind)
+
+**Component Pattern:**
+```jsx
+import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+
+/**
+ * ExampleComponent - Brief description of purpose
+ * 
+ * @param {Object} props
+ * @param {Array} props.items - Array of items to display
+ * @param {Function} props.onSelect - Callback when item is selected
+ */
+function ExampleComponent({ items, onSelect }) {
+  // State and effects with clear purpose comments
+  const [selected, setSelected] = useState(null);
+  
+  const handleClick = (item) => {
+    setSelected(item);
+    onSelect?.(item);
+  };
+  
+  return (
+    <div className="card">
+      {/* Component JSX with semantic structure */}
+    </div>
+  );
+}
+
+ExampleComponent.propTypes = {
+  items: PropTypes.arrayOf(PropTypes.object).isRequired,
+  onSelect: PropTypes.func,
+};
+
+export default ExampleComponent;
+```
+
+**API Client Pattern:**
+```javascript
+// api/client.js
+/**
+ * Fetches example data from the API
+ * @returns {Promise<Object>} Example data object
+ */
+export const getExampleData = async () => {
+  const response = await client.get('/api/example');
+  return response.data;
+};
+```
+
+## 🔍 Code Review Checklist
+
+Before submitting any code, ensure:
+
+### Architecture & Design
+- [ ] Follows existing project patterns
+- [ ] Appropriate separation of concerns (routes/services/utils)
+- [ ] No business logic in routes or components
+- [ ] Reusable code extracted to utilities
+
+### Error Handling
+- [ ] All async operations wrapped in try-catch
+- [ ] Meaningful error messages with context
+- [ ] Errors propagated appropriately
+- [ ] User-friendly error UI in frontend
+
+### Code Quality
+- [ ] No unused imports or variables
+- [ ] Consistent naming conventions (camelCase for JS, PascalCase for components)
+- [ ] ESLint compliant (no warnings)
+- [ ] No console.logs in production code (use proper logging)
+
+### Security
+- [ ] Input validation on all API endpoints
+- [ ] No sensitive data in client-side code
+- [ ] SQL injection prevention (when DB is added)
+- [ ] XSS prevention in React components
+
+### Performance
+- [ ] Efficient algorithms (avoid O(n²) where possible)
+- [ ] Proper React hooks dependencies
+- [ ] Debouncing/throttling for frequent operations
+- [ ] Lazy loading for heavy components
+
+### Testing
+- [ ] Edge cases considered
+- [ ] Error paths tested
+- [ ] Component renders without errors
+- [ ] API endpoints respond correctly
+
+## 📋 Feature Specification Template
+
+When creating new features, provide:
+
+```markdown
+## Feature: [Name]
+
+### Purpose
+Brief description of what this feature does and why it's needed.
+
+### Architecture
+- Backend: [Services, routes, utilities needed]
+- Frontend: [Components, pages, API methods needed]
+- Data Flow: [How data moves through the system]
+
+### Files to Create/Modify
+1. backend/src/services/[name]Service.js
+2. backend/src/routes/[name]Routes.js
+3. frontend/src/api/client.js (add methods)
+4. frontend/src/components/[Name].jsx
+5. frontend/src/pages/[Name].jsx (if applicable)
+
+### Dependencies
+- New packages: [list with versions]
+- Internal dependencies: [what existing code this relies on]
+
+### Edge Cases & Error Handling
+- [List potential error scenarios]
+- [How each will be handled]
+
+### Testing Strategy
+- Unit tests: [What to test]
+- Integration tests: [API endpoint tests]
+- Manual testing: [User workflows to verify]
+```
+
+## 🚨 Common Pitfalls to Avoid
+
+❌ **Don't:**
+- Use placeholders like `// TODO: implement this`
+- Copy/paste without understanding existing patterns
+- Skip error handling "for now"
+- Ignore PropTypes or TypeScript types
+- Mix business logic into React components
+- Forget to update API client when adding backend endpoints
+- Leave debugging console.logs
+- Use inline styles (use Tailwind classes)
+
+✅ **Do:**
+- Implement complete, working solutions
+- Follow the service → route → API client → component pattern
+- Add comprehensive error handling from the start
+- Document complex logic and business rules
+- Reuse existing components and utilities
+- Keep components focused and single-purpose
+- Use semantic HTML and accessible markup
+- Test in the actual running environment
+
+## 🎓 Clarification Protocol
+
+When requirements are unclear:
+
+1. **Summarize Understanding**: "Based on the request, I understand you need..."
+2. **Identify Ambiguities**: List specific unclear points
+3. **Ask Targeted Questions**: "Should this feature X or Y?"
+4. **Propose Assumptions**: "I'll assume Z unless specified otherwise"
+5. **Suggest Alternatives**: "Consider approach A vs B, here are tradeoffs..."
+
+## 🔧 Technology Stack Reference
+
+- **Backend**: Node.js (ES modules), Express 4.x
+- **Frontend**: React 18, Vite 5.x, Tailwind CSS 3.x
+- **State**: React Context API, useState/useEffect hooks
+- **HTTP Client**: Axios
+- **Real-time**: WebSocket (ws library)
+- **Config Parsing**: Custom INI parser (utils/iniParser.js)
+- **Process Management**: Node child_process (utils/processManager.js)
+
+## 📚 Documentation Requirements
+
+Every new feature must include:
+
+1. **Inline Comments**: For complex logic, business rules, workarounds
+2. **JSDoc/PropTypes**: For all public APIs and components
+3. **README Updates**: If feature affects setup or usage
+4. **API Documentation**: Update docs/API.md for new endpoints
+5. **Changelog Entry**: Brief note of what was added/changed
+
+## 🎯 Success Criteria
+
+Code is ready when:
+- ✅ Runs without errors in dev environment
+- ✅ Handles all expected error cases gracefully
+- ✅ Follows project patterns consistently
+- ✅ Includes comprehensive comments
+- ✅ PropTypes/validation complete
+- ✅ UI is responsive and accessible
+- ✅ No console warnings or errors
+- ✅ Documentation updated
+
+---
+
+**Remember**: Quality over speed. Complete, well-documented code that follows project standards is always preferred over quick hacks or partial implementations.

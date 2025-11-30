@@ -18,12 +18,27 @@ export async function getServerStatus() {
 }
 
 /**
+ * Cleanup event listeners from previous server process
+ */
+function cleanupServerProcess() {
+  if (serverProcess) {
+    // Remove all listeners to prevent memory leaks
+    serverProcess.stdout?.removeAllListeners();
+    serverProcess.stderr?.removeAllListeners();
+    serverProcess.removeAllListeners();
+  }
+}
+
+/**
  * Start AC server
  */
 export async function startServer() {
   if (serverProcess && !serverProcess.killed) {
     throw new Error('Server is already running');
   }
+
+  // Clean up any lingering references from previous runs
+  cleanupServerProcess();
 
   const acServerPath = process.env.AC_SERVER_PATH;
   if (!acServerPath) {
@@ -52,7 +67,7 @@ export async function startServer() {
   serverLogs = [];
 
   // Capture stdout
-  serverProcess.stdout.on('data', (data) => {
+  const handleStdout = (data) => {
     const log = data.toString();
     console.log(`[AC Server] ${log}`);
     serverLogs.push(`[${new Date().toISOString()}] ${log}`);
@@ -60,32 +75,41 @@ export async function startServer() {
     if (serverLogs.length > 1000) {
       serverLogs.shift();
     }
-  });
+  };
 
   // Capture stderr
-  serverProcess.stderr.on('data', (data) => {
+  const handleStderr = (data) => {
     const log = data.toString();
     console.error(`[AC Server Error] ${log}`);
     serverLogs.push(`[${new Date().toISOString()}] ERROR: ${log}`);
     if (serverLogs.length > 1000) {
       serverLogs.shift();
     }
-  });
+  };
 
   // Handle process exit
-  serverProcess.on('close', (code) => {
+  const handleClose = (code) => {
     console.log(`AC Server process exited with code ${code}`);
     serverLogs.push(`[${new Date().toISOString()}] Server stopped (exit code: ${code})`);
+    cleanupServerProcess();
     serverProcess = null;
     serverStartTime = null;
-  });
+  };
 
-  serverProcess.on('error', (error) => {
+  // Handle process errors
+  const handleError = (error) => {
     console.error('Failed to start AC server:', error);
     serverLogs.push(`[${new Date().toISOString()}] ERROR: ${error.message}`);
+    cleanupServerProcess();
     serverProcess = null;
     serverStartTime = null;
-  });
+  };
+
+  // Attach event listeners
+  serverProcess.stdout.on('data', handleStdout);
+  serverProcess.stderr.on('data', handleStderr);
+  serverProcess.on('close', handleClose);
+  serverProcess.on('error', handleError);
 
   return {
     success: true,
@@ -106,18 +130,25 @@ export async function stopServer() {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       // Force kill if not stopped after 5 seconds
-      serverProcess.kill('SIGKILL');
+      if (serverProcess && !serverProcess.killed) {
+        serverProcess.kill('SIGKILL');
+      }
+      cleanupServerProcess();
       reject(new Error('Server did not stop gracefully, force killed'));
     }, 5000);
 
-    serverProcess.on('close', () => {
+    const handleClose = () => {
       clearTimeout(timeout);
+      cleanupServerProcess();
       resolve({
         success: true,
         message: 'AC server stopped successfully',
         timestamp: new Date().toISOString()
       });
-    });
+    };
+
+    // Use once() to ensure listener only fires once
+    serverProcess.once('close', handleClose);
 
     // Try graceful shutdown first
     serverProcess.kill('SIGTERM');

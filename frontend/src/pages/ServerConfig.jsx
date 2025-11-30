@@ -9,6 +9,7 @@ import RulesTab from '../components/config/RulesTab';
 import ConditionsTab from '../components/config/ConditionsTab';
 import SessionsTab from '../components/config/SessionsTab';
 import AdvancedTab from '../components/config/AdvancedTab';
+import EntryListTab from '../components/config/EntryListTab';
 
 function ServerConfig() {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ function ServerConfig() {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [showCspOptionsModal, setShowCspOptionsModal] = useState(false);
   const [cspOptionsInput, setCspOptionsInput] = useState('');
+  const isMountedRef = useRef(true);
 
   // Initialize activeTab from localStorage or default to 'MAIN'
   const [activeTab, setActiveTab] = useState(() => {
@@ -49,9 +51,14 @@ function ServerConfig() {
   ];
 
   useEffect(() => {
-    console.log('[ServerConfig] Navigation detected, fetching data...', location.state);
+    isMountedRef.current = true;
+    console.log('[ServerConfig] Component mounted, fetching data...');
     fetchData();
-  }, [location.key, location.state]);
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []); // Only run on mount
 
   const fetchData = async () => {
     try {
@@ -60,6 +67,9 @@ function ServerConfig() {
         api.getTracks(),
         api.getCars(),
       ]);
+      
+      // Only update state if component is still mounted
+      if (!isMountedRef.current) return;
       
       // Ensure all sections exist in config with defaults if backend values missing
       const normalizedConfig = {
@@ -95,7 +105,9 @@ function ServerConfig() {
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -442,7 +454,7 @@ function ServerConfig() {
             loadTabDefaults={loadTabDefaults}
             loadAllDefaults={loadAllDefaults}
             setShowTrackModal={setShowTrackModal}
-            setShowCarModal={setShowCarModal}
+            setActiveTab={setActiveTab}
             getSelectedTrackName={getSelectedTrackName}
             selectedCars={selectedCars}
             cars={cars}
@@ -456,9 +468,13 @@ function ServerConfig() {
         )}
 
         {activeTab === 'ENTRY_LIST' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <p className="text-gray-500 dark:text-gray-400">Entry List configuration coming soon...</p>
-          </div>
+          <EntryListTab 
+            config={config} 
+            updateConfigValue={updateConfigValue}
+            cars={cars}
+            selectedCars={selectedCars}
+            setShowCarModal={setShowCarModal}
+          />
         )}
 
         {activeTab === 'RULES' && (

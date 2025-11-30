@@ -6,7 +6,7 @@ export default function MainTab({
   loadTabDefaults,
   loadAllDefaults,
   setShowTrackModal,
-  setShowCarModal,
+  setActiveTab,
   getSelectedTrackName,
   selectedCars,
   cars,
@@ -84,22 +84,36 @@ export default function MainTab({
               <div>
                 <button
                   type="button"
-                  onClick={() => setShowCarModal(true)}
+                  onClick={() => setActiveTab('ENTRY_LIST')}
                   className="w-full aspect-video bg-gray-200 dark:bg-gray-700 rounded overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer relative"
                 >
                   {selectedCars.length > 0 ? (
-                    <>
-                      <img 
-                        src={getCarPreviewUrl(selectedCars[0])}
-                        alt={cars.find(c => c.id === selectedCars[0])?.name || selectedCars[0]}
-                        className="w-full h-full object-cover"
-                      />
-                      {selectedCars.length > 1 && (
-                        <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                          +{selectedCars.length - 1}
+                    <div className={`grid h-full w-full ${
+                      selectedCars.length === 1 ? 'grid-cols-1' :
+                      selectedCars.length === 2 ? 'grid-cols-2' :
+                      selectedCars.length === 3 ? 'grid-cols-3' :
+                      selectedCars.length === 4 ? 'grid-cols-2 grid-rows-2' :
+                      selectedCars.length <= 6 ? 'grid-cols-3 grid-rows-2' :
+                      selectedCars.length <= 9 ? 'grid-cols-3 grid-rows-3' :
+                      'grid-cols-4 grid-rows-3'
+                    }`}>
+                      {selectedCars.slice(0, 12).map((carId) => (
+                        <div key={carId} className="relative w-full h-full">
+                          <img 
+                            src={getCarPreviewUrl(carId)}
+                            alt={cars.find(c => c.id === carId)?.name || carId}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                      {selectedCars.length > 12 && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                          <div className="bg-blue-600 text-white text-lg px-4 py-2 rounded">
+                            +{selectedCars.length - 12} more
+                          </div>
                         </div>
                       )}
-                    </>
+                    </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">
                       Select Cars
@@ -108,7 +122,7 @@ export default function MainTab({
                 </button>
                 <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 text-center font-medium">
                   {selectedCars.length > 0 
-                    ? cars.find(c => c.id === selectedCars[0])?.name || selectedCars[0]
+                    ? `${selectedCars.length} car${selectedCars.length !== 1 ? 's' : ''} selected`
                     : 'No cars selected'}
                 </p>
               </div>

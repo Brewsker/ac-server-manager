@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../api/client';
 import ServerControls from '../components/ServerControls';
 import ServerStatus from '../components/ServerStatus';
@@ -6,22 +6,34 @@ import ServerStatus from '../components/ServerStatus';
 function Dashboard() {
   const [serverStatus, setServerStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     fetchServerStatus();
     // Poll every 5 seconds
     const interval = setInterval(fetchServerStatus, 5000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const fetchServerStatus = async () => {
     try {
       const data = await api.getServerStatus();
-      setServerStatus(data);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setServerStatus(data);
+      }
     } catch (error) {
       console.error('Failed to fetch server status:', error);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 

@@ -14,13 +14,53 @@ export async function getConfig() {
   try {
     const configContent = await fs.readFile(configPath, 'utf-8');
     const config = ini.parse(configContent);
-    return config;
+    
+    // Convert string values to proper types
+    // INI parser returns everything as strings, but we need numbers for checkboxes/sliders
+    return normalizeConfigTypes(config);
   } catch (error) {
     if (error.code === 'ENOENT') {
       throw new Error('Server config file not found');
     }
     throw error;
   }
+}
+
+/**
+ * Convert INI string values to proper JavaScript types
+ */
+function normalizeConfigTypes(config) {
+  const normalized = {};
+  
+  for (const section in config) {
+    normalized[section] = {};
+    
+    for (const key in config[section]) {
+      const value = config[section][key];
+      
+      // Skip if undefined or null
+      if (value === undefined || value === null) {
+        normalized[section][key] = value;
+        continue;
+      }
+      
+      // If it's already not a string, keep it
+      if (typeof value !== 'string') {
+        normalized[section][key] = value;
+        continue;
+      }
+      
+      // Try to convert to number if it looks like one
+      if (/^-?\d+(\.\d+)?$/.test(value)) {
+        normalized[section][key] = Number(value);
+      } else {
+        // Keep as string
+        normalized[section][key] = value;
+      }
+    }
+  }
+  
+  return normalized;
 }
 
 /**
