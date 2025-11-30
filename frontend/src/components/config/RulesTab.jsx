@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function RulesTab({ config, updateConfigValue, loadTabDefaults }) {
   const getAssistLabel = (value) => {
     if (value === 0) return 'Forbidden';

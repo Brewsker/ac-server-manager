@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults, selectedCars, cars }) {
   // Extract unique tyres from selected cars
