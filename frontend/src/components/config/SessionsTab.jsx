@@ -3,8 +3,8 @@ import React from 'react';
 export default function SessionsTab({ config, updateConfigValue, loadTabDefaults }) {
   return (
     <>
-      {/* Header Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      {/* Header with button and checkboxes */}
+      <div className="flex justify-between items-start mb-6">
         <div className="space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -37,15 +37,13 @@ export default function SessionsTab({ config, updateConfigValue, loadTabDefaults
           </label>
         </div>
 
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => loadTabDefaults('SESSIONS')}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          >
-            🔄 Load Defaults
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => loadTabDefaults('SESSIONS')}
+          className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        >
+          🔄 Load Defaults
+        </button>
       </div>
 
       {/* Session Cards Grid */}
@@ -74,24 +72,22 @@ function BookingSession({ config, updateConfigValue }) {
   
   return (
     <div className="card">
-      <div className="flex items-center justify-between mb-4">
+      <label className="flex items-center gap-2 cursor-pointer mb-4">
+        <input
+          type="checkbox"
+          className="w-4 h-4 text-blue-600"
+          checked={isEnabled}
+          onChange={(e) => {
+            if (e.target.checked) {
+              updateConfigValue('BOOKING', 'IS_OPEN', 1);
+              updateConfigValue('BOOKING', 'TIME', 10);
+            } else {
+              updateConfigValue('BOOKING', 'IS_OPEN', 0);
+            }
+          }}
+        />
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Booking</h2>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            className="w-4 h-4 text-blue-600"
-            checked={isEnabled}
-            onChange={(e) => {
-              if (e.target.checked) {
-                updateConfigValue('BOOKING', 'IS_OPEN', 1);
-                updateConfigValue('BOOKING', 'TIME', 10);
-              } else {
-                updateConfigValue('BOOKING', 'IS_OPEN', 0);
-              }
-            }}
-          />
-        </label>
-      </div>
+      </label>
       
       <div className="flex items-center gap-4">
         <label className={`label whitespace-nowrap min-w-[5rem] ${!isEnabled ? 'opacity-50' : ''}`}>
@@ -120,17 +116,15 @@ function PracticeSession({ config, updateConfigValue }) {
   
   return (
     <div className="card">
-      <div className="flex items-center justify-between mb-4">
+      <label className="flex items-center gap-2 cursor-pointer mb-4">
+        <input
+          type="checkbox"
+          className="w-4 h-4 text-blue-600"
+          checked={isEnabled}
+          onChange={(e) => updateConfigValue('PRACTICE', 'IS_OPEN', e.target.checked ? 1 : 0)}
+        />
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Practice</h2>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            className="w-4 h-4 text-blue-600"
-            checked={isEnabled}
-            onChange={(e) => updateConfigValue('PRACTICE', 'IS_OPEN', e.target.checked ? 1 : 0)}
-          />
-        </label>
-      </div>
+      </label>
       
       <div className="space-y-4">
         <div className="flex items-center gap-4">
@@ -172,17 +166,15 @@ function QualificationSession({ config, updateConfigValue }) {
   
   return (
     <div className="card">
-      <div className="flex items-center justify-between mb-4">
+      <label className="flex items-center gap-2 cursor-pointer mb-4">
+        <input
+          type="checkbox"
+          className="w-4 h-4 text-blue-600"
+          checked={isEnabled}
+          onChange={(e) => updateConfigValue('QUALIFY', 'IS_OPEN', e.target.checked ? 1 : 0)}
+        />
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Qualification</h2>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            className="w-4 h-4 text-blue-600"
-            checked={isEnabled}
-            onChange={(e) => updateConfigValue('QUALIFY', 'IS_OPEN', e.target.checked ? 1 : 0)}
-          />
-        </label>
-      </div>
+      </label>
       
       <div className="space-y-4">
         <div className="flex items-center gap-4">
@@ -241,17 +233,15 @@ function RaceSession({ config, updateConfigValue }) {
   
   return (
     <div className="card">
-      <div className="flex items-center justify-between mb-4">
+      <label className="flex items-center gap-2 cursor-pointer mb-4">
+        <input
+          type="checkbox"
+          className="w-4 h-4 text-blue-600"
+          checked={isEnabled}
+          onChange={(e) => updateConfigValue('RACE', 'IS_OPEN', e.target.checked ? 1 : 0)}
+        />
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Race</h2>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            className="w-4 h-4 text-blue-600"
-            checked={isEnabled}
-            onChange={(e) => updateConfigValue('RACE', 'IS_OPEN', e.target.checked ? 1 : 0)}
-          />
-        </label>
-      </div>
+      </label>
       
       <div className="space-y-4">
         {/* Limit by dropdown */}
