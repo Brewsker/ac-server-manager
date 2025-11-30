@@ -14,31 +14,44 @@ import EntryListTab from '../components/config/EntryListTab';
 function ServerConfig() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [config, setConfig] = useState(null);
-  const [tracks, setTracks] = useState([]);
-  const [cars, setCars] = useState([]);
-  const [selectedCars, setSelectedCars] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const [presetName, setPresetName] = useState('');
-  const [showLoadActiveModal, setShowLoadActiveModal] = useState(false);
-  const [showCarModal, setShowCarModal] = useState(false);
-  const [showTrackModal, setShowTrackModal] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showAdminPassword, setShowAdminPassword] = useState(false);
-  const [showCspOptionsModal, setShowCspOptionsModal] = useState(false);
-  const [cspOptionsInput, setCspOptionsInput] = useState('');
   const isMountedRef = useRef(true);
 
-  // Initialize activeTab from localStorage or default to 'MAIN'
-  const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem('serverConfigActiveTab') || 'MAIN';
+  // Consolidated data state
+  const [data, setData] = useState({
+    config: null,
+    tracks: [],
+    cars: [],
+    selectedCars: [],
+    loading: true,
+  });
+
+  // Consolidated modal state
+  const [modals, setModals] = useState({
+    showSave: false,
+    showLoadActive: false,
+    showCar: false,
+    showTrack: false,
+    showCspOptions: false,
+  });
+
+  // Consolidated UI state
+  const [ui, setUi] = useState({
+    presetName: '',
+    cspOptionsInput: '',
+    showPassword: false,
+    showAdminPassword: false,
+    activeTab: localStorage.getItem('serverConfigActiveTab') || 'MAIN',
   });
 
   // Save activeTab to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('serverConfigActiveTab', activeTab);
-  }, [activeTab]);
+    localStorage.setItem('serverConfigActiveTab', ui.activeTab);
+  }, [ui.activeTab]);
+
+  // Helper functions for state updates
+  const updateData = (updates) => setData((prev) => ({ ...prev, ...updates }));
+  const updateModals = (updates) => setModals((prev) => ({ ...prev, ...updates }));
+  const updateUi = (updates) => setUi((prev) => ({ ...prev, ...updates }));
 
   const tabs = [
     { id: 'MAIN', label: 'Main', icon: '⚙️' },
@@ -54,7 +67,7 @@ function ServerConfig() {
     isMountedRef.current = true;
     console.log('[ServerConfig] Component mounted, fetching data...');
     fetchData();
-    
+
     return () => {
       isMountedRef.current = false;
     };
@@ -67,10 +80,10 @@ function ServerConfig() {
         api.getTracks(),
         api.getCars(),
       ]);
-      
+
       // Only update state if component is still mounted
       if (!isMountedRef.current) return;
-      
+
       // Ensure all sections exist in config with defaults if backend values missing
       const normalizedConfig = {
         ...configData,
@@ -91,22 +104,26 @@ function ServerConfig() {
         },
         WEATHER_0: configData?.WEATHER_0 || {},
       };
-      
-      setConfig(normalizedConfig);
-      setTracks(tracksData);
-      setCars(carsData);
-      
+
       const carsInConfig = normalizedConfig?.SERVER?.CARS || '';
-      if (typeof carsInConfig === 'string') {
-        setSelectedCars(carsInConfig.split(';').filter(c => c.trim()));
-      } else if (Array.isArray(carsInConfig)) {
-        setSelectedCars(carsInConfig);
-      }
+      const selectedCars =
+        typeof carsInConfig === 'string'
+          ? carsInConfig.split(';').filter((c) => c.trim())
+          : Array.isArray(carsInConfig)
+          ? carsInConfig
+          : [];
+
+      updateData({
+        config: normalizedConfig,
+        tracks: tracksData,
+        cars: carsData,
+        selectedCars,
+        loading: false,
+      });
     } catch (error) {
       console.error('Failed to fetch data:', error);
-    } finally {
       if (isMountedRef.current) {
-        setLoading(false);
+        updateData({ loading: false });
       }
     }
   };
@@ -115,16 +132,16 @@ function ServerConfig() {
     e.preventDefault();
     try {
       const updatedConfig = {
-        ...config,
+        ...data.config,
         SERVER: {
-          ...config.SERVER,
-          CARS: selectedCars.join(';')
-        }
+          ...data.config.SERVER,
+          CARS: data.selectedCars.join(';'),
+        },
       };
-      
+
       await api.updateConfig(updatedConfig);
       await api.applyConfig();
-      
+
       console.log('Configuration applied to server');
     } catch (error) {
       console.error('Failed to save config:', error);
@@ -132,28 +149,28 @@ function ServerConfig() {
   };
 
   const handleSaveAsPreset = () => {
-    setPresetName(config?.SERVER?.NAME || '');
-    setShowSaveModal(true);
+    updateUi({ presetName: data.config?.SERVER?.NAME || '' });
+    updateModals({ showSave: true });
   };
 
   const confirmSavePreset = async (applyToServer = false) => {
-    if (!presetName.trim()) return;
+    if (!ui.presetName.trim()) return;
 
     try {
       const updatedConfig = {
-        ...config,
+        ...data.config,
         SERVER: {
-          ...config.SERVER,
-          CARS: selectedCars.join(';')
-        }
+          ...data.config.SERVER,
+          CARS: data.selectedCars.join(';'),
+        },
       };
       await api.updateConfig(updatedConfig);
-      await api.savePreset(presetName);
-      console.log('Configuration saved as preset:', presetName);
-      
-      setShowSaveModal(false);
-      setPresetName('');
-      
+      await api.savePreset(ui.presetName);
+      console.log('Configuration saved as preset:', ui.presetName);
+
+      updateModals({ showSave: false });
+      updateUi({ presetName: '' });
+
       if (applyToServer) {
         await api.updateConfig(updatedConfig);
         await api.applyConfig();
@@ -168,7 +185,7 @@ function ServerConfig() {
     try {
       await api.loadActiveConfig();
       await fetchData();
-      setShowLoadActiveModal(false);
+      updateModals({ showLoadActive: false });
       console.log('Loaded active server configuration');
     } catch (error) {
       console.error('Failed to load active config:', error);
@@ -176,12 +193,15 @@ function ServerConfig() {
   };
 
   const updateConfigValue = (section, key, value) => {
-    setConfig(prev => ({
+    setData((prev) => ({
       ...prev,
-      [section]: {
-        ...prev[section],
-        [key]: value
-      }
+      config: {
+        ...prev.config,
+        [section]: {
+          ...prev.config[section],
+          [key]: value,
+        },
+      },
     }));
   };
 
@@ -205,7 +225,7 @@ function ServerConfig() {
           CSP_RAIN_CLOUDS_CONTROL: 0,
           CSP_SHADOWS_STATE: 0,
           CSP_EXTRA_OPTIONS: '',
-        }
+        },
       },
       RULES: {
         SERVER: {
@@ -226,7 +246,7 @@ function ServerConfig() {
           VOTE_DURATION: 20,
           BLACKLIST_MODE: 1,
           MAX_CONTACTS_PER_KM: -1,
-        }
+        },
       },
       CONDITIONS: {
         SERVER: {
@@ -238,7 +258,7 @@ function ServerConfig() {
           RANDOMNESS: 2,
           SESSION_TRANSFER: 90,
           LAP_GAIN: 10,
-        }
+        },
       },
       SESSIONS: {
         SERVER: {
@@ -272,7 +292,7 @@ function ServerConfig() {
           MANDATORY_PIT_FROM: 0,
           MANDATORY_PIT_TO: 0,
           REVERSED_GRID_RACE_POSITIONS: 0,
-        }
+        },
       },
       ADVANCED: {
         SERVER: {
@@ -290,7 +310,7 @@ function ServerConfig() {
           FOLDER: '',
           UPLOAD_DATA_ONLY: 0,
           TARGET: 'windows',
-        }
+        },
       },
     };
   };
@@ -300,16 +320,16 @@ function ServerConfig() {
     const tabDefaults = defaults[tabId];
     if (tabDefaults) {
       console.log('[loadTabDefaults] Loading defaults for tab:', tabId, tabDefaults);
-      setConfig(prev => {
-        const updated = { ...prev };
-        Object.keys(tabDefaults).forEach(section => {
+      updateData((prev) => {
+        const updated = { ...prev.config };
+        Object.keys(tabDefaults).forEach((section) => {
           updated[section] = {
             ...updated[section],
-            ...tabDefaults[section]
+            ...tabDefaults[section],
           };
         });
         console.log('[loadTabDefaults] Updated config:', updated);
-        return updated;
+        return { config: updated };
       });
     }
   };
@@ -317,47 +337,47 @@ function ServerConfig() {
   const loadAllDefaults = () => {
     const defaults = getAllDefaults();
     console.log('[loadAllDefaults] Loading all defaults:', defaults);
-    setConfig(prev => {
-      const updated = { ...prev };
-      Object.keys(defaults).forEach(tabId => {
-        Object.keys(defaults[tabId]).forEach(section => {
+    updateData((prev) => {
+      const updated = { ...prev.config };
+      Object.keys(defaults).forEach((tabId) => {
+        Object.keys(defaults[tabId]).forEach((section) => {
           updated[section] = {
             ...updated[section],
-            ...defaults[tabId][section]
+            ...defaults[tabId][section],
           };
         });
       });
       console.log('[loadAllDefaults] Updated config:', updated);
-      return updated;
+      return { config: updated };
     });
   };
 
   const toggleCar = (carId) => {
-    setSelectedCars(prev => {
-      if (prev.includes(carId)) {
-        return prev.filter(id => id !== carId);
+    updateData((prev) => {
+      if (prev.selectedCars.includes(carId)) {
+        return { selectedCars: prev.selectedCars.filter((id) => id !== carId) };
       } else {
-        return [...prev, carId];
+        return { selectedCars: [...prev.selectedCars, carId] };
       }
     });
   };
 
   const selectAllCars = () => {
-    setSelectedCars(cars.map(car => car.id));
+    updateData({ selectedCars: data.cars.map((car) => car.id) });
   };
 
   const clearAllCars = () => {
-    setSelectedCars([]);
+    updateData({ selectedCars: [] });
   };
 
   const confirmCarSelection = (newSelection) => {
-    setSelectedCars(newSelection);
-    setShowCarModal(false);
+    updateData({ selectedCars: newSelection });
+    updateModals({ showCar: false });
   };
 
   const confirmTrackSelection = (trackId) => {
     updateConfigValue('SERVER', 'TRACK', trackId);
-    setShowTrackModal(false);
+    updateModals({ showTrack: false });
   };
 
   const getTrackPreviewUrl = (trackId) => {
@@ -369,13 +389,13 @@ function ServerConfig() {
   };
 
   const getSelectedTrackName = () => {
-    const trackId = config?.SERVER?.TRACK;
+    const trackId = data.config?.SERVER?.TRACK;
     if (!trackId) return 'No track selected';
-    const track = tracks.find(t => t.id === trackId);
+    const track = data.tracks.find((t) => t.id === trackId);
     return track ? track.name : trackId;
   };
 
-  if (loading) {
+  if (data.loading) {
     return <div className="text-center py-12">Loading...</div>;
   }
 
@@ -383,26 +403,28 @@ function ServerConfig() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Configuration Editor</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            Configuration Editor
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">Edit settings and apply to server</p>
         </div>
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={() => setShowLoadActiveModal(true)}
+            onClick={() => updateModals({ showLoadActive: true })}
             className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
             🔄 Load Active Config
           </button>
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="px-4 py-2 bg-purple-600 dark:bg-purple-700 text-white rounded hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
             onClick={handleSaveAsPreset}
           >
             📋 Save as Preset
           </button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             onClick={handleSubmit}
             className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold"
           >
@@ -420,19 +442,19 @@ function ServerConfig() {
               type="text"
               className="w-full text-lg font-semibold bg-transparent border-none outline-none focus:bg-white dark:focus:bg-gray-800 focus:border focus:border-blue-500 dark:focus:border-blue-400 rounded px-3 py-2 transition-all h-[42px]"
               placeholder="Server Name"
-              value={config?.SERVER?.NAME || ''}
+              value={data.config?.SERVER?.NAME || ''}
               onChange={(e) => updateConfigValue('SERVER', 'NAME', e.target.value)}
             />
           </div>
-          
+
           {/* Tab Navigation - 2/3 Width, Right Aligned */}
           <nav className="flex gap-0.5 overflow-x-auto w-2/3 justify-end">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => updateUi({ activeTab: tab.id })}
                 className={`flex items-center gap-1.5 px-2.5 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  activeTab === tab.id
+                  ui.activeTab === tab.id
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30'
                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
@@ -447,71 +469,71 @@ function ServerConfig() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Tab Content */}
-        {activeTab === 'MAIN' && (
-          <MainTab 
-            config={config} 
-            updateConfigValue={updateConfigValue} 
+        {ui.activeTab === 'MAIN' && (
+          <MainTab
+            config={data.config}
+            updateConfigValue={updateConfigValue}
             loadTabDefaults={loadTabDefaults}
             loadAllDefaults={loadAllDefaults}
-            setShowTrackModal={setShowTrackModal}
-            setActiveTab={setActiveTab}
+            setShowTrackModal={(show) => updateModals({ showTrack: show })}
+            setActiveTab={(tab) => updateUi({ activeTab: tab })}
             getSelectedTrackName={getSelectedTrackName}
-            selectedCars={selectedCars}
-            cars={cars}
+            selectedCars={data.selectedCars}
+            cars={data.cars}
             getCarPreviewUrl={getCarPreviewUrl}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
-            showAdminPassword={showAdminPassword}
-            setShowAdminPassword={setShowAdminPassword}
-            setShowCspOptionsModal={setShowCspOptionsModal}
+            showPassword={ui.showPassword}
+            setShowPassword={(show) => updateUi({ showPassword: show })}
+            showAdminPassword={ui.showAdminPassword}
+            setShowAdminPassword={(show) => updateUi({ showAdminPassword: show })}
+            setShowCspOptionsModal={(show) => updateModals({ showCspOptions: show })}
           />
         )}
 
-        {activeTab === 'ENTRY_LIST' && (
-          <EntryListTab 
-            config={config} 
+        {ui.activeTab === 'ENTRY_LIST' && (
+          <EntryListTab
+            config={data.config}
             updateConfigValue={updateConfigValue}
-            cars={cars}
-            selectedCars={selectedCars}
-            setShowCarModal={setShowCarModal}
+            cars={data.cars}
+            selectedCars={data.selectedCars}
+            setShowCarModal={(show) => updateModals({ showCar: show })}
           />
         )}
 
-        {activeTab === 'RULES' && (
-          <RulesTab 
-            config={config} 
-            updateConfigValue={updateConfigValue} 
+        {ui.activeTab === 'RULES' && (
+          <RulesTab
+            config={data.config}
+            updateConfigValue={updateConfigValue}
             loadTabDefaults={loadTabDefaults}
           />
         )}
 
-        {activeTab === 'CONDITIONS' && (
-          <ConditionsTab 
-            config={config} 
-            updateConfigValue={updateConfigValue} 
+        {ui.activeTab === 'CONDITIONS' && (
+          <ConditionsTab
+            config={data.config}
+            updateConfigValue={updateConfigValue}
             loadTabDefaults={loadTabDefaults}
           />
         )}
 
-        {activeTab === 'SESSIONS' && (
-          <SessionsTab 
-            config={config} 
-            updateConfigValue={updateConfigValue} 
+        {ui.activeTab === 'SESSIONS' && (
+          <SessionsTab
+            config={data.config}
+            updateConfigValue={updateConfigValue}
             loadTabDefaults={loadTabDefaults}
           />
         )}
 
-        {activeTab === 'ADVANCED' && (
-          <AdvancedTab 
-            config={config} 
-            updateConfigValue={updateConfigValue} 
+        {ui.activeTab === 'ADVANCED' && (
+          <AdvancedTab
+            config={data.config}
+            updateConfigValue={updateConfigValue}
             loadTabDefaults={loadTabDefaults}
-            selectedCars={selectedCars}
-            cars={cars}
+            selectedCars={data.selectedCars}
+            cars={data.cars}
           />
         )}
 
-        {activeTab === 'DETAILS' && (
+        {ui.activeTab === 'DETAILS' && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <p className="text-gray-500 dark:text-gray-400">Server details coming soon...</p>
           </div>
@@ -519,55 +541,55 @@ function ServerConfig() {
       </form>
 
       {/* Modals */}
-      {showLoadActiveModal && (
+      {modals.showLoadActive && (
         <ConfirmModal
           title="Load Active Configuration"
           message="This will replace your current working configuration with the server's active configuration. Any unsaved changes will be lost."
           onConfirm={handleLoadActiveConfig}
-          onClose={() => setShowLoadActiveModal(false)}
+          onClose={() => updateModals({ showLoadActive: false })}
         />
       )}
 
-      {showSaveModal && (
+      {modals.showSave && (
         <SavePresetModal
-          presetName={presetName}
-          setPresetName={setPresetName}
+          presetName={ui.presetName}
+          setPresetName={(name) => updateUi({ presetName: name })}
           onConfirm={confirmSavePreset}
           onClose={() => {
-            setShowSaveModal(false);
-            setPresetName('');
+            updateModals({ showSave: false });
+            updateUi({ presetName: '' });
           }}
         />
       )}
 
-      {showCarModal && (
+      {modals.showCar && (
         <CarSelectionModal
-          cars={cars}
-          selectedCars={selectedCars}
+          cars={data.cars}
+          selectedCars={data.selectedCars}
           onConfirm={confirmCarSelection}
-          onClose={() => setShowCarModal(false)}
+          onClose={() => updateModals({ showCar: false })}
           getCarPreviewUrl={getCarPreviewUrl}
         />
       )}
 
-      {showTrackModal && (
+      {modals.showTrack && (
         <TrackSelectionModal
-          tracks={tracks}
-          selectedTrack={config?.SERVER?.TRACK}
+          tracks={data.tracks}
+          selectedTrack={data.config?.SERVER?.TRACK}
           onConfirm={confirmTrackSelection}
-          onClose={() => setShowTrackModal(false)}
+          onClose={() => updateModals({ showTrack: false })}
           getTrackPreviewUrl={getTrackPreviewUrl}
         />
       )}
 
-      {showCspOptionsModal && (
+      {modals.showCspOptions && (
         <CspOptionsModal
-          currentValue={config?.SERVER?.CSP_EXTRA_OPTIONS || ''}
+          currentValue={data.config?.SERVER?.CSP_EXTRA_OPTIONS || ''}
           onConfirm={(value) => {
             updateConfigValue('SERVER', 'CSP_EXTRA_OPTIONS', value);
-            setShowCspOptionsModal(false);
+            updateModals({ showCspOptions: false });
           }}
-          onClose={() => setShowCspOptionsModal(false)}
+          onClose={() => updateModals({ showCspOptions: false })}
         />
       )}
     </div>
@@ -629,8 +651,10 @@ function SavePresetModal({ presetName, setPresetName, onConfirm, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">Save Configuration as Preset</h2>
-        
+        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+          Save Configuration as Preset
+        </h2>
+
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Preset Name
@@ -702,8 +726,10 @@ function CspOptionsModal({ currentValue, onConfirm, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4">
-        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">CSP Extra Options</h2>
-        
+        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+          CSP Extra Options
+        </h2>
+
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Enter CSP Extra Options (semicolon-separated)
