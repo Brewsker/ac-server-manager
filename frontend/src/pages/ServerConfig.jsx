@@ -8,6 +8,7 @@ import MainTab from '../components/config/MainTab';
 import RulesTab from '../components/config/RulesTab';
 import ConditionsTab from '../components/config/ConditionsTab';
 import SessionsTab from '../components/config/SessionsTab';
+import AdvancedTab from '../components/config/AdvancedTab';
 
 function ServerConfig() {
   const navigate = useNavigate();
@@ -252,6 +253,23 @@ function ServerConfig() {
           REVERSED_GRID_RACE_POSITIONS: 0,
         }
       },
+      ADVANCED: {
+        SERVER: {
+          PLUGIN_ADDRESS: '',
+          PLUGIN_LOCAL_PORT: '',
+          AUTH_PLUGIN_ADDRESS: '',
+          USE_CM_AS_PLUGIN: 0,
+          WEB_LINK: '',
+        },
+        FTP: {
+          HOST: '',
+          LOGIN: '',
+          PASSWORD: '',
+          FOLDER: '',
+          UPLOAD_DATA_ONLY: 0,
+          TARGET: 'windows',
+        }
+      },
     };
   };
 
@@ -458,9 +476,11 @@ function ServerConfig() {
         )}
 
         {activeTab === 'ADVANCED' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <p className="text-gray-500 dark:text-gray-400">Advanced settings coming soon...</p>
-          </div>
+          <AdvancedTab 
+            config={config} 
+            updateConfigValue={updateConfigValue} 
+            loadTabDefaults={loadTabDefaults}
+          />
         )}
 
         {activeTab === 'DETAILS' && (
