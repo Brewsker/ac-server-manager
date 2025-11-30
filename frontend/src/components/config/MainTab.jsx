@@ -4,6 +4,7 @@ export default function MainTab({
   config, 
   updateConfigValue, 
   loadTabDefaults,
+  loadAllDefaults,
   setShowTrackModal,
   setShowCarModal,
   getSelectedTrackName,
@@ -18,13 +19,20 @@ export default function MainTab({
 }) {
   return (
     <>
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-end gap-3 mb-6">
         <button
           type="button"
           onClick={() => loadTabDefaults('MAIN')}
           className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         >
-          🔄 Load Defaults
+          🔄 Load Tab Defaults
+        </button>
+        <button
+          type="button"
+          onClick={loadAllDefaults}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          🔄 Load All Defaults
         </button>
       </div>
 

@@ -160,8 +160,8 @@ function ServerConfig() {
     }));
   };
 
-  const loadTabDefaults = (tabId) => {
-    const defaults = {
+  const getAllDefaults = () => {
+    return {
       MAIN: {
         SERVER: {
           MAX_CLIENTS: 24,
@@ -250,7 +250,10 @@ function ServerConfig() {
         }
       },
     };
+  };
 
+  const loadTabDefaults = (tabId) => {
+    const defaults = getAllDefaults();
     const tabDefaults = defaults[tabId];
     if (tabDefaults) {
       console.log('[loadTabDefaults] Loading defaults for tab:', tabId, tabDefaults);
@@ -266,6 +269,24 @@ function ServerConfig() {
         return updated;
       });
     }
+  };
+
+  const loadAllDefaults = () => {
+    const defaults = getAllDefaults();
+    console.log('[loadAllDefaults] Loading all defaults:', defaults);
+    setConfig(prev => {
+      const updated = { ...prev };
+      Object.keys(defaults).forEach(tabId => {
+        Object.keys(defaults[tabId]).forEach(section => {
+          updated[section] = {
+            ...updated[section],
+            ...defaults[tabId][section]
+          };
+        });
+      });
+      console.log('[loadAllDefaults] Updated config:', updated);
+      return updated;
+    });
   };
 
   const toggleCar = (carId) => {
@@ -388,6 +409,7 @@ function ServerConfig() {
             config={config} 
             updateConfigValue={updateConfigValue} 
             loadTabDefaults={loadTabDefaults}
+            loadAllDefaults={loadAllDefaults}
             setShowTrackModal={setShowTrackModal}
             setShowCarModal={setShowCarModal}
             getSelectedTrackName={getSelectedTrackName}
