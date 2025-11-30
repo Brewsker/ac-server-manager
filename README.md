@@ -2,30 +2,45 @@
 
 Modern web-based management interface for Assetto Corsa dedicated servers.
 
-## Project Goals
+## Project Status
 
-Build a lightweight, user-friendly web interface for managing Assetto Corsa dedicated servers with:
-- Clean, modern UI
-- Easy track/car selection
-- Server control (start/stop/restart)
-- Live monitoring
-- Configuration management
+**Current Phase:** Active Development  
+**Last Updated:** November 30, 2025  
+**Developer:** Brook
+
+### Quick Start
+
+The project includes a VS Code control panel with buttons in the status bar:
+
+- **🚀 Backend** - Start backend server
+- **🎨 Frontend** - Start frontend dev server
+- **🔄 Restart** - Kill all processes and restart both services
+- **🔴 Kill All** - Stop all processes and release ports
+
+Just click the buttons to control your development environment!
 
 ## Tech Stack
 
 **Frontend:**
-- React (UI framework)
+
+- React 18 (UI framework)
 - Tailwind CSS (styling)
-- Vite (build tool)
+- Vite 5.x (build tool)
+- React Router (navigation)
 
 **Backend:**
-- Node.js + Express
-- SQLite (database)
-- WebSockets (real-time updates)
 
-**Deployment:**
-- LXC container on Proxmox
-- Docker support (optional)
+- Node.js + Express 4.x
+- INI file parsing for AC configs
+- Process management for AC server
+- RESTful API
+
+**Development:**
+
+- VS Code tasks and keybindings
+- VsCode Action Buttons extension
+- ESLint + Prettier
+- Nodemon for auto-reload
 
 ## Project Structure
 
@@ -55,6 +70,7 @@ ac-server-manager/
 ## Features Roadmap
 
 ### Phase 1: MVP (Weeks 1-2)
+
 - [ ] Basic server config editor
 - [ ] Track selection dropdown
 - [ ] Car selection (multi-select)
@@ -63,6 +79,7 @@ ac-server-manager/
 - [ ] Parse and write `entry_list.ini`
 
 ### Phase 2: Core Features (Weeks 3-4)
+
 - [ ] Entry list manager (add/remove drivers)
 - [ ] Auto-scan AC content folder for tracks/cars
 - [ ] Configuration presets (save/load)
@@ -70,6 +87,7 @@ ac-server-manager/
 - [ ] Server log viewer
 
 ### Phase 3: Advanced (Month 2)
+
 - [ ] Live session monitoring
 - [ ] Connected players list
 - [ ] Session timer/progress
@@ -77,6 +95,7 @@ ac-server-manager/
 - [ ] Basic statistics/leaderboards
 
 ### Phase 4: Polish (Month 3+)
+
 - [ ] User authentication
 - [ ] Multi-server support
 - [ ] Championship management
@@ -87,125 +106,123 @@ ac-server-manager/
 ## Development Setup
 
 ### Prerequisites
+
 - Node.js 18+ (LTS)
-- npm or yarn
+- npm
 - Git
 - Assetto Corsa dedicated server installed
-- Code editor (VS Code recommended)
+- VS Code (recommended)
 
 ### Initial Setup
 
-1. **Configure Assetto Corsa Path**
-   
-   The setup wizard will run on first launch and auto-detect your AC installation.
-   
-   ```bash
-   # Navigate to project
-   cd "C:\Users\brook\OneDrive\Documents\Claude Projects\AC Server Manager"
-   
-   # Install dependencies
+1. **Install Dependencies**
+
+   ```powershell
+   # Backend
    cd backend
    npm install
-   
-   cd ../frontend
+
+   # Frontend
+   cd ..\frontend
    npm install
    ```
 
-2. **Start Development Servers**
+2. **Configure Environment**
 
-   **Option A: Using convenience scripts (Recommended)**
-   ```powershell
-   # Clean start (kills old processes and starts fresh)
-   .\start.ps1 -CleanStart
-   
-   # Or normal start
-   .\start.ps1
-   
-   # To stop servers
-   .\stop.ps1
-   
-   # To clean up stuck processes
-   .\cleanup.ps1
+   Edit `backend\.env` with your Assetto Corsa paths:
+
+   ```env
+   AC_SERVER_PATH=C:/Program Files (x86)/Steam/steamapps/common/assettocorsa/server/acServer.exe
+   AC_SERVER_CONFIG_PATH=C:/Program Files (x86)/Steam/steamapps/common/assettocorsa/server/cfg/server_cfg.ini
+   AC_ENTRY_LIST_PATH=C:/Program Files (x86)/Steam/steamapps/common/assettocorsa/server/cfg/entry_list.ini
+   AC_CONTENT_PATH=C:/Program Files (x86)/Steam/steamapps/common/assettocorsa/content
    ```
 
-   **Option B: Manual start**
-   ```bash
+3. **Start Development**
+
+   **Option A: VS Code Status Bar Buttons (Easiest)**
+
+   Look at the bottom-right of VS Code for colored buttons:
+
+   - Click **🚀 Backend** to start backend
+   - Click **🎨 Frontend** to start frontend
+   - Click **🔄 Restart** to restart everything
+   - Click **🔴 Kill All** to stop all processes
+
+   **Option B: VS Code Tasks**
+
+   Press `Ctrl+Shift+P`, type "Run Task", select:
+
+   - `🚀 Start Both Services` - Start backend and frontend
+   - `🔴 Hard Reset - Kill All & Restart` - Full restart
+   - `🔴 Kill All Terminals & Processes` - Stop everything
+
+   **Option C: Manual**
+
+   ```powershell
    # Terminal 1: Backend
    cd backend
    npm run dev
-   
+
    # Terminal 2: Frontend
    cd frontend
    npm run dev
    ```
 
-3. **Access the Application**
-   - Frontend: http://localhost:5174
+4. **Access the Application**
+   - Frontend: http://localhost:5173
    - Backend API: http://localhost:3001
-   - API Health: http://localhost:3001/health
-
-### Development Scripts
-
-- `start.ps1` - Start both servers (use `-CleanStart` to cleanup first)
-- `stop.ps1` - Stop all development servers
-- `cleanup.ps1` - Kill stuck node processes and free up ports
+   - Health Check: http://localhost:3001/health
 
 ### Troubleshooting
 
-**Port conflicts or "EADDRINUSE" errors:**
+**Port conflicts:**
+Click the **🔴 Kill All** button in the status bar, then restart.
+
+**Processes won't stop:**
+
 ```powershell
-.\cleanup.ps1
-.\start.ps1
-```
-
-**Multiple terminal sessions causing issues:**
-1. Press `Ctrl+Shift+P` in VS Code
-2. Type "Terminal: Kill All Terminals"
-3. Press Enter
-4. Run `.\cleanup.ps1` then `.\start.ps1`
-
-**Backend crashes immediately:**
-- Check `backend/.env` for correct AC paths
-- Verify AC_CONTENT_PATH exists
-- Run `.\admin-reset.ps1` as Administrator if processes won't die
-
-**Quick Cleanup Commands:**
-```powershell
-# Kill all node processes and free ports
 Get-Process node,nodemon -EA SilentlyContinue | Stop-Process -Force
-
-# Close all VS Code terminals: Ctrl+Shift+P -> "Terminal: Kill All Terminals"
-
-# Or use VS Code tasks: Ctrl+Shift+P -> "Run Task" -> "🔴 Kill All Terminals & Processes"
 ```
+
+**Backend errors:**
+
+- Verify paths in `backend\.env`
+- Check `backend/error.log` for details
+- Ensure AC content folder exists
 
 ## API Endpoints (Planned)
 
 ### Server Control
+
 - `GET /api/server/status` - Get server status
 - `POST /api/server/start` - Start AC server
 - `POST /api/server/stop` - Stop AC server
 - `POST /api/server/restart` - Restart AC server
 
 ### Configuration
+
 - `GET /api/config` - Get current server config
 - `PUT /api/config` - Update server config
 - `GET /api/config/presets` - List saved presets
 - `POST /api/config/presets` - Save current config as preset
 
 ### Content
+
 - `GET /api/tracks` - List available tracks
 - `GET /api/cars` - List available cars
 - `GET /api/weather` - List weather presets
 - `POST /api/content/upload` - Upload new content
 
 ### Entry List
+
 - `GET /api/entries` - Get entry list
 - `POST /api/entries` - Add entry
 - `PUT /api/entries/:id` - Update entry
 - `DELETE /api/entries/:id` - Remove entry
 
 ### Monitoring
+
 - `GET /api/sessions/current` - Current session info
 - `GET /api/sessions/results` - Recent results
 - `GET /api/logs` - Server logs
@@ -214,7 +231,9 @@ Get-Process node,nodemon -EA SilentlyContinue | Stop-Process -Force
 ## AC Server Files Reference
 
 ### server_cfg.ini
+
 Main server configuration file containing:
+
 - Server name, password
 - Track, track config
 - Max clients
@@ -223,14 +242,18 @@ Main server configuration file containing:
 - Session types and durations
 
 ### entry_list.ini
+
 Driver/car assignments:
+
 - Driver name, GUID
 - Car model, skin
 - Ballast, restrictor
 - Pit box number
 
 ### Result Files (JSON)
+
 Session results in JSON format containing:
+
 - Laps, times, sectors
 - Driver info
 - Events (collisions, cuts, etc.)
@@ -238,16 +261,19 @@ Session results in JSON format containing:
 ## Learning Resources
 
 ### JavaScript/Node.js
+
 - [JavaScript.info](https://javascript.info/) - Modern JS tutorial
 - [Node.js Docs](https://nodejs.org/docs/) - Official docs
 - [Express Guide](https://expressjs.com/en/guide/routing.html) - Routing guide
 
 ### React
+
 - [React Docs](https://react.dev/) - Official React documentation
 - [React Tutorial](https://react.dev/learn) - Interactive tutorial
 - [Vite Guide](https://vitejs.dev/guide/) - Vite documentation
 
 ### Tools
+
 - [VS Code](https://code.visualstudio.com/) - Code editor
 - [Postman](https://www.postman.com/) - API testing
 - [React DevTools](https://react.dev/learn/react-developer-tools) - Browser extension
@@ -270,13 +296,24 @@ MIT License - Feel free to use, modify, and distribute.
 
 ## Development Notes
 
-**Current Status:** Project initialization
-**Last Updated:** November 29, 2025
-**Developer:** Brook
+**Code Quality:**
 
-**Next Steps:**
-1. Set up Node.js backend skeleton
-2. Set up React frontend skeleton
-3. Implement basic .ini file parser
-4. Create basic UI wireframes
-5. Implement server start/stop functionality
+- Memory leak fixes applied (backend event listeners, frontend polling)
+- isMountedRef pattern prevents state updates on unmounted components
+- AbortController for fetch cleanup
+- Comprehensive defaults for config initialization
+- Type conversion for INI string values
+
+**Development Tools:**
+
+- VS Code Action Buttons for easy server control
+- Tasks configured for common operations
+- AI development guidelines in `.cursorrules`
+- ESLint for code quality
+
+**Recent Changes:**
+
+- Added VS Code status bar control panel
+- Fixed memory leaks in serverService and frontend polling
+- Improved config state management with proper defaults
+- Added graceful shutdown handlers
