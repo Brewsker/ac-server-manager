@@ -92,15 +92,15 @@ function BookingSession({ config, updateConfigValue }) {
       <div className="flex items-center gap-4">
         <label className={`label whitespace-nowrap min-w-[5rem] ${!isEnabled ? 'opacity-50' : ''}`}>
           Time: <span className="font-semibold text-blue-600 dark:text-blue-400">
-            {String(Math.floor((config?.BOOKING?.TIME || 0) / 60)).padStart(2, '0')}:{String((config?.BOOKING?.TIME || 0) % 60).padStart(2, '0')}
+            {String(Math.floor((config?.BOOKING?.TIME || 10) / 60)).padStart(2, '0')}:{String((config?.BOOKING?.TIME || 10) % 60).padStart(2, '0')}
           </span>
         </label>
         <div className="flex-1 relative" style={{ top: '-7px' }}>
           <input
             type="range"
             className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            min="0"
-            max="600"
+            min="1"
+            max="90"
             value={config?.BOOKING?.TIME || 10}
             onChange={(e) => updateConfigValue('BOOKING', 'TIME', parseInt(e.target.value))}
             disabled={!isEnabled}
@@ -130,16 +130,16 @@ function PracticeSession({ config, updateConfigValue }) {
         <div className="flex items-center gap-4">
           <label className={`label whitespace-nowrap min-w-[5rem] ${!isEnabled ? 'opacity-50' : ''}`}>
             Time: <span className="font-semibold text-blue-600 dark:text-blue-400">
-              {String(Math.floor((config?.PRACTICE?.TIME || 0) / 60)).padStart(2, '0')}:{String((config?.PRACTICE?.TIME || 0) % 60).padStart(2, '0')}
+              {String(Math.floor((config?.PRACTICE?.TIME || 10) / 60)).padStart(2, '0')}:{String((config?.PRACTICE?.TIME || 10) % 60).padStart(2, '0')}
             </span>
           </label>
           <div className="flex-1 relative" style={{ top: '-7px' }}>
             <input
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              min="0"
-              max="600"
-              value={config?.PRACTICE?.TIME || 30}
+              min="1"
+              max="90"
+              value={config?.PRACTICE?.TIME || 10}
               onChange={(e) => updateConfigValue('PRACTICE', 'TIME', parseInt(e.target.value))}
               disabled={!isEnabled}
             />
@@ -180,16 +180,16 @@ function QualificationSession({ config, updateConfigValue }) {
         <div className="flex items-center gap-4">
           <label className={`label whitespace-nowrap min-w-[5rem] ${!isEnabled ? 'opacity-50' : ''}`}>
             Time: <span className="font-semibold text-blue-600 dark:text-blue-400">
-              {String(Math.floor((config?.QUALIFY?.TIME || 0) / 60)).padStart(2, '0')}:{String((config?.QUALIFY?.TIME || 0) % 60).padStart(2, '0')}
+              {String(Math.floor((config?.QUALIFY?.TIME || 10) / 60)).padStart(2, '0')}:{String((config?.QUALIFY?.TIME || 10) % 60).padStart(2, '0')}
             </span>
           </label>
           <div className="flex-1 relative" style={{ top: '-7px' }}>
             <input
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              min="0"
-              max="600"
-              value={config?.QUALIFY?.TIME || 15}
+              min="1"
+              max="90"
+              value={config?.QUALIFY?.TIME || 10}
               onChange={(e) => updateConfigValue('QUALIFY', 'TIME', parseInt(e.target.value))}
               disabled={!isEnabled}
             />
@@ -215,7 +215,7 @@ function QualificationSession({ config, updateConfigValue }) {
             <input
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              min="0"
+              min="100"
               max="200"
               value={config?.QUALIFY?.QUALIFY_MAX_WAIT_PERC || 120}
               onChange={(e) => updateConfigValue('QUALIFY', 'QUALIFY_MAX_WAIT_PERC', parseInt(e.target.value))}

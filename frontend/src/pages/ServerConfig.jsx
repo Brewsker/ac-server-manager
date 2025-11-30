@@ -228,12 +228,12 @@ function ServerConfig() {
         },
         PRACTICE: {
           IS_OPEN: 1,
-          TIME: 30,
+          TIME: 10,
           CAN_JOIN: 1,
         },
         QUALIFY: {
           IS_OPEN: 1,
-          TIME: 15,
+          TIME: 10,
           CAN_JOIN: 1,
           QUALIFY_MAX_WAIT_PERC: 120,
         },
