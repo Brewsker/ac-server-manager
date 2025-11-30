@@ -1,6 +1,31 @@
 import React from 'react';
 
-export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults }) {
+export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults, selectedCars, cars }) {
+  // Extract unique tyres from selected cars
+  // For now, show common AC tyre types as placeholder
+  // TODO: Parse car data.acd or tyres.ini to get actual tyre compounds
+  const availableTyres = [
+    { code: 'H', label: '[H] Hard GP70', info: 'Ferrari 312T' },
+    { code: 'S', label: '[S] Soft GP70', info: 'Ferrari 312T' },
+    { code: 'SM', label: '[SM] Semislick', info: 'BMW M3 E30 and KTM X-Bow R' },
+    { code: 'ST', label: '[ST] Street', info: 'BMW M3 E30' },
+    { code: 'SV', label: '[SV] Street 90s', info: 'BMW M3 E30' },
+  ];
+
+  const selectedTyres = config?.SERVER?.LEGAL_TYRES?.split(';').filter(t => t) || [];
+
+  const toggleTyre = (tyreCode) => {
+    let currentTyres = [...selectedTyres];
+    
+    if (currentTyres.includes(tyreCode)) {
+      currentTyres = currentTyres.filter(t => t !== tyreCode);
+    } else {
+      currentTyres.push(tyreCode);
+    }
+    
+    updateConfigValue('SERVER', 'LEGAL_TYRES', currentTyres.join(';'));
+  };
+
   return (
     <>
       <div className="flex justify-end mb-6">
@@ -23,18 +48,23 @@ export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Select allowed tire types (leave empty to allow all)
               </p>
-              {/* Tire checkboxes would go here - placeholder for now */}
-              <div className="grid grid-cols-2 gap-3">
-                {['Street', 'Semislick', 'ST'].map((tire) => (
-                  <label key={tire} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 text-blue-600"
-                      checked={false}
-                    />
-                    <span className="text-gray-900 dark:text-gray-100">{tire}</span>
-                  </label>
-                ))}
+              <div className="space-y-2">
+                {availableTyres.map((tyre) => {
+                  return (
+                    <div key={tyre.code}>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-blue-600"
+                          checked={selectedTyres.includes(tyre.code)}
+                          onChange={() => toggleTyre(tyre.code)}
+                        />
+                        <span className="text-gray-900 dark:text-gray-100">{tyre.label}</span>
+                      </label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">{tyre.info}</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

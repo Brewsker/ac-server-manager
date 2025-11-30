@@ -23,11 +23,20 @@ function ServerConfig() {
   const [showLoadActiveModal, setShowLoadActiveModal] = useState(false);
   const [showCarModal, setShowCarModal] = useState(false);
   const [showTrackModal, setShowTrackModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('MAIN');
   const [showPassword, setShowPassword] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [showCspOptionsModal, setShowCspOptionsModal] = useState(false);
   const [cspOptionsInput, setCspOptionsInput] = useState('');
+
+  // Initialize activeTab from localStorage or default to 'MAIN'
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('serverConfigActiveTab') || 'MAIN';
+  });
+
+  // Save activeTab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('serverConfigActiveTab', activeTab);
+  }, [activeTab]);
 
   const tabs = [
     { id: 'MAIN', label: 'Main', icon: '⚙️' },
@@ -260,6 +269,7 @@ function ServerConfig() {
           AUTH_PLUGIN_ADDRESS: '',
           USE_CM_AS_PLUGIN: 0,
           WEB_LINK: '',
+          LEGAL_TYRES: '',
         },
         FTP: {
           HOST: '',
@@ -480,6 +490,8 @@ function ServerConfig() {
             config={config} 
             updateConfigValue={updateConfigValue} 
             loadTabDefaults={loadTabDefaults}
+            selectedCars={selectedCars}
+            cars={cars}
           />
         )}
 
