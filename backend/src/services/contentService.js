@@ -1,10 +1,36 @@
 import fs from 'fs/promises';
 import path from 'path';
 
+// In-memory cache
+const cache = {
+  tracks: null,
+  cars: null,
+  tracksTimestamp: null,
+  carsTimestamp: null
+};
+
+/**
+ * Clear the content cache
+ */
+export function clearCache() {
+  cache.tracks = null;
+  cache.cars = null;
+  cache.tracksTimestamp = null;
+  cache.carsTimestamp = null;
+  console.log('[contentService] Cache cleared');
+}
+
 /**
  * Scan and return available tracks
  */
 export async function getTracks() {
+  // Return cached data if available
+  if (cache.tracks) {
+    console.log('[getTracks] Returning cached tracks');
+    return cache.tracks;
+  }
+
+  console.log('[getTracks] Cache miss, scanning filesystem');
   const acContentPath = process.env.AC_CONTENT_PATH;
   if (!acContentPath) {
     throw new Error('AC_CONTENT_PATH not configured in .env');
@@ -100,6 +126,11 @@ export async function getTracks() {
       }
     }
 
+    // Cache the results
+    cache.tracks = tracks;
+    cache.tracksTimestamp = new Date().toISOString();
+    console.log(`[getTracks] Cached ${tracks.length} tracks`);
+
     return tracks;
   } catch (error) {
     if (error.code === 'ENOENT') {
@@ -113,6 +144,13 @@ export async function getTracks() {
  * Scan and return available cars
  */
 export async function getCars() {
+  // Return cached data if available
+  if (cache.cars) {
+    console.log('[getCars] Returning cached cars');
+    return cache.cars;
+  }
+
+  console.log('[getCars] Cache miss, scanning filesystem');
   console.log('[getCars] Starting...');
   const acContentPath = process.env.AC_CONTENT_PATH;
   console.log('[getCars] AC_CONTENT_PATH:', acContentPath);
@@ -143,6 +181,9 @@ export async function getCars() {
       }
     }
 
+    // Cache the results
+    cache.cars = cars;
+    cache.carsTimestamp = new Date().toISOString();
     console.log('[getCars] Returning', cars.length, 'cars');
     return cars;
   } catch (error) {

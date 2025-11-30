@@ -45,6 +45,16 @@ router.post('/scan', async (req, res, next) => {
   }
 });
 
+// Clear content cache
+router.post('/clear-cache', (req, res) => {
+  try {
+    contentService.clearCache();
+    res.json({ success: true, message: 'Content cache cleared' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Serve track preview image
 router.get('/track-preview/:trackId', (req, res) => {
   const acContentPath = process.env.AC_CONTENT_PATH;
