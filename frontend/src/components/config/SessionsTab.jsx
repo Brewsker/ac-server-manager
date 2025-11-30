@@ -277,7 +277,7 @@ function RaceSession({ config, updateConfigValue }) {
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 min="1"
-                max="100"
+                max="120"
                 value={config?.RACE?.LAPS || 5}
                 onChange={(e) => updateConfigValue('RACE', 'LAPS', parseInt(e.target.value))}
                 disabled={!isEnabled}
@@ -309,15 +309,15 @@ function RaceSession({ config, updateConfigValue }) {
         <div className="flex items-center gap-4">
           <label className={`label whitespace-nowrap min-w-[5rem] text-sm ${!isEnabled ? 'opacity-50' : ''}`}>
             Initial delay: <span className="font-semibold text-blue-600 dark:text-blue-400">
-              {String(Math.floor((config?.RACE?.WAIT_TIME || 0) / 60)).padStart(2, '0')}:{String((config?.RACE?.WAIT_TIME || 0) % 60).padStart(2, '0')}
+              {String(Math.floor((config?.RACE?.WAIT_TIME || 60) / 60)).padStart(2, '0')}:{String((config?.RACE?.WAIT_TIME || 60) % 60).padStart(2, '0')}
             </span>
           </label>
           <div className="flex-1 relative" style={{ top: '-7px' }}>
             <input
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              min="0"
-              max="180"
+              min="1"
+              max="120"
               value={config?.RACE?.WAIT_TIME || 60}
               onChange={(e) => updateConfigValue('RACE', 'WAIT_TIME', parseInt(e.target.value))}
               disabled={!isEnabled}
@@ -328,7 +328,7 @@ function RaceSession({ config, updateConfigValue }) {
         <div className="flex items-center gap-4">
           <label className={`label whitespace-nowrap min-w-[5rem] text-sm ${!isEnabled ? 'opacity-50' : ''}`}>
             Race over: <span className="font-semibold text-blue-600 dark:text-blue-400">
-              {String(Math.floor((config?.SERVER?.RACE_OVER_TIME || 0) / 60)).padStart(2, '0')}:{String((config?.SERVER?.RACE_OVER_TIME || 0) % 60).padStart(2, '0')}
+              {String(Math.floor((config?.SERVER?.RACE_OVER_TIME || 180) / 60)).padStart(2, '0')}:{String((config?.SERVER?.RACE_OVER_TIME || 180) % 60).padStart(2, '0')}
             </span>
           </label>
           <div className="flex-1 relative" style={{ top: '-7px' }}>
@@ -347,7 +347,7 @@ function RaceSession({ config, updateConfigValue }) {
         <div className="flex items-center gap-4">
           <label className={`label whitespace-nowrap min-w-[5rem] text-sm ${!isEnabled ? 'opacity-50' : ''}`}>
             Result screen: <span className="font-semibold text-blue-600 dark:text-blue-400">
-              {String(Math.floor((config?.RACE?.RESULT_SCREEN_TIME || 0) / 60)).padStart(2, '0')}:{String((config?.RACE?.RESULT_SCREEN_TIME || 0) % 60).padStart(2, '0')}
+              {String(Math.floor((config?.RACE?.RESULT_SCREEN_TIME || 60) / 60)).padStart(2, '0')}:{String((config?.RACE?.RESULT_SCREEN_TIME || 60) % 60).padStart(2, '0')}
             </span>
           </label>
           <div className="flex-1 relative" style={{ top: '-7px' }}>
@@ -355,7 +355,7 @@ function RaceSession({ config, updateConfigValue }) {
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
               min="0"
-              max="180"
+              max="120"
               value={config?.RACE?.RESULT_SCREEN_TIME || 60}
               onChange={(e) => updateConfigValue('RACE', 'RESULT_SCREEN_TIME', parseInt(e.target.value))}
               disabled={!isEnabled}
@@ -372,9 +372,9 @@ function RaceSession({ config, updateConfigValue }) {
             onChange={(e) => updateConfigValue('RACE', 'RACE_JOIN_TYPE', parseInt(e.target.value))}
             disabled={!isEnabled}
           >
-            <option value={0}>Open</option>
             <option value={1}>Closed</option>
-            <option value={2}>Free Join</option>
+            <option value={0}>Open</option>
+            <option value={2}>Close at start</option>
           </select>
         </div>
 
@@ -423,20 +423,16 @@ function RaceSession({ config, updateConfigValue }) {
 
         {/* Reversed Grid */}
         <div className="flex items-center gap-4">
-          <label className={`label whitespace-nowrap min-w-[5rem] text-sm ${!isEnabled ? 'opacity-50' : ''}`}>
-            Reversed grid: <span className="font-semibold text-blue-600 dark:text-blue-400">{config?.RACE?.REVERSED_GRID_RACE_POSITIONS || 0}</span>
-          </label>
-          <div className="flex-1 relative" style={{ top: '-7px' }}>
+          <label className={`flex items-center gap-2 cursor-pointer ${!isEnabled ? 'opacity-50' : ''}`}>
             <input
-              type="range"
-              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              min="0"
-              max="40"
-              value={config?.RACE?.REVERSED_GRID_RACE_POSITIONS || 0}
-              onChange={(e) => updateConfigValue('RACE', 'REVERSED_GRID_RACE_POSITIONS', parseInt(e.target.value))}
+              type="checkbox"
+              className="w-4 h-4 text-blue-600"
+              checked={config?.RACE?.REVERSED_GRID_RACE_POSITIONS === -1}
+              onChange={(e) => updateConfigValue('RACE', 'REVERSED_GRID_RACE_POSITIONS', e.target.checked ? -1 : 0)}
               disabled={!isEnabled}
             />
-          </div>
+            <span className="text-gray-900 dark:text-gray-100 text-sm">Reversed grid</span>
+          </label>
         </div>
       </div>
     </div>
