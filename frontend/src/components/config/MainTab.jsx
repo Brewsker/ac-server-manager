@@ -102,8 +102,8 @@ export default function MainTab({
                   <input
                     type="range"
                     className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                    min="1"
-                    max="24"
+                    min="2"
+                    max="18"
                     value={config?.SERVER?.MAX_CLIENTS || 18}
                     onChange={(e) => updateConfigValue('SERVER', 'MAX_CLIENTS', parseInt(e.target.value))}
                   />
@@ -123,7 +123,7 @@ export default function MainTab({
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <label className="label whitespace-nowrap min-w-[10rem]">Password:</label>
-                <div className="relative flex-1">
+                <div className="relative flex-1" style={{ top: '-4px' }}>
                   <input
                     type={showPassword ? "text" : "password"}
                     className="input pr-10 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 w-full"
@@ -143,7 +143,7 @@ export default function MainTab({
 
               <div className="flex items-center gap-4">
                 <label className="label whitespace-nowrap min-w-[10rem]">Admin password:</label>
-                <div className="relative flex-1">
+                <div className="relative flex-1" style={{ top: '-4px' }}>
                   <input
                     type={showAdminPassword ? "text" : "password"}
                     className="input pr-10 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 w-full"
@@ -183,7 +183,7 @@ export default function MainTab({
 
               <div className="flex items-center gap-4">
                 <label className="label whitespace-nowrap min-w-[10rem]">Welcome msg file:</label>
-                <div className="flex gap-2 flex-1">
+                <div className="flex gap-2 flex-1" style={{ top: '-4px', position: 'relative' }}>
                   <input
                     type="text"
                     className="input flex-1 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500"
@@ -225,6 +225,7 @@ export default function MainTab({
                 <input
                   type="number"
                   className="input bg-gray-800 border-gray-700 text-gray-100 flex-1"
+                  style={{ position: 'relative', top: '-4px' }}
                   value={config?.SERVER?.UDP_PORT || 9600}
                   onChange={(e) => updateConfigValue('SERVER', 'UDP_PORT', parseInt(e.target.value))}
                 />
@@ -235,6 +236,7 @@ export default function MainTab({
                 <input
                   type="number"
                   className="input bg-gray-800 border-gray-700 text-gray-100 flex-1"
+                  style={{ position: 'relative', top: '-4px' }}
                   value={config?.SERVER?.TCP_PORT || 9600}
                   onChange={(e) => updateConfigValue('SERVER', 'TCP_PORT', parseInt(e.target.value))}
                 />
@@ -245,6 +247,7 @@ export default function MainTab({
                 <input
                   type="number"
                   className="input bg-gray-800 border-gray-700 text-gray-100 flex-1"
+                  style={{ position: 'relative', top: '-4px' }}
                   value={config?.SERVER?.HTTP_PORT || 8081}
                   onChange={(e) => updateConfigValue('SERVER', 'HTTP_PORT', parseInt(e.target.value))}
                 />
@@ -259,7 +262,7 @@ export default function MainTab({
                     type="range"
                     className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                     min="10"
-                    max="35"
+                    max="60"
                     value={config?.SERVER?.CLIENT_SEND_INTERVAL_HZ || 18}
                     onChange={(e) => updateConfigValue('SERVER', 'CLIENT_SEND_INTERVAL_HZ', parseInt(e.target.value))}
                   />
@@ -287,6 +290,7 @@ export default function MainTab({
                 <input
                   type="text"
                   className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 flex-1"
+                  style={{ position: 'relative', top: '-4px' }}
                   placeholder="None"
                   value={config?.SERVER?.WELCOME_MESSAGE || ''}
                   onChange={(e) => updateConfigValue('SERVER', 'WELCOME_MESSAGE', e.target.value)}
@@ -334,13 +338,15 @@ export default function MainTab({
                 <input
                   type="number"
                   className="input bg-gray-800 border-gray-700 text-gray-100"
-                  style={{ width: '100px' }}
+                  style={{ width: '100px', position: 'relative', top: '-4px' }}
                   value={config?.SERVER?.CSP_MINIMUM_VERSION || 1061}
                   onChange={(e) => updateConfigValue('SERVER', 'CSP_MINIMUM_VERSION', parseInt(e.target.value))}
                 />
+                <div style={{ width: '50px' }}></div>
                 <button
                   type="button"
-                  className="px-3 py-2 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors text-sm whitespace-nowrap"
+                  className="px-3 py-1.5 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors text-xs whitespace-nowrap"
+                  style={{ position: 'relative', top: '-4px' }}
                 >
                   Auto-fill
                 </button>
