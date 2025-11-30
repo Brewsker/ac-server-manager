@@ -1,15 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/client';
 import { useKeyboardNav } from '../hooks/useKeyboardNav';
-import CarSelectionModal from '../components/CarSelectionModal';
-import TrackSelectionModal from '../components/TrackSelectionModal';
-import MainTab from '../components/config/MainTab';
-import RulesTab from '../components/config/RulesTab';
-import ConditionsTab from '../components/config/ConditionsTab';
-import SessionsTab from '../components/config/SessionsTab';
-import AdvancedTab from '../components/config/AdvancedTab';
-import EntryListTab from '../components/config/EntryListTab';
+
+// Lazy load heavy components
+const CarSelectionModal = lazy(() => import('../components/CarSelectionModal'));
+const TrackSelectionModal = lazy(() => import('../components/TrackSelectionModal'));
+const MainTab = lazy(() => import('../components/config/MainTab'));
+const RulesTab = lazy(() => import('../components/config/RulesTab'));
+const ConditionsTab = lazy(() => import('../components/config/ConditionsTab'));
+const SessionsTab = lazy(() => import('../components/config/SessionsTab'));
+const AdvancedTab = lazy(() => import('../components/config/AdvancedTab'));
+const EntryListTab = lazy(() => import('../components/config/EntryListTab'));
 
 function ServerConfig() {
   const navigate = useNavigate();
@@ -469,129 +471,133 @@ function ServerConfig() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Tab Content */}
-        {ui.activeTab === 'MAIN' && (
-          <MainTab
-            config={data.config}
-            updateConfigValue={updateConfigValue}
-            loadTabDefaults={loadTabDefaults}
-            loadAllDefaults={loadAllDefaults}
-            setShowTrackModal={(show) => updateModals({ showTrack: show })}
-            setActiveTab={(tab) => updateUi({ activeTab: tab })}
-            getSelectedTrackName={getSelectedTrackName}
-            selectedCars={data.selectedCars}
-            cars={data.cars}
-            getCarPreviewUrl={getCarPreviewUrl}
-            showPassword={ui.showPassword}
-            setShowPassword={(show) => updateUi({ showPassword: show })}
-            showAdminPassword={ui.showAdminPassword}
-            setShowAdminPassword={(show) => updateUi({ showAdminPassword: show })}
-            setShowCspOptionsModal={(show) => updateModals({ showCspOptions: show })}
-          />
-        )}
+        <Suspense fallback={<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center text-gray-500 dark:text-gray-400">Loading...</div>}>
+          {ui.activeTab === 'MAIN' && (
+            <MainTab
+              config={data.config}
+              updateConfigValue={updateConfigValue}
+              loadTabDefaults={loadTabDefaults}
+              loadAllDefaults={loadAllDefaults}
+              setShowTrackModal={(show) => updateModals({ showTrack: show })}
+              setActiveTab={(tab) => updateUi({ activeTab: tab })}
+              getSelectedTrackName={getSelectedTrackName}
+              selectedCars={data.selectedCars}
+              cars={data.cars}
+              getCarPreviewUrl={getCarPreviewUrl}
+              showPassword={ui.showPassword}
+              setShowPassword={(show) => updateUi({ showPassword: show })}
+              showAdminPassword={ui.showAdminPassword}
+              setShowAdminPassword={(show) => updateUi({ showAdminPassword: show })}
+              setShowCspOptionsModal={(show) => updateModals({ showCspOptions: show })}
+            />
+          )}
 
-        {ui.activeTab === 'ENTRY_LIST' && (
-          <EntryListTab
-            config={data.config}
-            updateConfigValue={updateConfigValue}
-            cars={data.cars}
-            selectedCars={data.selectedCars}
-            setShowCarModal={(show) => updateModals({ showCar: show })}
-          />
-        )}
+          {ui.activeTab === 'ENTRY_LIST' && (
+            <EntryListTab
+              config={data.config}
+              updateConfigValue={updateConfigValue}
+              cars={data.cars}
+              selectedCars={data.selectedCars}
+              setShowCarModal={(show) => updateModals({ showCar: show })}
+            />
+          )}
 
-        {ui.activeTab === 'RULES' && (
-          <RulesTab
-            config={data.config}
-            updateConfigValue={updateConfigValue}
-            loadTabDefaults={loadTabDefaults}
-          />
-        )}
+          {ui.activeTab === 'RULES' && (
+            <RulesTab
+              config={data.config}
+              updateConfigValue={updateConfigValue}
+              loadTabDefaults={loadTabDefaults}
+            />
+          )}
 
-        {ui.activeTab === 'CONDITIONS' && (
-          <ConditionsTab
-            config={data.config}
-            updateConfigValue={updateConfigValue}
-            loadTabDefaults={loadTabDefaults}
-          />
-        )}
+          {ui.activeTab === 'CONDITIONS' && (
+            <ConditionsTab
+              config={data.config}
+              updateConfigValue={updateConfigValue}
+              loadTabDefaults={loadTabDefaults}
+            />
+          )}
 
-        {ui.activeTab === 'SESSIONS' && (
-          <SessionsTab
-            config={data.config}
-            updateConfigValue={updateConfigValue}
-            loadTabDefaults={loadTabDefaults}
-          />
-        )}
+          {ui.activeTab === 'SESSIONS' && (
+            <SessionsTab
+              config={data.config}
+              updateConfigValue={updateConfigValue}
+              loadTabDefaults={loadTabDefaults}
+            />
+          )}
 
-        {ui.activeTab === 'ADVANCED' && (
-          <AdvancedTab
-            config={data.config}
-            updateConfigValue={updateConfigValue}
-            loadTabDefaults={loadTabDefaults}
-            selectedCars={data.selectedCars}
-            cars={data.cars}
-          />
-        )}
+          {ui.activeTab === 'ADVANCED' && (
+            <AdvancedTab
+              config={data.config}
+              updateConfigValue={updateConfigValue}
+              loadTabDefaults={loadTabDefaults}
+              selectedCars={data.selectedCars}
+              cars={data.cars}
+            />
+          )}
 
-        {ui.activeTab === 'DETAILS' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <p className="text-gray-500 dark:text-gray-400">Server details coming soon...</p>
-          </div>
-        )}
+          {ui.activeTab === 'DETAILS' && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <p className="text-gray-500 dark:text-gray-400">Server details coming soon...</p>
+            </div>
+          )}
+        </Suspense>
       </form>
 
       {/* Modals */}
-      {modals.showLoadActive && (
-        <ConfirmModal
-          title="Load Active Configuration"
-          message="This will replace your current working configuration with the server's active configuration. Any unsaved changes will be lost."
-          onConfirm={handleLoadActiveConfig}
-          onClose={() => updateModals({ showLoadActive: false })}
-        />
-      )}
+      <Suspense fallback={null}>
+        {modals.showLoadActive && (
+          <ConfirmModal
+            title="Load Active Configuration"
+            message="This will replace your current working configuration with the server's active configuration. Any unsaved changes will be lost."
+            onConfirm={handleLoadActiveConfig}
+            onClose={() => updateModals({ showLoadActive: false })}
+          />
+        )}
 
-      {modals.showSave && (
-        <SavePresetModal
-          presetName={ui.presetName}
-          setPresetName={(name) => updateUi({ presetName: name })}
-          onConfirm={confirmSavePreset}
-          onClose={() => {
-            updateModals({ showSave: false });
-            updateUi({ presetName: '' });
-          }}
-        />
-      )}
+        {modals.showSave && (
+          <SavePresetModal
+            presetName={ui.presetName}
+            setPresetName={(name) => updateUi({ presetName: name })}
+            onConfirm={confirmSavePreset}
+            onClose={() => {
+              updateModals({ showSave: false });
+              updateUi({ presetName: '' });
+            }}
+          />
+        )}
 
-      {modals.showCar && (
-        <CarSelectionModal
-          cars={data.cars}
-          selectedCars={data.selectedCars}
-          onConfirm={confirmCarSelection}
-          onClose={() => updateModals({ showCar: false })}
-          getCarPreviewUrl={getCarPreviewUrl}
-        />
-      )}
+        {modals.showCar && (
+          <CarSelectionModal
+            cars={data.cars}
+            selectedCars={data.selectedCars}
+            onConfirm={confirmCarSelection}
+            onClose={() => updateModals({ showCar: false })}
+            getCarPreviewUrl={getCarPreviewUrl}
+          />
+        )}
 
-      {modals.showTrack && (
-        <TrackSelectionModal
-          tracks={data.tracks}
-          selectedTrack={data.config?.SERVER?.TRACK}
-          onConfirm={confirmTrackSelection}
-          onClose={() => updateModals({ showTrack: false })}
-          getTrackPreviewUrl={getTrackPreviewUrl}
-        />
-      )}
+        {modals.showTrack && (
+          <TrackSelectionModal
+            tracks={data.tracks}
+            selectedTrack={data.config?.SERVER?.TRACK}
+            onConfirm={confirmTrackSelection}
+            onClose={() => updateModals({ showTrack: false })}
+            getTrackPreviewUrl={getTrackPreviewUrl}
+          />
+        )}
 
-      {modals.showCspOptions && (
-        <CspOptionsModal
-          currentValue={data.config?.SERVER?.CSP_EXTRA_OPTIONS || ''}
-          onConfirm={(value) => {
-            updateConfigValue('SERVER', 'CSP_EXTRA_OPTIONS', value);
-            updateModals({ showCspOptions: false });
-          }}
-          onClose={() => updateModals({ showCspOptions: false })}
-        />
-      )}
+        {modals.showCspOptions && (
+          <CspOptionsModal
+            currentValue={data.config?.SERVER?.CSP_EXTRA_OPTIONS || ''}
+            onConfirm={(value) => {
+              updateConfigValue('SERVER', 'CSP_EXTRA_OPTIONS', value);
+              updateModals({ showCspOptions: false });
+            }}
+            onClose={() => updateModals({ showCspOptions: false })}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }
