@@ -17,6 +17,20 @@ export default function MainTab({
   setShowAdminPassword,
   setShowCspOptionsModal
 }) {
+  // Calculate bandwidth based on client count
+  // Data points from Content Manager:
+  // 2 clients: 0.01, 5 clients: 0.14, 10 clients: 0.62, 14 clients: 1.26, 18 clients: 2.12
+  // This appears to follow a quadratic curve
+  const calculateBandwidth = (clients) => {
+    // Using quadratic regression: bandwidth ≈ a*clients² + b*clients + c
+    // Fitted coefficients for the curve
+    const a = 0.00656;
+    const b = 0.00625;
+    const c = -0.0175;
+    const bandwidth = a * clients * clients + b * clients + c;
+    return Math.max(0.01, bandwidth).toFixed(2);
+  };
+
   return (
     <>
       <div className="flex justify-end gap-3 mb-6">
@@ -121,7 +135,7 @@ export default function MainTab({
                 Maximum number of clients is limited by track's {config?.SERVER?.TRACK ? '18' : 'XX'} pits
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Approximate upload bandwidth required: 2.12 Mbit/s
+                Approximate upload bandwidth required: {calculateBandwidth(config?.SERVER?.MAX_CLIENTS || 18)} Mbit/s
               </p>
             </div>
           </div>
