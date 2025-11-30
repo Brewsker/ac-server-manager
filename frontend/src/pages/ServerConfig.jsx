@@ -171,7 +171,7 @@ function ServerConfig() {
           STABILITY_ALLOWED: 0,
           AUTOCLUTCH_ALLOWED: 0,
           TYRE_BLANKETS_ALLOWED: 0,
-          FORCE_VIRTUAL_MIRROR: 0,
+          FORCE_VIRTUAL_MIRROR: 1,
           FUEL_RATE: 100,
           DAMAGE_MULTIPLIER: 100,
           TYRE_WEAR_RATE: 100,
