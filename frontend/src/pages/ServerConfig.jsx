@@ -59,6 +59,8 @@ function ServerConfig() {
           SUN_ANGLE: configData?.SERVER?.SUN_ANGLE ?? 960,
           TIME_OF_DAY_MULT: configData?.SERVER?.TIME_OF_DAY_MULT ?? 1,
           REGISTER_TO_LOBBY: configData?.SERVER?.REGISTER_TO_LOBBY ?? 1,
+          ADMIN_PASSWORD: configData?.SERVER?.ADMIN_PASSWORD ?? 'mypassword',
+          MAX_CLIENTS: configData?.SERVER?.MAX_CLIENTS ?? 18,
         },
         DYNAMIC_TRACK: {
           ...configData?.DYNAMIC_TRACK,
@@ -165,9 +167,9 @@ function ServerConfig() {
     return {
       MAIN: {
         SERVER: {
-          MAX_CLIENTS: 24,
+          MAX_CLIENTS: 18,
           PASSWORD: '',
-          ADMIN_PASSWORD: '',
+          ADMIN_PASSWORD: 'mypassword',
           UDP_PORT: 9600,
           TCP_PORT: 9600,
           HTTP_PORT: 8081,
