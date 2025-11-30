@@ -1,0 +1,31 @@
+{
+  "name": "ac-server-manager-backend",
+  "version": "0.1.0",
+  "description": "Backend API for AC Server Manager",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "assetto-corsa",
+    "server-manager",
+    "api"
+  ],
+  "author": "Brook",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "ini": "^4.1.1",
+    "sqlite3": "^5.1.6",
+    "uuid": "^13.0.0",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
