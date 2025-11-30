@@ -51,11 +51,29 @@ function ServerConfig() {
         api.getCars(),
       ]);
       
-      setConfig(configData);
+      // Ensure all sections exist in config with defaults if backend values missing
+      const normalizedConfig = {
+        ...configData,
+        SERVER: {
+          ...configData?.SERVER,
+          SUN_ANGLE: configData?.SERVER?.SUN_ANGLE ?? 960,
+          TIME_OF_DAY_MULT: configData?.SERVER?.TIME_OF_DAY_MULT ?? 1,
+        },
+        DYNAMIC_TRACK: {
+          ...configData?.DYNAMIC_TRACK,
+          SESSION_START: configData?.DYNAMIC_TRACK?.SESSION_START ?? 95,
+          RANDOMNESS: configData?.DYNAMIC_TRACK?.RANDOMNESS ?? 2,
+          SESSION_TRANSFER: configData?.DYNAMIC_TRACK?.SESSION_TRANSFER ?? 90,
+          LAP_GAIN: configData?.DYNAMIC_TRACK?.LAP_GAIN ?? 10,
+        },
+        WEATHER_0: configData?.WEATHER_0 || {},
+      };
+      
+      setConfig(normalizedConfig);
       setTracks(tracksData);
       setCars(carsData);
       
-      const carsInConfig = configData?.SERVER?.CARS || '';
+      const carsInConfig = normalizedConfig?.SERVER?.CARS || '';
       if (typeof carsInConfig === 'string') {
         setSelectedCars(carsInConfig.split(';').filter(c => c.trim()));
       } else if (Array.isArray(carsInConfig)) {
@@ -187,8 +205,8 @@ function ServerConfig() {
       },
       CONDITIONS: {
         SERVER: {
-          TIME_OF_DAY_MULT: 16,
-          TIME_MULT: 1,
+          SUN_ANGLE: 960,
+          TIME_OF_DAY_MULT: 1,
         },
         DYNAMIC_TRACK: {
           SESSION_START: 95,
@@ -235,6 +253,7 @@ function ServerConfig() {
 
     const tabDefaults = defaults[tabId];
     if (tabDefaults) {
+      console.log('[loadTabDefaults] Loading defaults for tab:', tabId, tabDefaults);
       setConfig(prev => {
         const updated = { ...prev };
         Object.keys(tabDefaults).forEach(section => {
@@ -243,6 +262,7 @@ function ServerConfig() {
             ...tabDefaults[section]
           };
         });
+        console.log('[loadTabDefaults] Updated config:', updated);
         return updated;
       });
     }
