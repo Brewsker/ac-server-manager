@@ -235,8 +235,8 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
               <input
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                min="0"
-                max="100"
+                min="40"
+                max="90"
                 value={config?.SERVER?.KICK_QUORUM || 85}
                 onChange={(e) => updateConfigValue('SERVER', 'KICK_QUORUM', parseInt(e.target.value))}
               />
@@ -252,8 +252,8 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
               <input
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                min="0"
-                max="100"
+                min="40"
+                max="90"
                 value={config?.SERVER?.VOTING_QUORUM || 80}
                 onChange={(e) => updateConfigValue('SERVER', 'VOTING_QUORUM', parseInt(e.target.value))}
               />
@@ -270,7 +270,7 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 min="10"
-                max="120"
+                max="60"
                 value={config?.SERVER?.VOTE_DURATION || 20}
                 onChange={(e) => updateConfigValue('SERVER', 'VOTE_DURATION', parseInt(e.target.value))}
               />
@@ -291,15 +291,15 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
           {/* Max contacts per km slider */}
           <div className="flex items-center gap-4">
             <label className="label whitespace-nowrap min-w-[10rem]">
-              Max contact/s per km: <span className="font-semibold text-blue-600 dark:text-blue-400">{config?.SERVER?.MAX_CONTACTS_PER_KM === -1 ? 'Off' : config?.SERVER?.MAX_CONTACTS_PER_KM || 0}</span>
+              Max contact/s per km: <span className="font-semibold text-blue-600 dark:text-blue-400">{config?.SERVER?.MAX_CONTACTS_PER_KM === -1 ? 'Off' : config?.SERVER?.MAX_CONTACTS_PER_KM || 'Off'}</span>
             </label>
             <div className="flex-1 relative" style={{ top: '-7px' }}>
               <input
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 min="-1"
-                max="100"
-                value={config?.SERVER?.MAX_CONTACTS_PER_KM || -1}
+                max="9"
+                value={config?.SERVER?.MAX_CONTACTS_PER_KM ?? -1}
                 onChange={(e) => updateConfigValue('SERVER', 'MAX_CONTACTS_PER_KM', parseInt(e.target.value))}
               />
             </div>
