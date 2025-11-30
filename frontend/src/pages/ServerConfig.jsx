@@ -58,6 +58,7 @@ function ServerConfig() {
           ...configData?.SERVER,
           SUN_ANGLE: configData?.SERVER?.SUN_ANGLE ?? 960,
           TIME_OF_DAY_MULT: configData?.SERVER?.TIME_OF_DAY_MULT ?? 1,
+          REGISTER_TO_LOBBY: configData?.SERVER?.REGISTER_TO_LOBBY ?? 1,
         },
         DYNAMIC_TRACK: {
           ...configData?.DYNAMIC_TRACK,

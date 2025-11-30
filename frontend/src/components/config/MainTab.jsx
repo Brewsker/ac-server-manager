@@ -199,11 +199,23 @@ export default function MainTab({
                     onChange={(e) => updateConfigValue('SERVER', 'WELCOME_FILE', e.target.value)}
                     placeholder="None"
                   />
+                  <input
+                    type="file"
+                    id="welcomeFileInput"
+                    className="hidden"
+                    accept=".txt"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        updateConfigValue('SERVER', 'WELCOME_FILE', e.target.files[0].name);
+                      }
+                    }}
+                  />
                   <button
                     type="button"
                     className="px-4 py-2 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
+                    onClick={() => document.getElementById('welcomeFileInput').click()}
                   >
-                    Change
+                    Browse
                   </button>
                 </div>
               </div>
@@ -321,22 +333,24 @@ export default function MainTab({
                 <span className="text-gray-900 dark:text-gray-100">Require CSP to join</span>
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className={`flex items-center gap-2 ${config?.SERVER?.CSP_REQUIRED === 1 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
                 <input
                   type="checkbox"
                   className="w-4 h-4 text-blue-600"
                   checked={config?.SERVER?.CSP_USE_RAIN_CLOUDS === 1}
                   onChange={(e) => updateConfigValue('SERVER', 'CSP_USE_RAIN_CLOUDS', e.target.checked ? 1 : 0)}
+                  disabled={config?.SERVER?.CSP_REQUIRED !== 1}
                 />
                 <span className="text-gray-900 dark:text-gray-100">Use extended physics for cars</span>
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className={`flex items-center gap-2 ${config?.SERVER?.CSP_REQUIRED === 1 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
                 <input
                   type="checkbox"
                   className="w-4 h-4 text-blue-600"
                   checked={config?.SERVER?.CSP_RAIN_CLOUDS_CONTROL === 1}
                   onChange={(e) => updateConfigValue('SERVER', 'CSP_RAIN_CLOUDS_CONTROL', e.target.checked ? 1 : 0)}
+                  disabled={config?.SERVER?.CSP_REQUIRED !== 1}
                 />
                 <span className="text-gray-900 dark:text-gray-100">Use extended physics for tracks</span>
               </label>
