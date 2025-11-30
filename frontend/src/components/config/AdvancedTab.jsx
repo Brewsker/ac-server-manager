@@ -1,6 +1,10 @@
-
-
-export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults, selectedCars, cars }) {
+export default function AdvancedTab({
+  config,
+  updateConfigValue,
+  loadTabDefaults,
+  selectedCars,
+  cars,
+}) {
   // Extract unique tyres from selected cars
   // For now, show common AC tyre types as placeholder
   // TODO: Parse car data.acd or tyres.ini to get actual tyre compounds
@@ -12,17 +16,17 @@ export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults
     { code: 'SV', label: '[SV] Street 90s', info: 'BMW M3 E30' },
   ];
 
-  const selectedTyres = config?.SERVER?.LEGAL_TYRES?.split(';').filter(t => t) || [];
+  const selectedTyres = config?.SERVER?.LEGAL_TYRES?.split(';').filter((t) => t) || [];
 
   const toggleTyre = (tyreCode) => {
     let currentTyres = [...selectedTyres];
-    
+
     if (currentTyres.includes(tyreCode)) {
-      currentTyres = currentTyres.filter(t => t !== tyreCode);
+      currentTyres = currentTyres.filter((t) => t !== tyreCode);
     } else {
       currentTyres.push(tyreCode);
     }
-    
+
     updateConfigValue('SERVER', 'LEGAL_TYRES', currentTyres.join(';'));
   };
 
@@ -43,7 +47,9 @@ export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults
         <div className="space-y-6">
           {/* Allowed Tyres Section */}
           <div className="card">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Allowed tyres:</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Allowed tyres:
+            </h2>
             <div className="space-y-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Select allowed tire types (leave empty to allow all)
@@ -71,7 +77,9 @@ export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults
 
           {/* Fixed Setups Section */}
           <div className="card">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Fixed setups:</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Fixed setups:
+            </h2>
             <button
               type="button"
               className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-700"
@@ -85,7 +93,9 @@ export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults
 
           {/* Web Link Section */}
           <div className="card">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Web link:</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Web link:
+            </h2>
             <input
               type="text"
               className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 w-full"
@@ -97,11 +107,14 @@ export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults
 
           {/* FTP Data Section */}
           <div className="card">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">FTP data:</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              FTP data:
+            </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              This section doesn't affect actual AC server, it only allows you to quickly upload all necessary files (including executable) to a remote server via FTP.
+              This section doesn't affect actual AC server, it only allows you to quickly upload all
+              necessary files (including executable) to a remote server via FTP.
             </p>
-            
+
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <label className="label whitespace-nowrap min-w-[5rem]">Host:</label>
@@ -163,9 +176,13 @@ export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults
                   type="checkbox"
                   className="w-4 h-4 text-blue-600"
                   checked={config?.FTP?.UPLOAD_DATA_ONLY === 1}
-                  onChange={(e) => updateConfigValue('FTP', 'UPLOAD_DATA_ONLY', e.target.checked ? 1 : 0)}
+                  onChange={(e) =>
+                    updateConfigValue('FTP', 'UPLOAD_DATA_ONLY', e.target.checked ? 1 : 0)
+                  }
                 />
-                <span className="text-gray-900 dark:text-gray-100">Upload data only, without executable</span>
+                <span className="text-gray-900 dark:text-gray-100">
+                  Upload data only, without executable
+                </span>
               </label>
 
               <div className="flex items-center gap-4">
@@ -200,7 +217,9 @@ export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults
         <div className="space-y-6">
           {/* Server Plugin Section */}
           <div className="card">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Server plugin:</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Server plugin:
+            </h2>
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <label className="label whitespace-nowrap min-w-[5rem]">Address:</label>
@@ -234,7 +253,9 @@ export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults
                   style={{ position: 'relative', top: '-4px' }}
                   placeholder="None"
                   value={config?.SERVER?.AUTH_PLUGIN_ADDRESS || ''}
-                  onChange={(e) => updateConfigValue('SERVER', 'AUTH_PLUGIN_ADDRESS', e.target.value)}
+                  onChange={(e) =>
+                    updateConfigValue('SERVER', 'AUTH_PLUGIN_ADDRESS', e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -242,15 +263,21 @@ export default function AdvancedTab({ config, updateConfigValue, loadTabDefaults
 
           {/* CM Plugin Section */}
           <div className="card">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">CM plugin:</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              CM plugin:
+            </h2>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 className="w-4 h-4 text-blue-600"
                 checked={config?.SERVER?.USE_CM_AS_PLUGIN === 1}
-                onChange={(e) => updateConfigValue('SERVER', 'USE_CM_AS_PLUGIN', e.target.checked ? 1 : 0)}
+                onChange={(e) =>
+                  updateConfigValue('SERVER', 'USE_CM_AS_PLUGIN', e.target.checked ? 1 : 0)
+                }
               />
-              <span className="text-gray-900 dark:text-gray-100">Use Content Manager as server plugin</span>
+              <span className="text-gray-900 dark:text-gray-100">
+                Use Content Manager as server plugin
+              </span>
             </label>
           </div>
         </div>

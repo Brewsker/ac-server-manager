@@ -6,7 +6,7 @@ const cache = {
   tracks: null,
   cars: null,
   tracksTimestamp: null,
-  carsTimestamp: null
+  carsTimestamp: null,
 };
 
 /**
@@ -40,21 +40,25 @@ export async function getTracks() {
 
   // Fallback metadata for known Kunos tracks without ui_track.json
   const kunosTrackMetadata = {
-    'ks_barcelona': { name: 'Circuit de Barcelona-Catalunya', country: 'Spain', city: 'Barcelona' },
-    'ks_black_cat_county': { name: 'Black Cat County', country: 'USA', city: null },
-    'ks_brands_hatch': { name: 'Brands Hatch', country: 'Great Britain', city: 'Kent' },
-    'ks_drag': { name: 'Drag Strip', country: 'USA', city: null },
-    'ks_highlands': { name: 'Highlands Motorsport Park', country: 'New Zealand', city: 'Cromwell' },
-    'ks_monza66': { name: 'Monza 1966', country: 'Italy', city: 'Monza' },
-    'ks_nordschleife': { name: 'Nordschleife', country: 'Germany', city: 'Nürburg' },
-    'ks_nurburgring': { name: 'Nürburgring', country: 'Germany', city: 'Nürburg' },
-    'ks_red_bull_ring': { name: 'Red Bull Ring', country: 'Austria', city: 'Spielberg' },
-    'ks_silverstone': { name: 'Silverstone Circuit', country: 'Great Britain', city: 'Silverstone' },
-    'ks_vallelunga': { name: 'Autodromo Vallelunga Piero Taruffi', country: 'Italy', city: 'Vallelunga' },
-    'imola': { name: 'Autodromo Enzo e Dino Ferrari', country: 'Italy', city: 'Imola' },
-    'magione': { name: 'Autodromo dell\'Umbria', country: 'Italy', city: 'Magione' },
-    'monza': { name: 'Autodromo Nazionale di Monza', country: 'Italy', city: 'Monza' },
-    'mugello': { name: 'Mugello Circuit', country: 'Italy', city: 'Mugello' },
+    ks_barcelona: { name: 'Circuit de Barcelona-Catalunya', country: 'Spain', city: 'Barcelona' },
+    ks_black_cat_county: { name: 'Black Cat County', country: 'USA', city: null },
+    ks_brands_hatch: { name: 'Brands Hatch', country: 'Great Britain', city: 'Kent' },
+    ks_drag: { name: 'Drag Strip', country: 'USA', city: null },
+    ks_highlands: { name: 'Highlands Motorsport Park', country: 'New Zealand', city: 'Cromwell' },
+    ks_monza66: { name: 'Monza 1966', country: 'Italy', city: 'Monza' },
+    ks_nordschleife: { name: 'Nordschleife', country: 'Germany', city: 'Nürburg' },
+    ks_nurburgring: { name: 'Nürburgring', country: 'Germany', city: 'Nürburg' },
+    ks_red_bull_ring: { name: 'Red Bull Ring', country: 'Austria', city: 'Spielberg' },
+    ks_silverstone: { name: 'Silverstone Circuit', country: 'Great Britain', city: 'Silverstone' },
+    ks_vallelunga: {
+      name: 'Autodromo Vallelunga Piero Taruffi',
+      country: 'Italy',
+      city: 'Vallelunga',
+    },
+    imola: { name: 'Autodromo Enzo e Dino Ferrari', country: 'Italy', city: 'Imola' },
+    magione: { name: "Autodromo dell'Umbria", country: 'Italy', city: 'Magione' },
+    monza: { name: 'Autodromo Nazionale di Monza', country: 'Italy', city: 'Monza' },
+    mugello: { name: 'Mugello Circuit', country: 'Italy', city: 'Mugello' },
     'trento-bondone': { name: 'Trento-Bondone', country: 'Italy', city: 'Trento' },
   };
 
@@ -83,7 +87,7 @@ export async function getTracks() {
           geotags: [],
           author: null,
           version: null,
-          url: null
+          url: null,
         };
 
         // Apply fallback metadata for known Kunos tracks
@@ -99,7 +103,7 @@ export async function getTracks() {
         try {
           const uiTrackData = await fs.readFile(uiTrackPath, 'utf-8');
           const trackInfo = JSON.parse(uiTrackData);
-          
+
           // Override with actual metadata if available
           metadata = {
             ...metadata,
@@ -115,7 +119,7 @@ export async function getTracks() {
             geotags: trackInfo.geotags || metadata.geotags,
             author: trackInfo.author || metadata.author,
             version: trackInfo.version || metadata.version,
-            url: trackInfo.url || metadata.url
+            url: trackInfo.url || metadata.url,
           };
         } catch (error) {
           // If ui_track.json doesn't exist or is invalid, use fallback/defaults
@@ -154,7 +158,7 @@ export async function getCars() {
   console.log('[getCars] Starting...');
   const acContentPath = process.env.AC_CONTENT_PATH;
   console.log('[getCars] AC_CONTENT_PATH:', acContentPath);
-  
+
   if (!acContentPath) {
     throw new Error('AC_CONTENT_PATH not configured in .env');
   }
@@ -176,7 +180,7 @@ export async function getCars() {
         cars.push({
           id: folder,
           name: folder.replace(/_/g, ' '),
-          path: carPath
+          path: carPath,
         });
       }
     }
@@ -206,7 +210,7 @@ export async function getWeatherPresets() {
     { id: '3_clear', name: 'Clear' },
     { id: '4_mid_clouds', name: 'Mid Clouds' },
     { id: '5_heavy_clouds', name: 'Heavy Clouds' },
-    { id: '6_storm', name: 'Storm' }
+    { id: '6_storm', name: 'Storm' },
   ];
 }
 
@@ -214,16 +218,12 @@ export async function getWeatherPresets() {
  * Scan AC content folder for all content
  */
 export async function scanContent() {
-  const [tracks, cars, weather] = await Promise.all([
-    getTracks(),
-    getCars(),
-    getWeatherPresets()
-  ]);
+  const [tracks, cars, weather] = await Promise.all([getTracks(), getCars(), getWeatherPresets()]);
 
   return {
     tracks: tracks.length,
     cars: cars.length,
     weather: weather.length,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 }

@@ -471,7 +471,13 @@ function ServerConfig() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Tab Content */}
-        <Suspense fallback={<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center text-gray-500 dark:text-gray-400">Loading...</div>}>
+        <Suspense
+          fallback={
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center text-gray-500 dark:text-gray-400">
+              Loading...
+            </div>
+          }
+        >
           {ui.activeTab === 'MAIN' && (
             <MainTab
               config={data.config}

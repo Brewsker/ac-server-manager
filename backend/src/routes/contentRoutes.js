@@ -70,7 +70,7 @@ router.get('/track-preview/:trackId', (req, res) => {
     // Main track UI folder
     path.join(trackPath, 'ui', 'preview.png'),
     path.join(trackPath, 'ui', 'outline.png'),
-    
+
     // Check for track configurations (layouts)
     path.join(trackPath, 'ui', 'ui_track.json'), // We'll parse this to find config folders
   ];
@@ -87,14 +87,14 @@ router.get('/track-preview/:trackId', (req, res) => {
     const uiPath = path.join(trackPath, 'ui');
     if (fs.existsSync(uiPath)) {
       const uiContents = fs.readdirSync(uiPath);
-      
+
       // Look for configuration folders (e.g., "ui/sprint", "ui/gp", etc.)
       for (const item of uiContents) {
         const itemPath = path.join(uiPath, item);
         if (fs.statSync(itemPath).isDirectory()) {
           const configPreview = path.join(itemPath, 'preview.png');
           const configOutline = path.join(itemPath, 'outline.png');
-          
+
           if (fs.existsSync(configPreview)) {
             return res.sendFile(configPreview);
           }
@@ -133,7 +133,7 @@ router.get('/car-preview/:carId', (req, res) => {
         }
       }
     }
-    
+
     // Try ui/badge.png as fallback
     const badgePath = path.join(carPath, 'ui', 'badge.png');
     if (fs.existsSync(badgePath)) {
@@ -154,57 +154,57 @@ router.get('/country-flag/:countryCode', (req, res) => {
   }
 
   const { countryCode } = req.params;
-  
+
   // Country name to ISO 3166-1 alpha-3 code mapping (common AC countries)
   const countryToISO = {
-    'italy': 'ITA',
-    'germany': 'DEU',
+    italy: 'ITA',
+    germany: 'DEU',
     'united kingdom': 'GBR',
     'great britain': 'GBR',
-    'uk': 'GBR',
-    'england': 'GBR',
-    'scotland': 'SCO',
-    'wales': 'WAL',
-    'france': 'FRA',
-    'spain': 'ESP',
-    'usa': 'USA',
+    uk: 'GBR',
+    england: 'GBR',
+    scotland: 'SCO',
+    wales: 'WAL',
+    france: 'FRA',
+    spain: 'ESP',
+    usa: 'USA',
     'united states': 'USA',
-    'japan': 'JPN',
-    'belgium': 'BEL',
-    'austria': 'AUT',
-    'netherlands': 'NLD',
-    'holland': 'NLD',
-    'monaco': 'MCO',
-    'portugal': 'PRT',
-    'australia': 'AUS',
-    'brazil': 'BRA',
-    'canada': 'CAN',
-    'mexico': 'MEX',
-    'sweden': 'SWE',
-    'finland': 'FIN',
-    'norway': 'NOR',
-    'denmark': 'DNK',
-    'switzerland': 'CHE',
-    'hungary': 'HUN',
+    japan: 'JPN',
+    belgium: 'BEL',
+    austria: 'AUT',
+    netherlands: 'NLD',
+    holland: 'NLD',
+    monaco: 'MCO',
+    portugal: 'PRT',
+    australia: 'AUS',
+    brazil: 'BRA',
+    canada: 'CAN',
+    mexico: 'MEX',
+    sweden: 'SWE',
+    finland: 'FIN',
+    norway: 'NOR',
+    denmark: 'DNK',
+    switzerland: 'CHE',
+    hungary: 'HUN',
     'czech republic': 'CZE',
-    'poland': 'POL',
-    'russia': 'RUS',
-    'china': 'CHN',
-    'singapore': 'SGP',
+    poland: 'POL',
+    russia: 'RUS',
+    china: 'CHN',
+    singapore: 'SGP',
     'south korea': 'KOR',
-    'korea': 'KOR',
-    'india': 'IND',
+    korea: 'KOR',
+    india: 'IND',
     'new zealand': 'NZL',
     'south africa': 'ZAF',
-    'argentina': 'ARG',
-    'turkey': 'TUR',
-    'greece': 'GRC',
-    'ireland': 'IRL',
+    argentina: 'ARG',
+    turkey: 'TUR',
+    greece: 'GRC',
+    ireland: 'IRL',
   };
 
   const normalizedCode = countryCode.toLowerCase().replace(/_/g, ' ');
   const isoCode = countryToISO[normalizedCode] || countryCode.toUpperCase();
-  
+
   // AC stores nation flags in content/gui/NationFlags/
   const flagPath = path.join(acContentPath, 'gui', 'NationFlags', `${isoCode}.png`);
 
