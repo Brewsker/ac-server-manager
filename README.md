@@ -34,7 +34,7 @@ Installs Node.js, PM2, optionally downloads AC server via Steam, configures ever
 
 ```bash
 # Run on Proxmox HOST (creates container + installs everything)
-curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/main/install-proxmox.sh | bash
+curl -sSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-proxmox.sh | bash
 ```
 
 Creates Ubuntu 22.04 LXC, installs app, optionally downloads AC via Steam!

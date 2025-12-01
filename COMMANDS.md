@@ -9,7 +9,7 @@ Copy-paste these commands to deploy AC Server Manager.
 **Run on Proxmox HOST:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/multi-instance-manager/install-proxmox.sh | bash
+curl -sSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/multi-instance-manager/install-proxmox.sh | bash
 ```
 
 **What it does:**
@@ -33,7 +33,7 @@ curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/mu
 **Run inside your server:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/multi-instance-manager/install-server.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/multi-instance-manager/install-server.sh | sudo bash
 ```
 
 **What it does:**
@@ -77,7 +77,7 @@ curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/mu
 
 ```bash
 # Clone repo
-git clone https://github.com/brooksmtownsend/ac-server-manager.git
+git clone https://github.com/Brewsker/ac-server-manager.git
 cd ac-server-manager
 
 # Edit docker-compose.yml (set AC server path)
@@ -259,7 +259,7 @@ rm -rf /opt/ac-server-manager
 - 🖥️ [Server Install Guide](./SERVER_INSTALL.md)
 - 🐳 [Proxmox Guide](./PROXMOX_DEPLOYMENT.md)
 - 🔧 [Troubleshooting](./docs/TROUBLESHOOTING.md)
-- 🐛 [Report Issues](https://github.com/brooksmtownsend/ac-server-manager/issues)
+- 🐛 [Report Issues](https://github.com/Brewsker/ac-server-manager/issues)
 
 ---
 

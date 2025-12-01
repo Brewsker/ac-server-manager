@@ -375,7 +375,7 @@ install_application() {
     # Clone repository (or use current directory if already cloned)
     if [ ! -d ".git" ]; then
         print_info "Cloning repository..."
-        git clone https://github.com/brooksmtownsend/ac-server-manager.git . > /dev/null 2>&1
+        git clone https://github.com/Brewsker/ac-server-manager.git . > /dev/null 2>&1
     else
         print_info "Using existing repository"
     fi
@@ -583,7 +583,7 @@ EOF
     echo "   4. Start racing! 🏁"
     echo ""
     
-    print_info "For help: https://github.com/brooksmtownsend/ac-server-manager"
+    print_info "For help: https://github.com/Brewsker/ac-server-manager"
     echo ""
 }
 

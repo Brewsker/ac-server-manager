@@ -5,13 +5,13 @@ Complete guide for deploying AC Server Manager on a dedicated Linux server.
 ## Quick Install (One Command)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/multi-instance-manager/install-server.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/multi-instance-manager/install-server.sh | sudo bash
 ```
 
 Or download and run:
 
 ```bash
-wget https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/multi-instance-manager/install-server.sh
+wget https://raw.githubusercontent.com/Brewsker/ac-server-manager/multi-instance-manager/install-server.sh
 chmod +x install-server.sh
 sudo ./install-server.sh
 ```

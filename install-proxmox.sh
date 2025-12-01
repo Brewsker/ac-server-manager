@@ -375,7 +375,7 @@ INSTALL_SCRIPT
 # Clone AC Server Manager
 mkdir -p /opt/ac-server-manager
 cd /opt/ac-server-manager
-git clone https://github.com/brooksmtownsend/ac-server-manager.git .
+git clone https://github.com/Brewsker/ac-server-manager.git .
 
 # Install dependencies
 cd backend

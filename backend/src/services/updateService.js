@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // GitHub repository info - update these to match your actual repo
-const GITHUB_OWNER = 'brooksmtownsend'; // Update this to your GitHub username
+const GITHUB_OWNER = 'Brewsker'; // Update this to your GitHub username
 const GITHUB_REPO = 'ac-server-manager'; // Update this to your repo name
 const GITHUB_API = 'https://api.github.com';
 
