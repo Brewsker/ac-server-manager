@@ -1,11 +1,11 @@
 {
   "presets": [
     {
-      "id": "905d3653-e74e-452b-ae53-39e235db21c6",
+      "id": "3fc29588-4f9d-4c79-8f2d-d46030f2b58b",
       "name": "AC_Server_0",
       "description": "Newly created preset from defaults",
-      "created": "2025-12-01T05:39:07.524Z",
-      "modified": "2025-12-01T05:39:07.524Z",
+      "created": "2025-12-01T05:56:14.241Z",
+      "modified": "2025-12-01T05:56:14.241Z",
       "track": "imola",
       "cars": 1,
       "maxClients": 18,

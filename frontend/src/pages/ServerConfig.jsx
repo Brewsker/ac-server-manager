@@ -655,7 +655,9 @@ function ServerConfig() {
         <div className="pb-24">
           <div className="mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Server Manager</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                Server Manager
+              </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
                 Configure and manage server instances
               </p>
@@ -669,191 +671,191 @@ function ServerConfig() {
               <div className="flex-shrink-0 min-w-[250px]">
                 <input
                   type="text"
-                className="w-full text-lg font-semibold bg-transparent border-none outline-none focus:bg-white dark:focus:bg-gray-800 focus:border focus:border-blue-500 dark:focus:border-blue-400 rounded px-3 py-2 transition-all h-[42px]"
-                placeholder="Server Name"
-                value={data.config?.SERVER?.NAME || ''}
-                onChange={(e) => updateConfigValue('SERVER', 'NAME', e.target.value)}
-              />
-            </div>
+                  className="w-full text-lg font-semibold bg-transparent border-none outline-none focus:bg-white dark:focus:bg-gray-800 focus:border focus:border-blue-500 dark:focus:border-blue-400 rounded px-3 py-2 transition-all h-[42px]"
+                  placeholder="Server Name"
+                  value={data.config?.SERVER?.NAME || ''}
+                  onChange={(e) => updateConfigValue('SERVER', 'NAME', e.target.value)}
+                />
+              </div>
 
-            {/* Tab Navigation - wraps underneath when needed */}
-            <nav className="flex gap-0.5 overflow-x-auto flex-1 min-w-0">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => updateUi({ activeTab: tab.id })}
-                className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  ui.activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </nav>
+              {/* Tab Navigation - wraps underneath when needed */}
+              <nav className="flex gap-0.5 overflow-x-auto flex-1 min-w-0">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => updateUi({ activeTab: tab.id })}
+                    className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                      ui.activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <span>{tab.icon}</span>
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Tab Content */}
+            <Suspense
+              fallback={
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center text-gray-500 dark:text-gray-400">
+                  Loading...
+                </div>
+              }
+            >
+              {ui.activeTab === 'MAIN' && (
+                <MainTab
+                  config={data.config}
+                  updateConfigValue={updateConfigValue}
+                  loadTabDefaults={loadTabDefaults}
+                  loadAllDefaults={loadAllDefaults}
+                  setShowTrackModal={(show) => updateModals({ showTrack: show })}
+                  setActiveTab={(tab) => updateUi({ activeTab: tab })}
+                  getSelectedTrackName={getSelectedTrackName}
+                  selectedCars={data.selectedCars}
+                  cars={data.cars}
+                  getCarPreviewUrl={getCarPreviewUrl}
+                  showPassword={ui.showPassword}
+                  setShowPassword={(show) => updateUi({ showPassword: show })}
+                  showAdminPassword={ui.showAdminPassword}
+                  setShowAdminPassword={(show) => updateUi({ showAdminPassword: show })}
+                  setShowCspOptionsModal={(show) => updateModals({ showCspOptions: show })}
+                />
+              )}
+
+              {ui.activeTab === 'ENTRY_LIST' && (
+                <EntryListTab
+                  config={data.config}
+                  updateConfigValue={updateConfigValue}
+                  cars={data.cars}
+                  selectedCars={data.selectedCars}
+                  setShowCarModal={(show) => updateModals({ showCar: show })}
+                />
+              )}
+
+              {ui.activeTab === 'RULES' && (
+                <RulesTab
+                  config={data.config}
+                  updateConfigValue={updateConfigValue}
+                  loadTabDefaults={loadTabDefaults}
+                />
+              )}
+
+              {ui.activeTab === 'CONDITIONS' && (
+                <ConditionsTab
+                  config={data.config}
+                  updateConfigValue={updateConfigValue}
+                  loadTabDefaults={loadTabDefaults}
+                />
+              )}
+
+              {ui.activeTab === 'SESSIONS' && (
+                <SessionsTab
+                  config={data.config}
+                  updateConfigValue={updateConfigValue}
+                  loadTabDefaults={loadTabDefaults}
+                />
+              )}
+
+              {ui.activeTab === 'ADVANCED' && (
+                <AdvancedTab
+                  config={data.config}
+                  updateConfigValue={updateConfigValue}
+                  loadTabDefaults={loadTabDefaults}
+                  selectedCars={data.selectedCars}
+                  cars={data.cars}
+                />
+              )}
+
+              {ui.activeTab === 'DETAILS' && (
+                <DetailsTab
+                  config={data.config}
+                  updateConfigValue={updateConfigValue}
+                  loadTabDefaults={loadTabDefaults}
+                />
+              )}
+            </Suspense>
+          </form>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Tab Content */}
-        <Suspense
-          fallback={
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center text-gray-500 dark:text-gray-400">
-              Loading...
-            </div>
-          }
-        >
-          {ui.activeTab === 'MAIN' && (
-            <MainTab
-              config={data.config}
-              updateConfigValue={updateConfigValue}
-              loadTabDefaults={loadTabDefaults}
-              loadAllDefaults={loadAllDefaults}
-              setShowTrackModal={(show) => updateModals({ showTrack: show })}
-              setActiveTab={(tab) => updateUi({ activeTab: tab })}
-              getSelectedTrackName={getSelectedTrackName}
-              selectedCars={data.selectedCars}
-              cars={data.cars}
-              getCarPreviewUrl={getCarPreviewUrl}
-              showPassword={ui.showPassword}
-              setShowPassword={(show) => updateUi({ showPassword: show })}
-              showAdminPassword={ui.showAdminPassword}
-              setShowAdminPassword={(show) => updateUi({ showAdminPassword: show })}
-              setShowCspOptionsModal={(show) => updateModals({ showCspOptions: show })}
-            />
-          )}
-
-          {ui.activeTab === 'ENTRY_LIST' && (
-            <EntryListTab
-              config={data.config}
-              updateConfigValue={updateConfigValue}
-              cars={data.cars}
-              selectedCars={data.selectedCars}
-              setShowCarModal={(show) => updateModals({ showCar: show })}
-            />
-          )}
-
-          {ui.activeTab === 'RULES' && (
-            <RulesTab
-              config={data.config}
-              updateConfigValue={updateConfigValue}
-              loadTabDefaults={loadTabDefaults}
-            />
-          )}
-
-          {ui.activeTab === 'CONDITIONS' && (
-            <ConditionsTab
-              config={data.config}
-              updateConfigValue={updateConfigValue}
-              loadTabDefaults={loadTabDefaults}
-            />
-          )}
-
-          {ui.activeTab === 'SESSIONS' && (
-            <SessionsTab
-              config={data.config}
-              updateConfigValue={updateConfigValue}
-              loadTabDefaults={loadTabDefaults}
-            />
-          )}
-
-          {ui.activeTab === 'ADVANCED' && (
-            <AdvancedTab
-              config={data.config}
-              updateConfigValue={updateConfigValue}
-              loadTabDefaults={loadTabDefaults}
-              selectedCars={data.selectedCars}
-              cars={data.cars}
-            />
-          )}
-
-          {ui.activeTab === 'DETAILS' && (
-            <DetailsTab
-              config={data.config}
-              updateConfigValue={updateConfigValue}
-              loadTabDefaults={loadTabDefaults}
-            />
-          )}
-        </Suspense>
-      </form>
-      </div>
-
-      {/* Action Buttons - CM Style - Fixed at Bottom */}
-      <div className="fixed bottom-0 left-64 right-0 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-700 shadow-lg z-10">
-        <div className="max-w-7xl mx-auto px-8 py-4">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleOpenFolder}
-              className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors"
-              title="Open presets folder (Ctrl+F)"
-            >
-              📁 Folder
-            </button>
-            <button
-              type="button"
-              onClick={() => data.currentPresetId && updateModals({ showClone: true })}
-              disabled={!data.currentPresetId}
-              className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Clone this preset"
-            >
-              📋 Clone
-            </button>
-
-            <div className="flex-1"></div>
-
-            <button
-              type="button"
-              onClick={handleSaveConfig}
-              className="px-6 py-2 bg-green-600 dark:bg-green-700 text-white rounded hover:bg-green-700 dark:hover:bg-green-600 transition-colors font-semibold"
-              title="Save configuration (Ctrl+S)"
-            >
-              💾 Save
-            </button>
-            <button
-              type="button"
-              onClick={() => data.currentPresetId && updateModals({ showDelete: true })}
-              disabled={!data.currentPresetId}
-              className="px-4 py-2 bg-red-600 dark:bg-red-700 text-white rounded hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Delete this preset"
-            >
-              🗑️ Delete
-            </button>
-            {!data.serverStatus?.running ? (
+        {/* Action Buttons - CM Style - Fixed at Bottom */}
+        <div className="fixed bottom-0 left-64 right-0 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-700 shadow-lg z-10">
+          <div className="max-w-7xl mx-auto px-8 py-4">
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={handleRunServer}
-                disabled={!data.currentPresetId}
-                className="px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Start server instance"
+                onClick={handleOpenFolder}
+                className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors"
+                title="Open presets folder (Ctrl+F)"
               >
-                ▶️ Run
+                📁 Folder
               </button>
-            ) : (
-              <>
+              <button
+                type="button"
+                onClick={() => data.currentPresetId && updateModals({ showClone: true })}
+                disabled={!data.currentPresetId}
+                className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Clone this preset"
+              >
+                📋 Clone
+              </button>
+
+              <div className="flex-1"></div>
+
+              <button
+                type="button"
+                onClick={handleSaveConfig}
+                className="px-6 py-2 bg-green-600 dark:bg-green-700 text-white rounded hover:bg-green-700 dark:hover:bg-green-600 transition-colors font-semibold"
+                title="Save configuration (Ctrl+S)"
+              >
+                💾 Save
+              </button>
+              <button
+                type="button"
+                onClick={() => data.currentPresetId && updateModals({ showDelete: true })}
+                disabled={!data.currentPresetId}
+                className="px-4 py-2 bg-red-600 dark:bg-red-700 text-white rounded hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Delete this preset"
+              >
+                🗑️ Delete
+              </button>
+              {!data.serverStatus?.running ? (
                 <button
                   type="button"
-                  onClick={handleRestartServer}
-                  className="px-4 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors"
-                  title="Restart server instance"
+                  onClick={handleRunServer}
+                  disabled={!data.currentPresetId}
+                  className="px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Start server instance"
                 >
-                  🔄 Restart
+                  ▶️ Run
                 </button>
-                <button
-                  type="button"
-                  onClick={handleStopServer}
-                  className="px-6 py-2 bg-red-600 dark:bg-red-700 text-white rounded hover:bg-red-700 dark:hover:bg-red-600 transition-colors font-semibold"
-                  title="Stop server instance"
-                >
-                  ⏹️ Stop
-                </button>
-              </>
-            )}
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleRestartServer}
+                    className="px-4 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors"
+                    title="Restart server instance"
+                  >
+                    🔄 Restart
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleStopServer}
+                    className="px-6 py-2 bg-red-600 dark:bg-red-700 text-white rounded hover:bg-red-700 dark:hover:bg-red-600 transition-colors font-semibold"
+                    title="Stop server instance"
+                  >
+                    ⏹️ Stop
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       </div>
 
       {/* Modals */}

@@ -107,7 +107,16 @@ router.get('/status/:presetId', async (req, res, next) => {
 router.get('/status', async (req, res, next) => {
   try {
     const statuses = serverProcessManager.getAllServerStatuses();
-    res.json({ servers: statuses });
+
+    // Map the statuses to include 'running' boolean and 'name' field
+    const mappedStatuses = statuses.map((status) => ({
+      ...status,
+      running: status.status === 'running' || status.status === 'starting',
+      name: status.config?.serverName,
+      port: status.config?.udpPort,
+    }));
+
+    res.json({ servers: mappedStatuses });
   } catch (error) {
     next(error);
   }
