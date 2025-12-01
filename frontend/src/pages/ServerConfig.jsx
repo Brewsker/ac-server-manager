@@ -67,7 +67,7 @@ function ServerConfig() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     // Only fetch data if we don't have it yet (first load)
     // This prevents overwriting user's working config on navigation
     if (!data.config) {
@@ -81,6 +81,16 @@ function ServerConfig() {
       isMountedRef.current = false;
     };
   }, []); // Only run on mount
+
+  // Watch for preset/default config loads from sidebar
+  useEffect(() => {
+    if (location.state?.presetLoaded || location.state?.defaultLoaded) {
+      console.log('[ServerConfig] Preset/default loaded, fetching data...');
+      fetchData();
+      // Clear the state to prevent re-fetching on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state?.timestamp]); // Re-run when timestamp changes
 
   const fetchData = async () => {
     try {
