@@ -40,48 +40,22 @@ function DetailsTab({ config, updateConfigValue, loadTabDefaults }) {
             Downloading missing content
           </h3>
 
-          <div className="space-y-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={config?.SERVER?.LOCKED_ENTRY_LIST === 1}
-                onChange={(e) =>
-                  updateConfigValue('SERVER', 'LOCKED_ENTRY_LIST', e.target.checked ? 1 : 0)
-                }
-                className="w-4 h-4 text-blue-600"
-              />
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                Allow downloading only with correct password
-              </span>
-            </label>
-
-            {config?.SERVER?.LOCKED_ENTRY_LIST === 1 && (
-              <div className="ml-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Password for downloading
-                </label>
-                <div className="relative max-w-md">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={config?.SERVER?.PASSWORD || ''}
-                    onChange={(e) => updateConfigValue('SERVER', 'PASSWORD', e.target.value)}
-                    placeholder="Enter password..."
-                    className="w-full px-3 py-2 pr-10 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                  >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Users will need this password to download missing content
-                </p>
-              </div>
-            )}
-          </div>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={config?.SERVER?.LOCKED_ENTRY_LIST === 1}
+              onChange={(e) =>
+                updateConfigValue('SERVER', 'LOCKED_ENTRY_LIST', e.target.checked ? 1 : 0)
+              }
+              className="w-4 h-4 text-blue-600"
+            />
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Allow downloading only with correct password
+            </span>
+          </label>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-6">
+            Uses the server password from the Main tab
+          </p>
         </div>
       </div>
     </div>
