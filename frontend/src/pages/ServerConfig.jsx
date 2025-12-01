@@ -257,12 +257,39 @@ function ServerConfig() {
     if (!data.currentPresetId) return;
 
     try {
+      // Find the index of the current preset in the list
+      const currentIndex = data.presets.findIndex((p) => p.id === data.currentPresetId);
+      
+      // Delete the preset
       await api.deletePreset(data.currentPresetId);
       console.log('Preset deleted');
 
-      // Load default config after deletion
-      await api.loadDefaultConfig();
-      await fetchData();
+      // Get updated presets list
+      const presetsData = await api.getPresets();
+      const updatedPresets = presetsData.presets || [];
+
+      // Determine which preset to load next
+      let nextPreset = null;
+      
+      if (updatedPresets.length > 0) {
+        // Try to load the preset that took the deleted preset's position
+        if (currentIndex < updatedPresets.length) {
+          nextPreset = updatedPresets[currentIndex];
+        } else {
+          // If we deleted the last one, load the new last one
+          nextPreset = updatedPresets[updatedPresets.length - 1];
+        }
+      }
+
+      if (nextPreset) {
+        // Load the next preset
+        await api.loadPreset(nextPreset.id);
+        await fetchData();
+      } else {
+        // No presets left, load default config
+        await api.loadDefaultConfig();
+        await fetchData();
+      }
 
       // Dispatch event to refresh sidebar
       window.dispatchEvent(new CustomEvent('presetSaved'));
