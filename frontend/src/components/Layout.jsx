@@ -227,7 +227,7 @@ function Layout({ children }) {
         <div className="p-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">AC Server Manager</h1>
-            <p className="text-gray-400 text-sm mt-1">v0.14.1</p>
+            <p className="text-gray-400 text-sm mt-1">v0.15.0</p>
           </div>
         </div>
 

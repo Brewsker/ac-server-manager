@@ -11,6 +11,7 @@ import playerRoutes from './routes/playerRoutes.js';
 import setupRoutes from './routes/setupRoutes.js';
 import processRoutes from './routes/processRoutes.js';
 import updateRoutes from './routes/updateRoutes.js';
+import steamRoutes from './routes/steamRoutes.js';
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use('/api/entries', entryRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/process', processRoutes);
 app.use('/api/update', updateRoutes);
+app.use('/api/steam', steamRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -2,9 +2,9 @@ import axios from 'axios';
 
 // In production, use relative URLs so API calls go to the same server serving the frontend
 // In development, use localhost:3001 for the backend dev server
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
-  : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
+const API_BASE_URL = import.meta.env.PROD
+  ? '/api'
+  : import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const client = axios.create({
   baseURL: API_BASE_URL,
