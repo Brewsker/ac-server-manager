@@ -10,7 +10,7 @@ const PRESETS_INDEX = path.join(PRESETS_DIR, 'index.json');
 async function ensurePresetsDir() {
   try {
     await fs.mkdir(PRESETS_DIR, { recursive: true });
-    
+
     // Create index file if it doesn't exist
     try {
       await fs.access(PRESETS_INDEX);
@@ -45,22 +45,25 @@ export async function getAllPresets() {
 // Save current working configuration as a preset
 export async function savePreset(name, description = '') {
   await ensurePresetsDir();
-  
+
   const currentConfig = await configStateManager.getWorkingConfig();
   const id = uuidv4();
-  
+
   // Extract metadata from config
   const metadata = {
     track: currentConfig.SERVER?.TRACK || 'Unknown',
-    cars: Array.isArray(currentConfig.SERVER?.CARS) 
-      ? currentConfig.SERVER.CARS.length 
-      : (currentConfig.SERVER?.CARS?.split(';').length || 0),
+    cars: Array.isArray(currentConfig.SERVER?.CARS)
+      ? currentConfig.SERVER.CARS.length
+      : currentConfig.SERVER?.CARS?.split(';').length || 0,
     maxClients: currentConfig.SERVER?.MAX_CLIENTS || 0,
-    sessions: [
-      currentConfig.PRACTICE?.TIME ? 'Practice' : null,
-      currentConfig.QUALIFY?.TIME ? 'Qualify' : null,
-      currentConfig.RACE?.TIME || currentConfig.RACE?.LAPS ? 'Race' : null,
-    ].filter(Boolean).join(', ') || 'None',
+    sessions:
+      [
+        currentConfig.PRACTICE?.TIME ? 'Practice' : null,
+        currentConfig.QUALIFY?.TIME ? 'Qualify' : null,
+        currentConfig.RACE?.TIME || currentConfig.RACE?.LAPS ? 'Race' : null,
+      ]
+        .filter(Boolean)
+        .join(', ') || 'None',
   };
 
   const preset = {
@@ -87,17 +90,17 @@ export async function savePreset(name, description = '') {
 // Load a preset into working config (doesn't apply to server yet)
 export async function loadPreset(id) {
   console.log(`[loadPreset] Loading preset: ${id}`);
-  
+
   // Read preset config from file
   const configPath = path.join(PRESETS_DIR, `${id}.json`);
   const configData = await fs.readFile(configPath, 'utf-8');
   const config = JSON.parse(configData);
 
   console.log(`[loadPreset] Loaded config from file, loading to working config...`);
-  
+
   // Load into working config (user can edit before applying)
   await configStateManager.loadPresetToWorking(config);
-  
+
   console.log(`[loadPreset] Preset loaded to working config`);
   return config;
 }
@@ -105,8 +108,8 @@ export async function loadPreset(id) {
 // Duplicate a preset
 export async function duplicatePreset(id, newName) {
   const index = await readPresetsIndex();
-  const originalPreset = index.presets.find(p => p.id === id);
-  
+  const originalPreset = index.presets.find((p) => p.id === id);
+
   if (!originalPreset) {
     throw new Error('Preset not found');
   }
@@ -140,8 +143,8 @@ export async function duplicatePreset(id, newName) {
 // Rename a preset
 export async function renamePreset(id, newName) {
   const index = await readPresetsIndex();
-  const preset = index.presets.find(p => p.id === id);
-  
+  const preset = index.presets.find((p) => p.id === id);
+
   if (!preset) {
     throw new Error('Preset not found');
   }
@@ -149,27 +152,27 @@ export async function renamePreset(id, newName) {
   // Update preset name in index
   preset.name = newName;
   preset.modified = new Date().toISOString();
-  
+
   // Also update SERVER.NAME in the preset's config file to match
   const configPath = path.join(PRESETS_DIR, `${id}.json`);
   const configData = await fs.readFile(configPath, 'utf-8');
   const config = JSON.parse(configData);
-  
+
   if (config.SERVER) {
     config.SERVER.NAME = newName;
   }
-  
+
   await fs.writeFile(configPath, JSON.stringify(config, null, 2));
   await writePresetsIndex(index);
-  
+
   return preset;
 }
 
 // Delete a preset
 export async function deletePreset(id) {
   const index = await readPresetsIndex();
-  const presetIndex = index.presets.findIndex(p => p.id === id);
-  
+  const presetIndex = index.presets.findIndex((p) => p.id === id);
+
   if (presetIndex === -1) {
     throw new Error('Preset not found');
   }
