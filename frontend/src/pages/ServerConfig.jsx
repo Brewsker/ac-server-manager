@@ -368,9 +368,9 @@ function ServerConfig() {
     try {
       // Get the default config from backend
       const defaultConfig = await api.getDefaultConfig();
-      
+
       console.log('[loadTabDefaults] Loading defaults for tab:', tabId);
-      
+
       // Map tab IDs to the sections they affect
       const tabSectionMap = {
         MAIN: ['SERVER'], // Main settings only
@@ -379,18 +379,18 @@ function ServerConfig() {
         SESSIONS: ['SERVER', 'BOOKING', 'PRACTICE', 'QUALIFY', 'RACE'], // Session configs
         ADVANCED: ['SERVER', 'FTP'], // Advanced settings
       };
-      
+
       const sectionsToUpdate = tabSectionMap[tabId] || [];
-      
+
       if (sectionsToUpdate.length === 0) {
         console.warn('[loadTabDefaults] No sections mapped for tab:', tabId);
         return;
       }
-      
+
       // Update only the sections for this tab
       updateData((prev) => {
         const updated = { ...prev.config };
-        
+
         sectionsToUpdate.forEach((section) => {
           if (defaultConfig[section]) {
             updated[section] = {
@@ -399,7 +399,7 @@ function ServerConfig() {
             };
           }
         });
-        
+
         console.log('[loadTabDefaults] Updated config for tab', tabId);
         return { ...prev, config: updated };
       });
@@ -412,7 +412,7 @@ function ServerConfig() {
     try {
       console.log('[loadAllDefaults] Loading all defaults from backend');
       await api.loadDefaultConfig();
-      
+
       // Fetch the newly loaded config
       await fetchData();
     } catch (error) {

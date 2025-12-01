@@ -1,6 +1,6 @@
 /**
  * Configuration State Manager
- * 
+ *
  * Manages three types of configurations:
  * 1. Default Config - Template/baseline (read-only)
  * 2. Working Config - Currently being edited in the UI (in-memory)
@@ -20,12 +20,16 @@ const DEFAULT_CONFIG_PATH = path.join(process.cwd(), 'data', 'default_config.ini
 let workingConfig = null;
 
 /**
- * Get the default configuration template
+ * Get the default configuration template (parsed from INI file with proper types)
  */
 export async function getDefaultConfig() {
   try {
     const content = await fs.readFile(DEFAULT_CONFIG_PATH, 'utf-8');
-    return ini.parse(content);
+    const parsed = ini.parse(content);
+
+    // Convert string values to proper types based on comprehensive defaults
+    const defaults = getComprehensiveDefaults();
+    return mergeWithDefaults(parsed, defaults);
   } catch (error) {
     console.error('[ConfigStateManager] Failed to load default config:', error);
     throw new Error('Default configuration not found');
@@ -36,7 +40,10 @@ export async function getDefaultConfig() {
  * Get the active configuration (what's in AC server INI files)
  */
 export async function getActiveConfig() {
-  return await configService.getConfig();
+  const config = await configService.getConfig();
+  // Ensure proper types
+  const defaults = getComprehensiveDefaults();
+  return mergeWithDefaults(config, defaults);
 }
 
 /**
@@ -144,27 +151,21 @@ function getComprehensiveDefaults() {
 export async function getWorkingConfig() {
   if (!workingConfig) {
     console.log('[ConfigStateManager] No working config, initializing...');
-    
+
     try {
-      // Try to load active server config first
-      const activeConfig = await getActiveConfig();
-      
-      // Merge with defaults to ensure all fields exist
-      const defaults = getComprehensiveDefaults();
-      workingConfig = mergeWithDefaults(activeConfig, defaults);
+      // Try to load active server config first (already type-converted)
+      workingConfig = await getActiveConfig();
       console.log('[ConfigStateManager] Loaded active server configuration with defaults merged');
     } catch (error) {
       console.warn('[ConfigStateManager] Could not load active config:', error.message);
-      
-      // Fallback to default config file
+
+      // Fallback to default config file (already type-converted)
       try {
-        const defaultFileConfig = await getDefaultConfig();
-        const defaults = getComprehensiveDefaults();
-        workingConfig = mergeWithDefaults(defaultFileConfig, defaults);
+        workingConfig = await getDefaultConfig();
         console.log('[ConfigStateManager] Loaded default file configuration');
       } catch (defaultError) {
         console.error('[ConfigStateManager] Could not load default file:', defaultError.message);
-        
+
         // Use comprehensive defaults
         workingConfig = getComprehensiveDefaults();
         console.log('[ConfigStateManager] Using comprehensive default configuration');
@@ -180,20 +181,20 @@ export async function getWorkingConfig() {
  */
 function mergeWithDefaults(config, defaults) {
   const merged = { ...defaults };
-  
+
   // Merge each section
-  Object.keys(defaults).forEach(section => {
+  Object.keys(defaults).forEach((section) => {
     if (config[section]) {
       merged[section] = {
         ...defaults[section],
-        ...config[section]
+        ...config[section],
       };
-      
+
       // Convert string values to proper types based on defaults
-      Object.keys(merged[section]).forEach(key => {
+      Object.keys(merged[section]).forEach((key) => {
         const defaultValue = defaults[section][key];
         const configValue = config[section][key];
-        
+
         if (configValue !== undefined && configValue !== null) {
           // If default is a number, convert string to number
           if (typeof defaultValue === 'number') {
@@ -204,14 +205,14 @@ function mergeWithDefaults(config, defaults) {
       });
     }
   });
-  
+
   // Also include any sections from config that aren't in defaults
-  Object.keys(config).forEach(section => {
+  Object.keys(config).forEach((section) => {
     if (!merged[section]) {
       merged[section] = config[section];
     }
   });
-  
+
   return merged;
 }
 
@@ -224,7 +225,7 @@ export async function updateWorkingConfig(newConfig) {
   workingConfig = newConfig;
   return {
     success: true,
-    message: 'Working configuration updated (not saved to server yet)'
+    message: 'Working configuration updated (not saved to server yet)',
   };
 }
 
@@ -236,17 +237,17 @@ export async function applyWorkingConfig() {
   if (!workingConfig) {
     throw new Error('No working configuration to apply');
   }
-  
+
   console.log('[ConfigStateManager] Applying working config to active config...');
-  
+
   // Check if server is running
   const serverStatus = await serverService.getServerStatus();
   const wasRunning = serverStatus.running;
-  
+
   // Apply config
   const result = await configService.updateConfig(workingConfig);
   console.log('[ConfigStateManager] Active config updated');
-  
+
   // Restart server if it was running
   if (wasRunning) {
     console.log('[ConfigStateManager] Server was running, restarting to apply changes...');
@@ -256,7 +257,7 @@ export async function applyWorkingConfig() {
       return {
         ...result,
         message: 'Configuration applied and server restarted',
-        serverRestarted: true
+        serverRestarted: true,
       };
     } catch (error) {
       console.error('[ConfigStateManager] Failed to restart server:', error);
@@ -264,15 +265,15 @@ export async function applyWorkingConfig() {
         ...result,
         message: 'Configuration applied but server restart failed',
         serverRestarted: false,
-        restartError: error.message
+        restartError: error.message,
       };
     }
   }
-  
+
   return {
     ...result,
     message: 'Configuration applied to server',
-    serverRestarted: false
+    serverRestarted: false,
   };
 }
 
@@ -284,7 +285,7 @@ export async function loadPresetToWorking(presetConfig) {
   workingConfig = presetConfig;
   return {
     success: true,
-    message: 'Preset loaded to editor'
+    message: 'Preset loaded to editor',
   };
 }
 
@@ -296,7 +297,7 @@ export async function loadDefaultToWorking() {
   workingConfig = await getDefaultConfig();
   return {
     success: true,
-    message: 'Default configuration loaded'
+    message: 'Default configuration loaded',
   };
 }
 
@@ -308,7 +309,7 @@ export async function loadActiveToWorking() {
   workingConfig = await getActiveConfig();
   return {
     success: true,
-    message: 'Active server configuration loaded'
+    message: 'Active server configuration loaded',
   };
 }
 
@@ -320,7 +321,7 @@ export async function resetWorkingConfig() {
   workingConfig = null;
   return {
     success: true,
-    message: 'Working configuration reset'
+    message: 'Working configuration reset',
   };
 }
 
@@ -330,6 +331,6 @@ export async function resetWorkingConfig() {
 export function getStateInfo() {
   return {
     hasWorkingConfig: workingConfig !== null,
-    workingConfigName: workingConfig?.SERVER?.NAME || null
+    workingConfigName: workingConfig?.SERVER?.NAME || null,
   };
 }
