@@ -19,8 +19,9 @@ DISK_SIZE="60"
 MEMORY=4096
 SWAP=512
 
-# Local Git repo path on Proxmox host
-GIT_REPO_PATH="/root/ac-server-manager-dev"
+# Git cache container settings
+GIT_CACHE_CTID=998
+GIT_CACHE_PATH="/opt/git-cache/ac-server-manager"
 BRANCH="develop"
 
 # Colors
@@ -42,24 +43,42 @@ print_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
-# Sync local Git repo
+# Sync from Git cache container
 sync_repo() {
-    print_info "Syncing local Git repository..."
-    
-    if [ ! -d "$GIT_REPO_PATH" ]; then
-        print_info "Cloning repository..."
-        git clone https://github.com/Brewsker/ac-server-manager.git "$GIT_REPO_PATH"
-        cd "$GIT_REPO_PATH"
-        git checkout "$BRANCH"
-    else
-        print_info "Pulling latest changes..."
-        cd "$GIT_REPO_PATH"
-        git fetch origin
-        git checkout "$BRANCH"
-        git pull origin "$BRANCH"
+    if ! pct status $GIT_CACHE_CTID &>/dev/null; then
+        print_error "Git cache container (ID $GIT_CACHE_CTID) not found!"
+        print_info "Create it first with: ./git-cache-server.sh create"
+        exit 1
     fi
     
+    print_info "Syncing from Git cache container..."
+    pct exec $GIT_CACHE_CTID -- bash -c "cd $GIT_CACHE_PATH && git fetch --all --prune && git checkout $BRANCH && git pull origin $BRANCH"
     print_success "Repository synced to latest $BRANCH"
+}
+
+# Copy files from Git cache container
+copy_files_from_cache() {
+    local temp_dir="/tmp/ac-setup-$$"
+    
+    print_info "Copying files from Git cache container..."
+    
+    # Create temp directory
+    mkdir -p "$temp_dir"
+    
+    # Copy files from git cache container to Proxmox host
+    pct pull $GIT_CACHE_CTID "$GIT_CACHE_PATH/setup-wizard.html" "$temp_dir/setup-wizard.html"
+    pct pull $GIT_CACHE_CTID "$GIT_CACHE_PATH/setup-server.js" "$temp_dir/setup-server.js"
+    pct pull $GIT_CACHE_CTID "$GIT_CACHE_PATH/ac-setup-wizard.service" "$temp_dir/ac-setup-wizard.service"
+    
+    # Push files to target container
+    pct push $CTID "$temp_dir/setup-wizard.html" /opt/ac-setup/setup-wizard.html
+    pct push $CTID "$temp_dir/setup-server.js" /opt/ac-setup/setup-server.js
+    pct push $CTID "$temp_dir/ac-setup-wizard.service" /etc/systemd/system/ac-setup-wizard.service
+    
+    # Cleanup
+    rm -rf "$temp_dir"
+    
+    print_success "Files copied from cache"
 }
 
 # Create container
@@ -94,12 +113,10 @@ create_container() {
     CONTAINER_IP=$(pct exec $CTID -- hostname -I | awk '{print $1}')
     print_success "Container IP: $CONTAINER_IP"
     
-    # Copy wizard files from local repo
-    print_info "Setting up web-based installation wizard from local repo..."
+    # Copy wizard files from Git cache container
+    print_info "Setting up web-based installation wizard from cache..."
     pct exec $CTID -- bash -c "mkdir -p /opt/ac-setup"
-    pct push $CTID "$GIT_REPO_PATH/setup-wizard.html" /opt/ac-setup/setup-wizard.html
-    pct push $CTID "$GIT_REPO_PATH/setup-server.js" /opt/ac-setup/setup-server.js
-    pct push $CTID "$GIT_REPO_PATH/ac-setup-wizard.service" /etc/systemd/system/ac-setup-wizard.service
+    copy_files_from_cache
     
     # Start setup wizard service
     print_info "Starting setup wizard service..."
@@ -167,7 +184,11 @@ show_usage() {
     echo "  destroy  - Destroy test container"
     echo "  rebuild  - Destroy and recreate (quick reset)"
     echo "  enter    - Enter container shell"
-    echo "  sync     - Sync local Git repo with remote"
+    echo "  sync     - Sync Git cache container with GitHub"
+    echo ""
+    echo "Prerequisites:"
+    echo "  Git cache container (ID $GIT_CACHE_CTID) must be running"
+    echo "  Create with: ./git-cache-server.sh create"
     echo ""
     
     if pct status $CTID &>/dev/null; then
