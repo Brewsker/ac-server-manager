@@ -8,6 +8,11 @@ function Settings() {
   const [currentVersion, setCurrentVersion] = useState('Loading...');
   const { theme, setTheme } = useTheme();
 
+  // Content upload states
+  const [uploadingTrack, setUploadingTrack] = useState(false);
+  const [uploadingCar, setUploadingCar] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState(null);
+
   useEffect(() => {
     // Load current version on mount
     loadCurrentVersion();
@@ -44,6 +49,86 @@ function Settings() {
   const openReleaseUrl = () => {
     if (updateInfo?.releaseUrl) {
       window.open(updateInfo.releaseUrl, '_blank');
+    }
+  };
+
+  const handleTrackUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingTrack(true);
+    setUploadMessage(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('http://localhost:3001/api/content/upload/track', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUploadMessage({
+          type: 'success',
+          message: `Track "${result.name}" installed successfully!`,
+        });
+      } else {
+        setUploadMessage({
+          type: 'error',
+          message: result.error || 'Failed to upload track',
+        });
+      }
+    } catch (error) {
+      setUploadMessage({
+        type: 'error',
+        message: 'Failed to upload track: ' + error.message,
+      });
+    } finally {
+      setUploadingTrack(false);
+      event.target.value = ''; // Reset file input
+    }
+  };
+
+  const handleCarUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingCar(true);
+    setUploadMessage(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('http://localhost:3001/api/content/upload/car', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUploadMessage({
+          type: 'success',
+          message: `Car "${result.name}" installed successfully!`,
+        });
+      } else {
+        setUploadMessage({
+          type: 'error',
+          message: result.error || 'Failed to upload car',
+        });
+      }
+    } catch (error) {
+      setUploadMessage({
+        type: 'error',
+        message: 'Failed to upload car: ' + error.message,
+      });
+    } finally {
+      setUploadingCar(false);
+      event.target.value = ''; // Reset file input
     }
   };
 
@@ -100,6 +185,79 @@ function Settings() {
               <div className="flex items-center">
                 <input type="checkbox" id="notifications" className="mr-2" />
                 <label htmlFor="notifications">Enable notifications</label>
+              </div>
+            </div>
+          </div>
+
+          {/* Content Upload Section */}
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4">Content Management</h2>
+
+            <div className="space-y-4">
+              {uploadMessage && (
+                <div
+                  className={`p-3 rounded-lg ${
+                    uploadMessage.type === 'success'
+                      ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                      : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                  }`}
+                >
+                  <p
+                    className={`text-sm font-medium ${
+                      uploadMessage.type === 'success'
+                        ? 'text-green-700 dark:text-green-400'
+                        : 'text-red-700 dark:text-red-400'
+                    }`}
+                  >
+                    {uploadMessage.message}
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="label">Upload Track (ZIP)</label>
+                <input
+                  type="file"
+                  accept=".zip"
+                  onChange={handleTrackUpload}
+                  disabled={uploadingTrack}
+                  className="block w-full text-sm text-gray-500 dark:text-gray-400
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-primary-600 file:text-white
+                    hover:file:bg-primary-700
+                    file:cursor-pointer
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  {uploadingTrack
+                    ? 'Uploading and installing track...'
+                    : 'Upload a track ZIP file. Max 500MB.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="label">Upload Car (ZIP)</label>
+                <input
+                  type="file"
+                  accept=".zip"
+                  onChange={handleCarUpload}
+                  disabled={uploadingCar}
+                  className="block w-full text-sm text-gray-500 dark:text-gray-400
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-primary-600 file:text-white
+                    hover:file:bg-primary-700
+                    file:cursor-pointer
+                    disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  {uploadingCar
+                    ? 'Uploading and installing car...'
+                    : 'Upload a car ZIP file. Max 500MB.'}
+                </p>
               </div>
             </div>
           </div>

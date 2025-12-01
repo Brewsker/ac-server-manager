@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import * as contentService from '../services/contentService.js';
+import contentUploadService from '../services/contentUploadService.js';
 
 const router = express.Router();
 
@@ -234,6 +235,52 @@ router.get('/country-flag/:countryCode', (req, res) => {
   }
 
   res.status(404).send('Flag not found');
+});
+
+// Upload and install a new track
+router.post('/upload/track', contentUploadService.getUploadMiddleware(), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    console.log('[ContentUpload] Processing track upload:', req.file.originalname);
+    const result = await contentUploadService.uploadTrack(req.file);
+
+    // Clear content cache so new track appears
+    contentService.clearCache();
+
+    res.json(result);
+  } catch (error) {
+    console.error('[ContentUpload] Track upload error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to upload track',
+      success: false,
+    });
+  }
+});
+
+// Upload and install a new car
+router.post('/upload/car', contentUploadService.getUploadMiddleware(), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    console.log('[ContentUpload] Processing car upload:', req.file.originalname);
+    const result = await contentUploadService.uploadCar(req.file);
+
+    // Clear content cache so new car appears
+    contentService.clearCache();
+
+    res.json(result);
+  } catch (error) {
+    console.error('[ContentUpload] Car upload error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to upload car',
+      success: false,
+    });
+  }
 });
 
 export default router;
