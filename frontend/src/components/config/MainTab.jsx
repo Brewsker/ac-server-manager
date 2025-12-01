@@ -143,7 +143,7 @@ export default function MainTab({
                     {config?.SERVER?.MAX_CLIENTS || 18}
                   </span>
                 </label>
-                <div className="flex-1 relative" style={{ top: '-7px' }}>
+                <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                   <input
                     type="range"
                     className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -172,7 +172,7 @@ export default function MainTab({
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <label className="label whitespace-nowrap min-w-[10rem]">Password:</label>
-                <div className="relative flex-1" style={{ top: '-4px' }}>
+                <div className="relative flex-1 min-w-0" style={{ top: '-4px' }}>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     className="input pr-10 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 w-full"
@@ -192,7 +192,7 @@ export default function MainTab({
 
               <div className="flex items-center gap-4">
                 <label className="label whitespace-nowrap min-w-[10rem]">Admin password:</label>
-                <div className="relative flex-1" style={{ top: '-4px' }}>
+                <div className="relative flex-1 min-w-0" style={{ top: '-4px' }}>
                   <input
                     type={showAdminPassword ? 'text' : 'password'}
                     className="input pr-10 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 w-full"
@@ -339,7 +339,7 @@ export default function MainTab({
                     {config?.SERVER?.CLIENT_SEND_INTERVAL_HZ || 18} Hz
                   </span>
                 </label>
-                <div className="flex-1 relative" style={{ top: '-7px' }}>
+                <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                   <input
                     type="range"
                     className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -364,7 +364,7 @@ export default function MainTab({
                     {config?.SERVER?.NUM_THREADS || 2}
                   </span>
                 </label>
-                <div className="flex-1 relative" style={{ top: '-7px' }}>
+                <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                   <input
                     type="range"
                     className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"

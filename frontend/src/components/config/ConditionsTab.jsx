@@ -102,7 +102,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                   {formatTime(config?.SERVER?.SUN_ANGLE || 960)}
                 </span>
               </label>
-              <div className="flex-1 relative" style={{ top: '-7px' }}>
+              <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                 <input
                   type="range"
                   className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -123,7 +123,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                   {config?.SERVER?.TIME_OF_DAY_MULT || 1}×
                 </span>
               </label>
-              <div className="flex-1 relative" style={{ top: '-7px' }}>
+              <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                 <input
                   type="range"
                   className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -174,7 +174,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                     {config?.DYNAMIC_TRACK?.SESSION_START || 95}%
                   </span>
                 </label>
-                <div className="flex-1 relative" style={{ top: '-7px' }}>
+                <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                   <input
                     type="range"
                     className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -195,7 +195,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                     {config?.DYNAMIC_TRACK?.SESSION_TRANSFER || 90}%
                   </span>
                 </label>
-                <div className="flex-1 relative" style={{ top: '-7px' }}>
+                <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                   <input
                     type="range"
                     className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -220,7 +220,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                     {config?.DYNAMIC_TRACK?.RANDOMNESS || 2}%
                   </span>
                 </label>
-                <div className="flex-1 relative" style={{ top: '-7px' }}>
+                <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                   <input
                     type="range"
                     className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -241,7 +241,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                     {config?.DYNAMIC_TRACK?.LAP_GAIN || 10} laps
                   </span>
                 </label>
-                <div className="flex-1 relative" style={{ top: '-7px' }}>
+                <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                   <input
                     type="range"
                     className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -366,7 +366,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                           {slot.windSpeed} km/h
                         </span>
                       </label>
-                      <div className="flex-1 relative" style={{ top: '-7px' }}>
+                      <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                         <input
                           type="range"
                           className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -388,7 +388,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                           {slot.windDir}°
                         </span>
                       </label>
-                      <div className="flex-1 relative" style={{ top: '-7px' }}>
+                      <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                         <input
                           type="range"
                           className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"

@@ -101,7 +101,7 @@ function BookingSession({ config, updateConfigValue }) {
             {String((config?.BOOKING?.TIME || 10) % 60).padStart(2, '0')}
           </span>
         </label>
-        <div className="flex-1 relative" style={{ top: '-7px' }}>
+        <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
           <input
             type="range"
             className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -143,7 +143,7 @@ function PracticeSession({ config, updateConfigValue }) {
               {String((config?.PRACTICE?.TIME || 10) % 60).padStart(2, '0')}
             </span>
           </label>
-          <div className="flex-1 relative" style={{ top: '-7px' }}>
+          <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
             <input
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -199,7 +199,7 @@ function QualificationSession({ config, updateConfigValue }) {
               {String((config?.QUALIFY?.TIME || 10) % 60).padStart(2, '0')}
             </span>
           </label>
-          <div className="flex-1 relative" style={{ top: '-7px' }}>
+          <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
             <input
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -236,7 +236,7 @@ function QualificationSession({ config, updateConfigValue }) {
               {config?.QUALIFY?.QUALIFY_MAX_WAIT_PERC || 120}%
             </span>
           </label>
-          <div className="flex-1 relative" style={{ top: '-7px' }}>
+          <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
             <input
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -310,7 +310,7 @@ function RaceSession({ config, updateConfigValue }) {
                 {config?.RACE?.LAPS || 5}
               </span>
             </label>
-            <div className="flex-1 relative" style={{ top: '-7px' }}>
+            <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
               <input
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -333,7 +333,7 @@ function RaceSession({ config, updateConfigValue }) {
                 {String((config?.RACE?.TIME || 0) % 60).padStart(2, '0')}
               </span>
             </label>
-            <div className="flex-1 relative" style={{ top: '-7px' }}>
+            <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
               <input
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -360,7 +360,7 @@ function RaceSession({ config, updateConfigValue }) {
               {String((config?.RACE?.WAIT_TIME || 60) % 60).padStart(2, '0')}
             </span>
           </label>
-          <div className="flex-1 relative" style={{ top: '-7px' }}>
+          <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
             <input
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -385,7 +385,7 @@ function RaceSession({ config, updateConfigValue }) {
               {String((config?.SERVER?.RACE_OVER_TIME || 180) % 60).padStart(2, '0')}
             </span>
           </label>
-          <div className="flex-1 relative" style={{ top: '-7px' }}>
+          <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
             <input
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -412,7 +412,7 @@ function RaceSession({ config, updateConfigValue }) {
               {String((config?.RACE?.RESULT_SCREEN_TIME || 60) % 60).padStart(2, '0')}
             </span>
           </label>
-          <div className="flex-1 relative" style={{ top: '-7px' }}>
+          <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
             <input
               type="range"
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"

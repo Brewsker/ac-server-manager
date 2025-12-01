@@ -126,7 +126,7 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
                   {config?.SERVER?.FUEL_RATE || 100}%
                 </span>
               </label>
-              <div className="flex-1 relative" style={{ top: '-7px' }}>
+              <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                 <input
                   type="range"
                   className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -148,7 +148,7 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
                   {config?.SERVER?.DAMAGE_MULTIPLIER || 100}%
                 </span>
               </label>
-              <div className="flex-1 relative" style={{ top: '-7px' }}>
+              <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                 <input
                   type="range"
                   className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -170,7 +170,7 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
                   {config?.SERVER?.TYRE_WEAR_RATE || 100}%
                 </span>
               </label>
-              <div className="flex-1 relative" style={{ top: '-7px' }}>
+              <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                 <input
                   type="range"
                   className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -194,7 +194,7 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
                     : config?.SERVER?.ALLOWED_TYRES_OUT || 2}
                 </span>
               </label>
-              <div className="flex-1 relative" style={{ top: '-7px' }}>
+              <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                 <input
                   type="range"
                   className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -216,7 +216,7 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
                   {config?.SERVER?.MAX_BALLAST_KG || 0} kg
                 </span>
               </label>
-              <div className="flex-1 relative" style={{ top: '-7px' }}>
+              <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
                 <input
                   type="range"
                   className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -277,7 +277,7 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
                 {config?.SERVER?.KICK_QUORUM || 85}%
               </span>
             </label>
-            <div className="flex-1 relative" style={{ top: '-7px' }}>
+            <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
               <input
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -299,7 +299,7 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
                 {config?.SERVER?.VOTING_QUORUM || 80}%
               </span>
             </label>
-            <div className="flex-1 relative" style={{ top: '-7px' }}>
+            <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
               <input
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -321,7 +321,7 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
                 00:00:{String(config?.SERVER?.VOTE_DURATION || 20).padStart(2, '0')}
               </span>
             </label>
-            <div className="flex-1 relative" style={{ top: '-7px' }}>
+            <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
               <input
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -358,7 +358,7 @@ export default function RulesTab({ config, updateConfigValue, loadTabDefaults })
                   : config?.SERVER?.MAX_CONTACTS_PER_KM || 'Off'}
               </span>
             </label>
-            <div className="flex-1 relative" style={{ top: '-7px' }}>
+            <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
               <input
                 type="range"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
