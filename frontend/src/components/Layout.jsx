@@ -75,28 +75,43 @@ function Layout({ children }) {
       // First, load default config to working state
       await api.loadDefaultConfig();
       
+      // Get the default config that was just loaded
+      const defaultConfig = await api.getConfig();
+
       // Generate a unique name for the new preset
       const baseNewName = 'New Preset';
       let newName = baseNewName;
       let counter = 1;
-      
+
       // Find a unique name by checking existing presets
-      while (presets.some(p => p.name === newName)) {
+      while (presets.some((p) => p.name === newName)) {
         counter++;
         newName = `${baseNewName} ${counter}`;
       }
+
+      // Update the SERVER.NAME to match the preset name
+      const updatedConfig = {
+        ...defaultConfig,
+        SERVER: {
+          ...defaultConfig.SERVER,
+          NAME: newName,
+        },
+      };
       
-      // Save the default config as a new preset
+      // Save the updated config to working state
+      await api.updateConfig(updatedConfig);
+
+      // Save as a new preset
       await api.savePreset(newName, 'Newly created preset from defaults');
       console.log('[Layout] Created new preset:', newName);
-      
+
       // Refresh preset list to show the new preset
       await fetchPresets();
-      
+
       // Load the newly created preset into the editor
       const updatedPresets = await api.getPresets();
-      const newPreset = updatedPresets.presets.find(p => p.name === newName);
-      
+      const newPreset = updatedPresets.presets.find((p) => p.name === newName);
+
       if (newPreset) {
         await api.loadPreset(newPreset.id);
         navigate('/config', { state: { presetLoaded: true, timestamp: Date.now() } });
