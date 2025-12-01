@@ -32,16 +32,6 @@ export default function AdvancedTab({
 
   return (
     <>
-      <div className="flex justify-end mb-6">
-        <button
-          type="button"
-          onClick={() => loadTabDefaults('ADVANCED')}
-          className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        >
-          🔄 Load Tab Defaults
-        </button>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column (1/2) */}
         <div className="space-y-6">

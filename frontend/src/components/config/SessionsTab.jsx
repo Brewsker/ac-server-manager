@@ -40,14 +40,6 @@ export default function SessionsTab({ config, updateConfigValue, loadTabDefaults
             <span className="text-gray-900 dark:text-gray-100">Loop mode</span>
           </label>
         </div>
-
-        <button
-          type="button"
-          onClick={() => loadTabDefaults('SESSIONS')}
-          className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        >
-          🔄 Load Tab Defaults
-        </button>
       </div>
 
       {/* Session Cards Grid */}
