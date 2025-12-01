@@ -15,7 +15,6 @@ function Layout({ children }) {
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/config', label: 'Config Editor', icon: '✏️' },
     { path: '/active-drivers', label: 'Active Drivers', icon: '🏎️' },
-    { path: '/monitoring', label: 'Monitoring', icon: '📈' },
     { path: '/settings', label: 'Settings', icon: '🔧' },
   ];
 

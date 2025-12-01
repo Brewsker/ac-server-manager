@@ -5,6 +5,12 @@ function Dashboard() {
   const [runningServers, setRunningServers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedServer, setSelectedServer] = useState(null);
+  const [monitoringData, setMonitoringData] = useState({
+    players: [],
+    session: null,
+    logs: []
+  });
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -20,12 +26,31 @@ function Dashboard() {
     };
   }, []);
 
+  // Fetch monitoring data when selected server changes
+  useEffect(() => {
+    if (selectedServer) {
+      fetchMonitoringData();
+      const interval = setInterval(fetchMonitoringData, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedServer]);
+
   const fetchRunningServers = async () => {
     try {
       const statuses = await api.getAllServerStatuses();
       // Only update state if component is still mounted
       if (isMountedRef.current) {
-        setRunningServers(statuses.servers.filter((s) => s.running));
+        const running = statuses.servers.filter((s) => s.running);
+        setRunningServers(running);
+        
+        // Auto-select first running server if none selected
+        if (running.length > 0 && !selectedServer) {
+          setSelectedServer(running[0].presetId);
+        }
+        // Clear selection if selected server is no longer running
+        if (selectedServer && !running.find(s => s.presetId === selectedServer)) {
+          setSelectedServer(running.length > 0 ? running[0].presetId : null);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch server statuses:', error);
@@ -33,6 +58,27 @@ function Dashboard() {
       if (isMountedRef.current) {
         setLoading(false);
       }
+    }
+  };
+
+  const fetchMonitoringData = async () => {
+    if (!selectedServer) return;
+    
+    try {
+      // Fetch logs for selected server
+      const logsData = await api.getServerInstanceLogs(selectedServer, 50);
+      // Fetch players for selected server (placeholder - will need UDP integration)
+      const playersData = await api.getPlayers();
+      
+      if (isMountedRef.current) {
+        setMonitoringData({
+          players: playersData.players || [],
+          session: playersData.session || null,
+          logs: logsData.logs || []
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch monitoring data:', error);
     }
   };
 
@@ -89,7 +135,8 @@ function Dashboard() {
       <div className="pb-24">
         <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-gray-100">Dashboard</h1>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        {/* Running Servers Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
             Running Servers
           </h2>
@@ -123,6 +170,154 @@ function Dashboard() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Live Monitoring Section */}
+        {runningServers.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Live Monitoring
+              </h2>
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-gray-600 dark:text-gray-400">
+                  Monitoring:
+                </label>
+                <select
+                  value={selectedServer || ''}
+                  onChange={(e) => setSelectedServer(e.target.value)}
+                  className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  {runningServers.map((server) => (
+                    <option key={server.presetId} value={server.presetId}>
+                      {server.name || 'Unknown Server'} (Port {server.port || 'N/A'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4">Connected Players</h2>
+            {selectedServer ? (
+              <div className="space-y-2">
+                {monitoringData.players.length === 0 ? (
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    No players connected
+                  </p>
+                ) : (
+                  monitoringData.players.map((player, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded"
+                    >
+                      <span className="text-sm font-medium">{player.name || 'Unknown'}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {player.carModel || 'N/A'}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                Select a running server to view players
+              </p>
+            )}
+          </div>
+
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4">Session Progress</h2>
+            {selectedServer && monitoringData.session ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Session Type</p>
+                  <p className="text-lg font-semibold">{monitoringData.session.type || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Time Remaining</p>
+                  <p className="text-lg font-semibold">
+                    {monitoringData.session.timeRemaining || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Laps</p>
+                  <p className="text-lg font-semibold">{monitoringData.session.laps || 'N/A'}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                {selectedServer ? 'No session data available' : 'Select a running server'}
+              </p>
+            )}
+          </div>
+
+          <div className="card lg:col-span-2">
+            <h2 className="text-xl font-semibold mb-4">Live Timing</h2>
+            {selectedServer ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-2 px-3">Pos</th>
+                      <th className="text-left py-2 px-3">Driver</th>
+                      <th className="text-left py-2 px-3">Best Lap</th>
+                      <th className="text-left py-2 px-3">Last Lap</th>
+                      <th className="text-left py-2 px-3">Gap</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monitoringData.players.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="text-center py-4 text-gray-500 dark:text-gray-400">
+                          No timing data available
+                        </td>
+                      </tr>
+                    ) : (
+                      monitoringData.players.map((player, idx) => (
+                        <tr
+                          key={idx}
+                          className="border-b border-gray-100 dark:border-gray-700 last:border-0"
+                        >
+                          <td className="py-2 px-3">{idx + 1}</td>
+                          <td className="py-2 px-3 font-medium">{player.name || 'Unknown'}</td>
+                          <td className="py-2 px-3">--:--:---</td>
+                          <td className="py-2 px-3">--:--:---</td>
+                          <td className="py-2 px-3">--:--</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                Select a running server to view timing
+              </p>
+            )}
+          </div>
+
+          <div className="card lg:col-span-2">
+            <h2 className="text-xl font-semibold mb-4">Server Logs</h2>
+            <div className="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm h-64 overflow-y-auto">
+              {selectedServer ? (
+                monitoringData.logs.length === 0 ? (
+                  <div className="text-gray-500">No logs available</div>
+                ) : (
+                  monitoringData.logs.map((log, idx) => (
+                    <div key={idx} className="leading-relaxed">
+                      {log}
+                    </div>
+                  ))
+                )
+              ) : (
+                <div className="text-gray-500">Select a running server to view logs</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
