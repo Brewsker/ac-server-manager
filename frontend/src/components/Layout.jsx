@@ -10,6 +10,7 @@ function Layout({ children }) {
   const [presets, setPresets] = useState([]);
   const [loadingPresets, setLoadingPresets] = useState(true);
   const [selectedPresetId, setSelectedPresetId] = useState(null);
+  const [serverStatuses, setServerStatuses] = useState({}); // { presetId: { running: bool, pid: number } }
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
@@ -21,6 +22,11 @@ function Layout({ children }) {
 
   useEffect(() => {
     fetchPresets();
+    checkAllServerStatuses(); // Initial check
+
+    // Poll server statuses every 3 seconds
+    const interval = setInterval(checkAllServerStatuses, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   // Refresh presets when navigating to config page (after potential preset changes)
@@ -65,6 +71,20 @@ function Layout({ children }) {
       console.error('Failed to fetch presets:', error);
     } finally {
       setLoadingPresets(false);
+    }
+  };
+
+  const checkAllServerStatuses = async () => {
+    try {
+      const statuses = await api.getAllServerStatuses();
+      // Convert array to object keyed by presetId
+      const statusMap = {};
+      statuses.servers.forEach((server) => {
+        statusMap[server.presetId] = { running: server.running, pid: server.pid };
+      });
+      setServerStatuses(statusMap);
+    } catch (error) {
+      // Silently fail - don't spam console on polling
     }
   };
 
@@ -196,20 +216,26 @@ function Layout({ children }) {
             ) : presets.length === 0 ? (
               <div className="text-xs text-gray-500 text-center py-4">No presets yet</div>
             ) : (
-              presets.map((preset) => (
-                <button
-                  key={preset.id}
-                  onClick={() => handleLoadPreset(preset.id)}
-                  className={`w-full text-left px-3 py-2 text-sm rounded transition-colors truncate ${
-                    selectedPresetId === preset.id
-                      ? 'bg-blue-600 text-white font-medium'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  }`}
-                  title={`Load ${preset.name} into editor`}
-                >
-                  {preset.name}
-                </button>
-              ))
+              presets.map((preset) => {
+                const isRunning = serverStatuses[preset.id]?.running;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => handleLoadPreset(preset.id)}
+                    className={`w-full text-left px-3 py-2 text-sm rounded transition-colors truncate flex items-center gap-2 ${
+                      selectedPresetId === preset.id
+                        ? 'bg-blue-600 text-white font-medium'
+                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    }`}
+                    title={`Load ${preset.name} into editor${isRunning ? ' (Server Running)' : ''}`}
+                  >
+                    <span className={`text-xs ${isRunning ? 'text-green-400' : 'text-red-400'}`}>
+                      ●
+                    </span>
+                    <span className="flex-1 truncate">{preset.name}</span>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>

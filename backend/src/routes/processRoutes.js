@@ -19,22 +19,22 @@ router.get('/installation', async (req, res, next) => {
 router.post('/start/:presetId', async (req, res, next) => {
   try {
     const { presetId } = req.params;
-    
+
     // Load the preset configuration
     const presets = await presetService.getAllPresets();
-    const preset = presets.find(p => p.id === presetId);
-    
+    const preset = presets.find((p) => p.id === presetId);
+
     if (!preset) {
       return res.status(404).json({ error: 'Preset not found' });
     }
-    
+
     // Load preset config
     await presetService.loadPreset(presetId);
     const config = await configStateManager.getWorkingConfig();
-    
+
     // Start the server
     const result = await serverProcessManager.startServer(presetId, config);
-    
+
     res.json({
       message: 'Server starting',
       ...result,
@@ -49,7 +49,7 @@ router.post('/stop/:presetId', async (req, res, next) => {
   try {
     const { presetId } = req.params;
     const result = await serverProcessManager.stopServer(presetId);
-    
+
     res.json({
       message: 'Server stopped',
       ...result,
@@ -63,14 +63,14 @@ router.post('/stop/:presetId', async (req, res, next) => {
 router.post('/restart/:presetId', async (req, res, next) => {
   try {
     const { presetId } = req.params;
-    
+
     // Load the preset configuration
     await presetService.loadPreset(presetId);
     const config = await configStateManager.getWorkingConfig();
-    
+
     // Restart the server
     const result = await serverProcessManager.restartServer(presetId, config);
-    
+
     res.json({
       message: 'Server restarting',
       ...result,
@@ -85,7 +85,7 @@ router.get('/status/:presetId', async (req, res, next) => {
   try {
     const { presetId } = req.params;
     const status = serverProcessManager.getServerStatus(presetId);
-    
+
     if (!status) {
       return res.json({
         presetId,
@@ -93,7 +93,7 @@ router.get('/status/:presetId', async (req, res, next) => {
         running: false,
       });
     }
-    
+
     res.json({
       ...status,
       running: status.status === 'running' || status.status === 'starting',
@@ -118,7 +118,7 @@ router.get('/logs/:presetId', async (req, res, next) => {
   try {
     const { presetId } = req.params;
     const lines = parseInt(req.query.lines) || 100;
-    
+
     const logs = serverProcessManager.getServerLogs(presetId, lines);
     res.json(logs);
   } catch (error) {

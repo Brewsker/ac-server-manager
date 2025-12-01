@@ -5,11 +5,39 @@ import fs from 'fs/promises';
 // Map of preset ID to running server process info
 const runningServers = new Map();
 
+// Force reload
+
 /**
  * Get the AC server executable path from environment or default location
  */
 function getACServerPath() {
-  return process.env.AC_SERVER_PATH || path.join(process.cwd(), '..', 'acServer');
+  console.log('[ServerProcess] AC_SERVER_PATH:', process.env.AC_SERVER_PATH);
+  console.log('[ServerProcess] AC_CONTENT_PATH:', process.env.AC_CONTENT_PATH);
+
+  // Check if explicitly set
+  if (process.env.AC_SERVER_PATH) {
+    let serverPath = process.env.AC_SERVER_PATH;
+    // If user provided the full executable path, extract just the directory
+    if (serverPath.endsWith('acServer.exe') || serverPath.endsWith('acServer')) {
+      serverPath = path.dirname(serverPath);
+    }
+    console.log('[ServerProcess] Derived server path:', serverPath);
+    return serverPath;
+  }
+
+  // Derive from AC_CONTENT_PATH (remove /content, add /server)
+  if (process.env.AC_CONTENT_PATH) {
+    const contentPath = process.env.AC_CONTENT_PATH;
+    // Remove /content from the end and add /server
+    const basePath = contentPath.replace(/[\/\\]content\s*$/, '');
+    const serverPath = path.join(basePath, 'server');
+    console.log('[ServerProcess] Derived server path:', serverPath);
+    return serverPath;
+  }
+
+  // Last resort fallback
+  console.log('[ServerProcess] Using fallback path');
+  return path.join(process.cwd(), '..', 'acServer');
 }
 
 /**
@@ -25,7 +53,7 @@ function getServerExecutable() {
 export async function checkACServerInstallation() {
   const serverPath = getACServerPath();
   const executable = path.join(serverPath, getServerExecutable());
-  
+
   try {
     await fs.access(executable);
     return { exists: true, path: serverPath };
@@ -48,11 +76,13 @@ export async function startServer(presetId, config) {
 
   const serverPath = getACServerPath();
   const executable = getServerExecutable();
-  
+
   // Check installation
   const installation = await checkACServerInstallation();
   if (!installation.exists) {
-    throw new Error(`AC Server not found at ${serverPath}. Please set AC_SERVER_PATH environment variable.`);
+    throw new Error(
+      `AC Server not found at ${serverPath}. Please set AC_SERVER_PATH environment variable.`
+    );
   }
 
   // Validate port availability
@@ -104,12 +134,12 @@ export async function startServer(presetId, config) {
     const line = data.toString();
     console.log(`[AC Server ${presetId}] ${line}`);
     serverInfo.stdout.push({ timestamp: new Date(), line });
-    
+
     // Limit log size
     if (serverInfo.stdout.length > 1000) {
       serverInfo.stdout.shift();
     }
-    
+
     // Detect when server is ready
     if (line.includes('Server started') || line.includes('PAGE: acStartPage')) {
       serverInfo.status = 'running';
@@ -121,7 +151,7 @@ export async function startServer(presetId, config) {
     const line = data.toString();
     console.error(`[AC Server ${presetId}] ERROR: ${line}`);
     serverInfo.stderr.push({ timestamp: new Date(), line });
-    
+
     // Limit log size
     if (serverInfo.stderr.length > 1000) {
       serverInfo.stderr.shift();
@@ -135,7 +165,7 @@ export async function startServer(presetId, config) {
     serverInfo.exitCode = code;
     serverInfo.exitSignal = signal;
     serverInfo.stopTime = new Date();
-    
+
     // Remove from running servers after a delay (keep info for status check)
     setTimeout(() => {
       runningServers.delete(presetId);
@@ -166,7 +196,7 @@ export async function startServer(presetId, config) {
  */
 export async function stopServer(presetId) {
   const serverInfo = runningServers.get(presetId);
-  
+
   if (!serverInfo) {
     throw new Error(`No running server found for preset ${presetId}`);
   }
@@ -175,7 +205,7 @@ export async function stopServer(presetId) {
 
   return new Promise((resolve, reject) => {
     const process = serverInfo.process;
-    
+
     // Set a timeout for forceful kill
     const killTimeout = setTimeout(() => {
       console.log(`[ServerProcess] Force killing server ${presetId}...`);
@@ -208,7 +238,7 @@ export async function stopServer(presetId) {
  */
 export function getServerStatus(presetId) {
   const serverInfo = runningServers.get(presetId);
-  
+
   if (!serverInfo) {
     return null;
   }
@@ -219,9 +249,7 @@ export function getServerStatus(presetId) {
     status: serverInfo.status,
     startTime: serverInfo.startTime,
     stopTime: serverInfo.stopTime,
-    uptime: serverInfo.status === 'running' 
-      ? Date.now() - serverInfo.startTime.getTime() 
-      : null,
+    uptime: serverInfo.status === 'running' ? Date.now() - serverInfo.startTime.getTime() : null,
     config: {
       serverName: serverInfo.config?.SERVER?.NAME,
       udpPort: serverInfo.config?.SERVER?.UDP_PORT,
@@ -238,14 +266,14 @@ export function getServerStatus(presetId) {
  */
 export function getAllServerStatuses() {
   const statuses = [];
-  
+
   for (const [presetId] of runningServers.entries()) {
     const status = getServerStatus(presetId);
     if (status) {
       statuses.push(status);
     }
   }
-  
+
   return statuses;
 }
 
@@ -257,7 +285,7 @@ export function getAllServerStatuses() {
  */
 export function getServerLogs(presetId, lines = 100) {
   const serverInfo = runningServers.get(presetId);
-  
+
   if (!serverInfo) {
     throw new Error(`No server found for preset ${presetId}`);
   }
@@ -277,14 +305,14 @@ export function getServerLogs(presetId, lines = 100) {
  */
 export async function restartServer(presetId, config) {
   console.log(`[ServerProcess] Restarting server ${presetId}...`);
-  
+
   // Stop if running
   if (runningServers.has(presetId)) {
     await stopServer(presetId);
     // Wait a bit for cleanup
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
-  
+
   // Start again
   return startServer(presetId, config);
 }
@@ -295,15 +323,15 @@ export async function restartServer(presetId, config) {
  */
 export async function stopAllServers() {
   const promises = [];
-  
+
   for (const [presetId] of runningServers.entries()) {
     promises.push(
-      stopServer(presetId).catch(err => ({
+      stopServer(presetId).catch((err) => ({
         presetId,
         error: err.message,
       }))
     );
   }
-  
+
   return Promise.all(promises);
 }

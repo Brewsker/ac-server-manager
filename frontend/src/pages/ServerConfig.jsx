@@ -28,6 +28,7 @@ function ServerConfig() {
     presets: [],
     currentPresetId: null,
     loading: true,
+    serverStatus: null, // { running: boolean, pid?: number }
   });
 
   // Consolidated modal state
@@ -115,6 +116,29 @@ function ServerConfig() {
       window.history.replaceState({}, document.title);
     }
   }, [location.state?.timestamp]); // Re-run when timestamp changes
+
+  // Check server status when preset changes
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (!data.currentPresetId) {
+        setData((prev) => ({ ...prev, serverStatus: null }));
+        return;
+      }
+
+      try {
+        const status = await api.getServerInstanceStatus(data.currentPresetId);
+        setData((prev) => ({
+          ...prev,
+          serverStatus: status.running ? { running: true, pid: status.pid } : null,
+        }));
+      } catch (error) {
+        // If error, assume not running
+        setData((prev) => ({ ...prev, serverStatus: null }));
+      }
+    };
+
+    checkStatus();
+  }, [data.currentPresetId]);
 
   const fetchData = async () => {
     try {
@@ -498,18 +522,16 @@ function ServerConfig() {
           CARS: data.selectedCars.join(';'),
         },
       };
-      await api.updateConfig(updatedConfig);
-      await api.savePreset(data.config.SERVER.NAME);
-      console.log('Configuration saved to preset');
 
-      // Dispatch event to refresh sidebar
-      window.dispatchEvent(new CustomEvent('presetSaved'));
+      // Just update the working config and apply to the preset files
+      await api.updateConfig(updatedConfig);
+      await api.applyConfig();
+      console.log('Configuration saved to preset');
     } catch (error) {
       console.error('Failed to save config:', error);
       alert('Failed to save configuration');
     }
   };
-
   const handleOpenFolder = async () => {
     try {
       await api.openPresetsFolder();
@@ -532,13 +554,49 @@ function ServerConfig() {
       // Then start server
       const result = await api.startServerInstance(data.currentPresetId);
       console.log('Server started:', result);
-      alert(`Server starting for ${data.config.SERVER.NAME}\nPID: ${result.pid}`);
+
+      // Update status
+      setData((prev) => ({ ...prev, serverStatus: { running: true, pid: result.pid } }));
+
+      alert(`Server started for ${data.config.SERVER.NAME}\nPID: ${result.pid}`);
     } catch (error) {
       console.error('Failed to start server:', error);
       const errorMsg = error.response?.data?.error?.message || error.message;
       alert(`Failed to start server: ${errorMsg}`);
     }
-  };  if (data.loading) {
+  };
+
+  const handleStopServer = async () => {
+    if (!data.currentPresetId) return;
+
+    try {
+      await api.stopServerInstance(data.currentPresetId);
+      setData((prev) => ({ ...prev, serverStatus: null }));
+      alert(`Server stopped for ${data.config.SERVER.NAME}`);
+    } catch (error) {
+      console.error('Failed to stop server:', error);
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      alert(`Failed to stop server: ${errorMsg}`);
+    }
+  };
+
+  const handleRestartServer = async () => {
+    if (!data.currentPresetId) return;
+
+    try {
+      // Save config first
+      await handleSaveConfig();
+
+      const result = await api.restartServerInstance(data.currentPresetId);
+      setData((prev) => ({ ...prev, serverStatus: { running: true, pid: result.pid } }));
+      alert(`Server restarted for ${data.config.SERVER.NAME}\nPID: ${result.pid}`);
+    } catch (error) {
+      console.error('Failed to restart server:', error);
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      alert(`Failed to restart server: ${errorMsg}`);
+    }
+  };
+  if (data.loading) {
     return <div className="text-center py-12">Loading...</div>;
   }
 
@@ -591,32 +649,35 @@ function ServerConfig() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Server Manager</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Configure and manage server instances
-          </p>
-        </div>
-      </div>
-
-      {/* Server Name and Tab Navigation */}
-      <div className="mb-6">
-        <div className="flex flex-wrap items-end gap-4 border-b border-gray-200 dark:border-gray-700 pb-0">
-          {/* Server Name Field */}
-          <div className="flex-shrink-0 min-w-[250px]">
-            <input
-              type="text"
-              className="w-full text-lg font-semibold bg-transparent border-none outline-none focus:bg-white dark:focus:bg-gray-800 focus:border focus:border-blue-500 dark:focus:border-blue-400 rounded px-3 py-2 transition-all h-[42px]"
-              placeholder="Server Name"
-              value={data.config?.SERVER?.NAME || ''}
-              onChange={(e) => updateConfigValue('SERVER', 'NAME', e.target.value)}
-            />
+    <>
+      <div className="relative">
+        {/* Scrollable Content Area with bottom padding for fixed buttons */}
+        <div className="pb-24">
+          <div className="mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Server Manager</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
+                Configure and manage server instances
+              </p>
+            </div>
           </div>
 
-          {/* Tab Navigation - wraps underneath when needed */}
-          <nav className="flex gap-0.5 overflow-x-auto flex-1 min-w-0">
+          {/* Server Name and Tab Navigation */}
+          <div className="mb-6">
+            <div className="flex flex-wrap items-end gap-4 border-b border-gray-200 dark:border-gray-700 pb-0">
+              {/* Server Name Field */}
+              <div className="flex-shrink-0 min-w-[250px]">
+                <input
+                  type="text"
+                className="w-full text-lg font-semibold bg-transparent border-none outline-none focus:bg-white dark:focus:bg-gray-800 focus:border focus:border-blue-500 dark:focus:border-blue-400 rounded px-3 py-2 transition-all h-[42px]"
+                placeholder="Server Name"
+                value={data.config?.SERVER?.NAME || ''}
+                onChange={(e) => updateConfigValue('SERVER', 'NAME', e.target.value)}
+              />
+            </div>
+
+            {/* Tab Navigation - wraps underneath when needed */}
+            <nav className="flex gap-0.5 overflow-x-auto flex-1 min-w-0">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -716,9 +777,12 @@ function ServerConfig() {
             />
           )}
         </Suspense>
+      </form>
+      </div>
 
-        {/* Action Buttons - CM Style */}
-        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+      {/* Action Buttons - CM Style - Fixed at Bottom */}
+      <div className="fixed bottom-0 left-64 right-0 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-700 shadow-lg z-10">
+        <div className="max-w-7xl mx-auto px-8 py-4">
           <div className="flex gap-2">
             <button
               type="button"
@@ -757,18 +821,40 @@ function ServerConfig() {
             >
               🗑️ Delete
             </button>
-            <button
-              type="button"
-              onClick={handleRunServer}
-              disabled={!data.currentPresetId}
-              className="px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Start server instance"
-            >
-              ▶️ Run
-            </button>
+            {!data.serverStatus?.running ? (
+              <button
+                type="button"
+                onClick={handleRunServer}
+                disabled={!data.currentPresetId}
+                className="px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Start server instance"
+              >
+                ▶️ Run
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleRestartServer}
+                  className="px-4 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors"
+                  title="Restart server instance"
+                >
+                  🔄 Restart
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStopServer}
+                  className="px-6 py-2 bg-red-600 dark:bg-red-700 text-white rounded hover:bg-red-700 dark:hover:bg-red-600 transition-colors font-semibold"
+                  title="Stop server instance"
+                >
+                  ⏹️ Stop
+                </button>
+              </>
+            )}
           </div>
         </div>
-      </form>
+      </div>
+      </div>
 
       {/* Modals */}
       <Suspense fallback={null}>
@@ -842,7 +928,7 @@ function ServerConfig() {
           />
         )}
       </Suspense>
-    </div>
+    </>
   );
 }
 

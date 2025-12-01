@@ -1,7 +1,7 @@
 {
   "SERVER": {
     "NAME": "AC_Server_0",
-    "TRACK": "",
+    "TRACK": "imola",
     "CARS": "abarth500",
     "MAX_CLIENTS": 18,
     "PASSWORD": "",
@@ -38,7 +38,7 @@
     "MAX_CONTACTS_PER_KM": -1,
     "SUN_ANGLE": 960,
     "TIME_OF_DAY_MULT": 1,
-    "LOCKED_ENTRY_LIST": 0,
+    "LOCKED_ENTRY_LIST": 1,
     "LOOP_MODE": 1,
     "RACE_OVER_TIME": 180,
     "PLUGIN_ADDRESS": "",
@@ -52,7 +52,8 @@
     "SEND_BUFFER_SIZE": "0",
     "RECV_BUFFER_SIZE": "0",
     "UDP_PLUGIN_LOCAL_PORT": "0",
-    "UDP_PLUGIN_ADDRESS": ""
+    "UDP_PLUGIN_ADDRESS": "",
+    "DESCRIPTION": ""
   },
   "DYNAMIC_TRACK": {
     "SESSION_START": 95,

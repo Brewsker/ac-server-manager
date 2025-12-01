@@ -45,8 +45,8 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({
     error: {
       message: err.message || 'Internal server error',
-      status: err.status || 500
-    }
+      status: err.status || 500,
+    },
   });
 });
 
@@ -63,7 +63,7 @@ process.on('uncaughtException', (error) => {
 // Graceful shutdown handler
 const gracefulShutdown = async (signal) => {
   console.log(`\n${signal} received. Starting graceful shutdown...`);
-  
+
   // Stop all running server instances
   try {
     const { stopAllServers } = await import('./services/serverProcessManager.js');
@@ -72,7 +72,7 @@ const gracefulShutdown = async (signal) => {
   } catch (error) {
     console.error('Error stopping AC servers during shutdown:', error);
   }
-  
+
   // Stop legacy single AC server if running
   try {
     const { getServerStatus, stopServer } = await import('./services/serverService.js');
@@ -84,13 +84,13 @@ const gracefulShutdown = async (signal) => {
   } catch (error) {
     console.error('Error stopping legacy AC server during shutdown:', error);
   }
-  
+
   // Close Express server
   server.close(() => {
     console.log('Express server closed');
     process.exit(0);
   });
-  
+
   // Force close after 10 seconds
   setTimeout(() => {
     console.error('Forced shutdown after timeout');
@@ -105,9 +105,9 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 const server = app.listen(PORT, () => {
   console.log(`🚀 AC Server Manager API running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
-  
+
   // Reset working config on server start to ensure fresh state
-  import('./services/configStateManager.js').then(module => {
+  import('./services/configStateManager.js').then((module) => {
     module.resetWorkingConfig();
     console.log('🔄 Working configuration reset - will load fresh on first request');
   });

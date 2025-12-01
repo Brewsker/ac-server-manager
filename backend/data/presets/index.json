@@ -1,12 +1,12 @@
 {
   "presets": [
     {
-      "id": "0dba9e47-7035-4ae5-a4f2-61bea1e2e5b1",
+      "id": "905d3653-e74e-452b-ae53-39e235db21c6",
       "name": "AC_Server_0",
       "description": "Newly created preset from defaults",
-      "created": "2025-12-01T02:39:48.632Z",
-      "modified": "2025-12-01T02:39:48.632Z",
-      "track": "Unknown",
+      "created": "2025-12-01T05:39:07.524Z",
+      "modified": "2025-12-01T05:39:07.524Z",
+      "track": "imola",
       "cars": 1,
       "maxClients": 18,
       "sessions": "Practice, Qualify, Race"
