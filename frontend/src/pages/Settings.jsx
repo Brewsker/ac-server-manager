@@ -22,10 +22,12 @@ function Settings() {
 
   const loadCurrentVersion = async () => {
     try {
+      console.log('[Settings] Loading current version...');
       const data = await api.getCurrentVersion();
+      console.log('[Settings] Version data received:', data);
       setCurrentVersion(data.version);
     } catch (error) {
-      console.error('Failed to load version:', error);
+      console.error('[Settings] Failed to load version:', error);
       setCurrentVersion('Unknown');
     }
   };
