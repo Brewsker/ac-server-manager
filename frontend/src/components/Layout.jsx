@@ -23,6 +23,13 @@ function Layout({ children }) {
     fetchPresets();
   }, []);
 
+  // Refresh presets when navigating to certain pages (after potential preset changes)
+  useEffect(() => {
+    if (location.pathname === '/saved-configs' || location.pathname === '/config') {
+      fetchPresets();
+    }
+  }, [location.pathname]);
+
   const fetchPresets = async () => {
     try {
       const data = await api.getPresets();
@@ -63,12 +70,12 @@ function Layout({ children }) {
             <p className="text-gray-400 text-sm mt-1">v0.1.0</p>
           </div>
         </div>
-        
+
         {/* Theme Toggle at top of sidebar */}
         <div className="px-6 pb-4 border-b border-gray-800 dark:border-gray-900">
           <ThemeToggle />
         </div>
-        
+
         <nav className="mt-6">
           {navItems.map((item) => (
             <Link
@@ -92,25 +99,30 @@ function Layout({ children }) {
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Presets
             </h3>
-            <button
-              onClick={handleNewPreset}
-              className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-              title="Create new preset from default config"
-            >
-              + New
-            </button>
+            <div className="flex gap-1">
+              <button
+                onClick={fetchPresets}
+                className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                title="Refresh preset list"
+              >
+                ↻
+              </button>
+              <button
+                onClick={handleNewPreset}
+                className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                title="Load default config to create new preset"
+              >
+                + New
+              </button>
+            </div>
           </div>
 
           {/* Preset List */}
           <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
             {loadingPresets ? (
-              <div className="text-xs text-gray-500 text-center py-4">
-                Loading...
-              </div>
+              <div className="text-xs text-gray-500 text-center py-4">Loading...</div>
             ) : presets.length === 0 ? (
-              <div className="text-xs text-gray-500 text-center py-4">
-                No presets yet
-              </div>
+              <div className="text-xs text-gray-500 text-center py-4">No presets yet</div>
             ) : (
               presets.map((preset) => (
                 <button
@@ -129,9 +141,7 @@ function Layout({ children }) {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-white dark:bg-gray-950">
-        <div className="max-w-7xl mx-auto px-8 py-8">
-          {children}
-        </div>
+        <div className="max-w-7xl mx-auto px-8 py-8">{children}</div>
       </main>
     </div>
   );
