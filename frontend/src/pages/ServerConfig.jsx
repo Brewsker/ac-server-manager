@@ -547,38 +547,35 @@ function ServerConfig() {
         </div>
       </div>
 
-      {/* Horizontal Tab Navigation with Server Name */}
-      <div className="mb-6">
-        <div className="flex flex-col lg:flex-row lg:items-end gap-4 border-b border-gray-200 dark:border-gray-700">
-          {/* Server Name Field - Full width on mobile, 1/3 on desktop */}
-          <div className="w-full lg:w-1/3">
-            <input
-              type="text"
-              className="w-full text-lg font-semibold bg-transparent border-none outline-none focus:bg-white dark:focus:bg-gray-800 focus:border focus:border-blue-500 dark:focus:border-blue-400 rounded px-3 py-2 transition-all h-[42px]"
-              placeholder="Server Name"
-              value={data.config?.SERVER?.NAME || ''}
-              onChange={(e) => updateConfigValue('SERVER', 'NAME', e.target.value)}
-            />
-          </div>
+      {/* Server Name Field */}
+      <div className="mb-4">
+        <input
+          type="text"
+          className="w-full lg:w-1/3 text-lg font-semibold bg-transparent border-b-2 border-gray-200 dark:border-gray-700 outline-none focus:border-blue-500 dark:focus:border-blue-400 px-3 py-2 transition-all"
+          placeholder="Server Name"
+          value={data.config?.SERVER?.NAME || ''}
+          onChange={(e) => updateConfigValue('SERVER', 'NAME', e.target.value)}
+        />
+      </div>
 
-          {/* Tab Navigation - Full width on mobile with scroll, 2/3 on desktop right aligned */}
-          <nav className="flex gap-0.5 overflow-x-auto w-full lg:w-2/3 lg:justify-end">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => updateUi({ activeTab: tab.id })}
-                className={`flex items-center gap-1.5 px-2.5 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  ui.activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
+      {/* Tab Navigation */}
+      <div className="mb-6">
+        <nav className="flex gap-0.5 overflow-x-auto border-b border-gray-200 dark:border-gray-700">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => updateUi({ activeTab: tab.id })}
+              className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                ui.activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
