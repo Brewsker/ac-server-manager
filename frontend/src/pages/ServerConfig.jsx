@@ -259,7 +259,7 @@ function ServerConfig() {
     try {
       // Find the index of the current preset in the list
       const currentIndex = data.presets.findIndex((p) => p.id === data.currentPresetId);
-      
+
       // Delete the preset
       await api.deletePreset(data.currentPresetId);
       console.log('Preset deleted');
@@ -270,7 +270,7 @@ function ServerConfig() {
 
       // Determine which preset to load next
       let nextPreset = null;
-      
+
       if (updatedPresets.length > 0) {
         // Try to load the preset that took the deleted preset's position
         if (currentIndex < updatedPresets.length) {
@@ -789,14 +789,15 @@ function ServerConfig() {
 
 // Confirm Modal Component
 function ConfirmModal({ title, message, onConfirm, onClose }) {
-  const buttonRefs = useRef([]);
-  const selectedIndex = useKeyboardNav(2, () => onClose());
-
-  useEffect(() => {
-    if (buttonRefs.current[selectedIndex]) {
-      buttonRefs.current[selectedIndex].focus();
-    }
-  }, [selectedIndex]);
+  const { selectedIndex, buttonRefs } = useKeyboardNav(
+    2,
+    (index) => {
+      if (index === 0) onConfirm();
+      else if (index === 1) onClose();
+    },
+    onClose,
+    0 // Default to Confirm button
+  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -830,14 +831,16 @@ function ConfirmModal({ title, message, onConfirm, onClose }) {
 
 // Save Preset Modal Component
 function SavePresetModal({ presetName, setPresetName, onConfirm, onClose }) {
-  const buttonRefs = useRef([]);
-  const selectedIndex = useKeyboardNav(3, () => onClose());
-
-  useEffect(() => {
-    if (buttonRefs.current[selectedIndex]) {
-      buttonRefs.current[selectedIndex].focus();
-    }
-  }, [selectedIndex]);
+  const { selectedIndex, buttonRefs } = useKeyboardNav(
+    3,
+    (index) => {
+      if (index === 0 && presetName.trim()) onConfirm(true);
+      else if (index === 1 && presetName.trim()) onConfirm(false);
+      else if (index === 2) onClose();
+    },
+    onClose,
+    1 // Default to "Save Only" button
+  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -871,7 +874,7 @@ function SavePresetModal({ presetName, setPresetName, onConfirm, onClose }) {
             ref={(el) => (buttonRefs.current[0] = el)}
             onClick={() => onConfirm(true)}
             disabled={!presetName.trim()}
-            className={`w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors ${
+            className={`w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors ${
               selectedIndex === 0 ? 'ring-2 ring-blue-800' : ''
             }`}
           >
@@ -881,7 +884,7 @@ function SavePresetModal({ presetName, setPresetName, onConfirm, onClose }) {
             ref={(el) => (buttonRefs.current[1] = el)}
             onClick={() => onConfirm(false)}
             disabled={!presetName.trim()}
-            className={`w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors ${
+            className={`w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors ${
               selectedIndex === 1 ? 'ring-2 ring-green-800' : ''
             }`}
           >
@@ -905,14 +908,15 @@ function SavePresetModal({ presetName, setPresetName, onConfirm, onClose }) {
 // CSP Options Modal Component
 function CspOptionsModal({ currentValue, onConfirm, onClose }) {
   const [value, setValue] = useState(currentValue);
-  const buttonRefs = useRef([]);
-  const selectedIndex = useKeyboardNav(2, () => onClose());
-
-  useEffect(() => {
-    if (buttonRefs.current[selectedIndex]) {
-      buttonRefs.current[selectedIndex].focus();
-    }
-  }, [selectedIndex]);
+  const { selectedIndex, buttonRefs } = useKeyboardNav(
+    2,
+    (index) => {
+      if (index === 0) onConfirm(value);
+      else if (index === 1) onClose();
+    },
+    onClose,
+    0 // Default to Confirm button
+  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

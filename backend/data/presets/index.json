@@ -1,39 +1,6 @@
 {
   "presets": [
     {
-      "id": "ddb19621-4d64-49c3-a492-e7defa52adce",
-      "name": "AC_Server_4",
-      "description": "Newly created preset from defaults",
-      "created": "2025-12-01T01:17:42.812Z",
-      "modified": "2025-12-01T01:17:42.812Z",
-      "track": "ks_red_bull_ring",
-      "cars": 1,
-      "maxClients": "24",
-      "sessions": "Practice, Qualify, Race"
-    },
-    {
-      "id": "51295b6f-d3ca-4f2a-9f99-4b9a6cd3fb42",
-      "name": "AC_Server_5",
-      "description": "Newly created preset from defaults",
-      "created": "2025-12-01T01:17:43.135Z",
-      "modified": "2025-12-01T01:17:43.135Z",
-      "track": "ks_red_bull_ring",
-      "cars": 1,
-      "maxClients": "24",
-      "sessions": "Practice, Qualify, Race"
-    },
-    {
-      "id": "e5bd9a4c-bd7b-4eee-98aa-89248c5f56d2",
-      "name": "AC_Server_6",
-      "description": "Newly created preset from defaults",
-      "created": "2025-12-01T01:17:43.360Z",
-      "modified": "2025-12-01T01:17:43.360Z",
-      "track": "ks_red_bull_ring",
-      "cars": 1,
-      "maxClients": "24",
-      "sessions": "Practice, Qualify, Race"
-    },
-    {
       "id": "114f70d5-5ea1-4725-b976-9d15bb543806",
       "name": "AC_Server_7",
       "description": "Newly created preset from defaults",
@@ -61,17 +28,6 @@
       "description": "Newly created preset from defaults",
       "created": "2025-12-01T01:17:43.915Z",
       "modified": "2025-12-01T01:17:43.915Z",
-      "track": "ks_red_bull_ring",
-      "cars": 1,
-      "maxClients": "24",
-      "sessions": "Practice, Qualify, Race"
-    },
-    {
-      "id": "4bae4844-fe3e-451c-aa51-abcf2970355b",
-      "name": "AC_Server_10",
-      "description": "Newly created preset from defaults",
-      "created": "2025-12-01T01:17:44.080Z",
-      "modified": "2025-12-01T01:17:44.080Z",
       "track": "ks_red_bull_ring",
       "cars": 1,
       "maxClients": "24",
