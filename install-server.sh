@@ -86,6 +86,16 @@ check_os() {
     print_success "Detected: $PRETTY_NAME"
 }
 
+ensure_wget_or_curl() {
+    # Check if we have wget or curl for downloading
+    if ! command -v wget &> /dev/null && ! command -v curl &> /dev/null; then
+        print_step "Installing wget for downloads..."
+        apt-get update -qq
+        apt-get install -y wget
+        print_success "wget installed"
+    fi
+}
+
 ###############################################################################
 # Pre-Installation Prompts
 ###############################################################################
@@ -586,6 +596,7 @@ main() {
     
     check_root
     check_os
+    ensure_wget_or_curl
     
     # Interactive prompts
     prompt_installation_type
