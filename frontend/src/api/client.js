@@ -282,6 +282,22 @@ export const saveSetup = async (path) => {
   return response.data;
 };
 
+// Update endpoints
+export const getCurrentVersion = async () => {
+  const response = await client.get('/update/version');
+  return response.data;
+};
+
+export const checkForUpdates = async () => {
+  const response = await client.get('/update/check');
+  return response.data;
+};
+
+export const getUpdateStatus = async () => {
+  const response = await client.get('/update/status');
+  return response.data;
+};
+
 export default {
   getServerStatus,
   startServer,
@@ -336,4 +352,13 @@ export default {
   autoDetectAC,
   validateACPath,
   saveSetup,
+  getCurrentVersion,
+  checkForUpdates,
+  getUpdateStatus,
+  // Also export the axios instance for direct use
+  get: (url, config) => client.get(url, config),
+  post: (url, data, config) => client.post(url, data, config),
+  put: (url, data, config) => client.put(url, data, config),
+  patch: (url, data, config) => client.patch(url, data, config),
+  delete: (url, config) => client.delete(url, config),
 };

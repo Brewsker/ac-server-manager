@@ -8,6 +8,7 @@ import entryRoutes from './routes/entryRoutes.js';
 import playerRoutes from './routes/playerRoutes.js';
 import setupRoutes from './routes/setupRoutes.js';
 import processRoutes from './routes/processRoutes.js';
+import updateRoutes from './routes/updateRoutes.js';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.use('/api/content', contentRoutes);
 app.use('/api/entries', entryRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/process', processRoutes);
+app.use('/api/update', updateRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
