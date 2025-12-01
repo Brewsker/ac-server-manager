@@ -2,6 +2,11 @@
 
 Modern web-based management interface for Assetto Corsa dedicated servers.
 
+STILL UNDER DEVELOPMENT. DOWNLOAD AT OWN RISK.
+Core functionality seems solid.
+Working to dial in the installer for local testing before development can continue.
+
+
 ## 🚀 Quick Start
 
 ### Windows (Local Development)

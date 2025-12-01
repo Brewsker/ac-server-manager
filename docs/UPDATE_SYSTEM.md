@@ -1,68 +1,193 @@
-# Update System
+# Update System Documentation
 
-The AC Server Manager includes an integrated update checking system that allows users to check for new versions directly from the Settings page.
+## Overview
+
+The AC Server Manager now includes a complete update system with confirmation dialog for safe production updates. This is especially important for containerized deployments on platforms like Proxmox.
 
 ## Features
 
-- **Manual Update Check**: Click "Check for Updates" button in Settings
-- **Version Comparison**: Automatically compares current version with latest GitHub release
-- **Release Notes**: Displays changelog from GitHub releases
-- **Direct Download**: Links to download the latest version
-- **Update Notifications**: Visual indicators for available updates
+### 1. Update Checking
+
+- Checks GitHub releases for new versions
+- Compares current version with latest release
+- Shows release notes and download links
+- Manual check via Settings page
+
+### 2. Automatic Update Application
+
+- Git pull to fetch latest code
+- NPM install to update dependencies
+- Frontend rebuild
+- Automatic server restart
+
+### 3. Update Confirmation Modal
+
+- Shows current version → new version
+- Displays release notes preview
+- Lists what will happen during update
+- Requires explicit user confirmation
+- Shows progress during installation
+- Auto-reloads page after completion
+
+## How It Works
+
+### Backend (API)
+
+#### Routes (`/api/update/...`)
+
+- `GET /check` - Check for updates on GitHub
+- `GET /version` - Get current app version
+- `GET /status` - Get update check status
+- `POST /apply` - Apply update and restart
+
+#### Update Service
+
+Located in `backend/src/services/updateService.js`
+
+**Update Process:**
+
+1. Verify git repository exists
+2. Run `git pull` to fetch latest code
+3. Run `npm install` in backend directory
+4. Run `npm run build` in frontend directory
+5. Respond to client
+6. Wait 3 seconds (for response to send)
+7. Exit process (Docker/PM2 restarts automatically)
+
+### Frontend (UI)
+
+#### Settings Page
+
+Located in `frontend/src/pages/Settings.jsx`
+
+**Update Flow:**
+
+1. User clicks "Check for Updates"
+2. If update available, shows version info and release notes
+3. User clicks "Install Update" button
+4. Confirmation modal appears with warning
+5. User confirms or cancels
+6. If confirmed, backend applies update
+7. Page shows "Installing..." status
+8. After 5 seconds, page auto-reloads
+
+**Confirmation Modal Shows:**
+
+- Current version → New version
+- Warning about restart
+- List of actions (pull, install, build, restart)
+- Release notes preview
+- Cancel and Install buttons
+- Loading state during installation
+
+## Usage
+
+### For Users
+
+1. Go to Settings page
+2. Click "Check for Updates"
+3. If update available, review the release notes
+4. Click "Install Update"
+5. Confirm in the modal
+6. Wait for installation (30-60 seconds)
+7. Page reloads automatically when complete
+
+### For Docker Deployments
+
+The update system works seamlessly with Docker:
+
+- Container must have .git directory mounted
+- Git must be installed in container (included in Dockerfile)
+- Container restart policy should be `unless-stopped` or `always`
+- Process exits with code 0, triggering restart
+
+**Docker Compose Example:**
+
+```yaml
+services:
+  ac-server-manager:
+    restart: unless-stopped
+    volumes:
+      - ./.git:/app/.git:ro # Git history for updates
+      - ./data:/app/data # Persistent data
+```
+
+### For PM2 Deployments
+
+PM2 will automatically restart the process:
+
+```bash
+pm2 start backend/src/server.js --name ac-server-manager --watch false
+```
+
+When update completes, PM2 detects exit and restarts automatically.
 
 ## Configuration
 
-### Setting Up GitHub Releases
+### GitHub Repository
 
-To enable update checking, you need to configure the GitHub repository information:
-
-1. Open `backend/src/services/updateService.js`
-2. Update these constants at the top of the file:
+Edit `backend/src/services/updateService.js`:
 
 ```javascript
-const GITHUB_OWNER = 'your-github-username'; // Your GitHub username
-const GITHUB_REPO = 'ac-server-manager'; // Your repository name
+const GITHUB_OWNER = 'yourname';
+const GITHUB_REPO = 'your-repo';
 ```
 
-### Creating Releases
+### Update Timing
 
-When you want to publish a new version:
+- Response delay before restart: 3 seconds (in updateRoutes.js)
+- Page reload delay: 5 seconds (in Settings.jsx)
+- Adjust if needed for slower systems
 
-1. **Update version in package.json** (both frontend and backend):
+## Security Considerations
 
-   ```json
-   {
-     "version": "0.2.0"
-   }
-   ```
+### Production Deployment
 
-2. **Commit and tag the release**:
+1. **Git Branch:** Ensure you're on the correct branch (main/master)
+2. **Permissions:** Git directory should be readable by app user
+3. **Backups:** Always backup before updating (see PROXMOX_DEPLOYMENT.md)
+4. **Network:** Requires internet access to GitHub
+5. **Race Condition:** Confirmation prevents accidental updates during active sessions
 
-   ```bash
-   git add .
-   git commit -m "chore: bump version to 0.2.0"
-   git tag v0.2.0
-   git push origin main --tags
-   ```
+### Confirmation Dialog
 
-3. **Create GitHub Release**:
-   - Go to your repository on GitHub
-   - Click "Releases" → "Create a new release"
-   - Select the tag you just created (v0.2.0)
-   - Add a title: "Version 0.2.0"
-   - Add release notes describing changes
-   - Optionally attach compiled binaries (zip files, installers, etc.)
-   - Click "Publish release"
+The confirmation modal prevents:
 
-## Version Format
+- Accidental updates during races
+- Surprise restarts mid-session
+- Updates without reviewing changes
+- Data loss by showing what will happen
 
-The system uses semantic versioning (semver):
+## Troubleshooting
 
-- Format: `MAJOR.MINOR.PATCH` (e.g., `1.2.3`)
-- Tags can optionally include `v` prefix (e.g., `v1.2.3`)
-- The system automatically strips the `v` prefix when comparing versions
+### "Not a git repository" Error
 
-## API Endpoints
+- Ensure .git directory exists
+- Check volume mount in Docker: `./.git:/app/.git:ro`
+- Verify git is installed: `git --version`
+
+### Update Hangs
+
+- Check internet connection to GitHub
+- Verify npm registry access
+- Check build logs: `docker logs ac-server-manager`
+- Increase restart delay if system is slow
+
+### Page Doesn't Reload
+
+- Clear browser cache
+- Check if server restarted: `docker ps`
+- Check logs for errors: `docker logs ac-server-manager`
+- Manually refresh after 60 seconds
+
+### Dependencies Fail to Install
+
+- Check `package.json` for issues
+- Verify npm registry is accessible
+- Check disk space: `df -h`
+- Try manual install: `docker exec ac-server-manager npm install`
+
+## API Reference
 
 ### Check for Updates
 
@@ -70,23 +195,32 @@ The system uses semantic versioning (semver):
 GET /api/update/check
 ```
 
-**Response**:
+**Response:**
 
 ```json
 {
   "updateAvailable": true,
-  "currentVersion": "0.1.0",
-  "latestVersion": "0.2.0",
-  "releaseUrl": "https://github.com/user/repo/releases/tag/v0.2.0",
-  "releaseNotes": "## What's New\n- Feature 1\n- Feature 2",
-  "publishedAt": "2025-11-30T12:00:00Z",
-  "assets": [
-    {
-      "name": "ac-server-manager-v0.2.0.zip",
-      "size": 12345678,
-      "downloadUrl": "https://github.com/..."
-    }
-  ]
+  "currentVersion": "0.13.6",
+  "latestVersion": "0.14.0",
+  "releaseUrl": "https://github.com/.../releases/tag/v0.14.0",
+  "releaseNotes": "## What's New\n...",
+  "publishedAt": "2024-01-15T12:00:00Z"
+}
+```
+
+### Apply Update
+
+```http
+POST /api/update/apply
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Update applied successfully. Server will restart in 3 seconds.",
+  "requiresRestart": true
 }
 ```
 
@@ -96,65 +230,27 @@ GET /api/update/check
 GET /api/update/version
 ```
 
-**Response**:
+**Response:**
 
 ```json
 {
-  "version": "0.1.0"
+  "version": "0.13.6"
 }
 ```
-
-### Get Update Status
-
-```http
-GET /api/update/status
-```
-
-**Response**:
-
-```json
-{
-  "checking": false,
-  "currentVersion": "0.1.0"
-}
-```
-
-## User Interface
-
-The update check UI is located in **Settings** → **Application Updates**:
-
-- Shows current version
-- "Check for Updates" button
-- Update status messages:
-  - ✅ **Green**: You're up to date
-  - 🔵 **Blue**: Update available with download link
-  - 🔴 **Red**: Error checking for updates
-- Release notes preview
-- Direct download links for update assets
-
-## Error Handling
-
-The system gracefully handles:
-
-- No internet connection
-- GitHub API rate limiting
-- Repository not found (404)
-- No releases published yet
-- Invalid version formats
 
 ## Future Enhancements
 
-Potential features for future versions:
+- [ ] Rollback capability (git checkout previous version)
+- [ ] Update scheduling (apply at specific time)
+- [ ] Email notifications for new releases
+- [ ] Automatic update checking (daily cron)
+- [ ] Backup before update with auto-restore on failure
+- [ ] Show commit log between versions
+- [ ] Test mode (dry-run without applying)
+- [ ] Multi-environment support (dev/staging/prod)
 
-- [ ] Automatic update checks on app launch
-- [ ] Background update downloads
-- [ ] One-click update installation
-- [ ] Update notifications in the UI header
-- [ ] Auto-update settings (enable/disable)
-- [ ] Update channel selection (stable/beta)
+## Related Documentation
 
-## Privacy
-
-- No telemetry or tracking
-- Only contacts GitHub API when user clicks "Check for Updates"
-- No personal data transmitted
+- [PROXMOX_DEPLOYMENT.md](./PROXMOX_DEPLOYMENT.md) - Containerized deployment guide
+- [Dockerfile](./Dockerfile) - Container image definition
+- [docker-compose.yml](./docker-compose.yml) - Multi-container setup
