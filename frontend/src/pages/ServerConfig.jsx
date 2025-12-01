@@ -244,12 +244,27 @@ function ServerConfig() {
 
   const fetchData = async () => {
     try {
-      const [configData, tracksData, carsData, presetsData] = await Promise.all([
+      // Fetch config and presets first (these are critical)
+      const [configData, presetsData] = await Promise.all([
         api.getConfig(),
-        api.getTracks(),
-        api.getCars(),
         api.getPresets(),
       ]);
+
+      // Try to fetch cars and tracks, but don't fail if AC server path is invalid
+      let tracksData = { tracks: [] };
+      let carsData = { cars: [] };
+      
+      try {
+        tracksData = await api.getTracks();
+      } catch (error) {
+        console.warn('[ServerConfig] Failed to load tracks (AC server path may be invalid):', error.message);
+      }
+      
+      try {
+        carsData = await api.getCars();
+      } catch (error) {
+        console.warn('[ServerConfig] Failed to load cars (AC server path may be invalid):', error.message);
+      }
 
       // Only update state if component is still mounted
       if (!isMountedRef.current) return;
