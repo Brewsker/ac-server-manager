@@ -67,8 +67,15 @@ function ServerConfig() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    console.log('[ServerConfig] Component mounted, fetching data...');
-    fetchData();
+    
+    // Only fetch data if we don't have it yet (first load)
+    // This prevents overwriting user's working config on navigation
+    if (!data.config) {
+      console.log('[ServerConfig] Initial load, fetching data...');
+      fetchData();
+    } else {
+      console.log('[ServerConfig] Config already loaded, preserving state');
+    }
 
     return () => {
       isMountedRef.current = false;
@@ -408,15 +415,21 @@ function ServerConfig() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Configuration Editor
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Edit settings and apply to server</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Edit settings and apply to server
+            <span className="ml-2 text-xs italic text-gray-500 dark:text-gray-500">
+              (Changes persist while navigating)
+            </span>
+          </p>
         </div>
         <div className="flex gap-3">
           <button
             type="button"
             onClick={() => updateModals({ showLoadActive: true })}
             className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            title="Discard your changes and reload from active server config"
           >
-            🔄 Load Active Config
+            🔄 Reset to Active
           </button>
           <button
             type="button"
@@ -554,8 +567,8 @@ function ServerConfig() {
       <Suspense fallback={null}>
         {modals.showLoadActive && (
           <ConfirmModal
-            title="Load Active Configuration"
-            message="This will replace your current working configuration with the server's active configuration. Any unsaved changes will be lost."
+            title="Reset to Active Configuration"
+            message="This will discard all your changes and reload the server's active configuration. This action cannot be undone."
             onConfirm={handleLoadActiveConfig}
             onClose={() => updateModals({ showLoadActive: false })}
           />
