@@ -16,8 +16,8 @@ CTID=999
 HOSTNAME="ac-test"
 PASSWORD="TestPass123"
 CORES=2
-MEMORY=2048
-DISK=20
+MEMORY=4096
+DISK=60
 STORAGE="local-lvm"
 TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
 
@@ -57,11 +57,31 @@ create_container() {
     print_success "Container created and started"
     
     # Wait for container to be ready
-    sleep 3
+    sleep 5
+    
+    # Install curl for installer bootstrap
+    print_info "Installing curl for installer..."
+    if ! pct exec $CTID -- apt-get update -qq 2>&1; then
+        print_error "Failed to update package lists"
+        exit 1
+    fi
+    
+    if ! pct exec $CTID -- apt-get install -y curl 2>&1 | grep -q "Setting up curl"; then
+        print_error "Failed to install curl"
+        exit 1
+    fi
+    print_success "Bootstrap packages installed"
     
     # Get IP address
     IP=$(pct exec $CTID -- hostname -I | awk '{print $1}')
     print_success "Container IP: $IP"
+    
+    # Run installer
+    print_info "Running AC Server Manager installer..."
+    echo ""
+    pct exec $CTID -- bash -c "curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh | bash"
+    echo ""
+    print_success "Installation complete!"
     
     print_info "Container Details:"
     echo "  ID:       $CTID"
