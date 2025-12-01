@@ -83,9 +83,12 @@ create_container() {
     print_info "Setting up web-based installation wizard..."
     pct exec $CTID -- bash -c "mkdir -p /opt/ac-setup && cd /opt/ac-setup && curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/setup-wizard.html -o setup-wizard.html && curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/setup-server.js -o setup-server.js"
     
-    # Start setup wizard server in background
-    print_info "Starting setup wizard server..."
-    pct exec $CTID -- bash -c "cd /opt/ac-setup && setsid node setup-server.js > /var/log/ac-setup.log 2>&1 < /dev/null &"
+    # Download and install systemd service
+    print_info "Installing setup wizard service..."
+    pct exec $CTID -- bash -c "curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/ac-setup-wizard.service -o /etc/systemd/system/ac-setup-wizard.service"
+    
+    # Start setup wizard service
+    pct exec $CTID -- bash -c "systemctl daemon-reload && systemctl start ac-setup-wizard && systemctl is-active ac-setup-wizard"
     sleep 2
     
     echo ""
