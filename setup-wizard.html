@@ -280,7 +280,15 @@
             Please wait while we set up your server...
           </div>
           <div class="spinner" id="spinner"></div>
-          <div class="log-output" id="logOutput"></div>
+          <button 
+            class="btn btn-secondary" 
+            id="toggleDetailsBtn" 
+            onclick="toggleDetails()" 
+            style="margin: 16px 0; width: auto; display: inline-flex; align-items: center; gap: 8px;"
+          >
+            <span id="detailsIcon">▶</span> Details
+          </button>
+          <div class="log-output" id="logOutput" style="display: none;"></div>
         </div>
 
         <!-- Step 4: Complete -->
@@ -348,6 +356,15 @@
         document.getElementById('acFields').style.display = checked ? 'block' : 'none';
       }
 
+      function toggleDetails() {
+        const logOutput = document.getElementById('logOutput');
+        const icon = document.getElementById('detailsIcon');
+        const isVisible = logOutput.style.display !== 'none';
+        
+        logOutput.style.display = isVisible ? 'none' : 'block';
+        icon.textContent = isVisible ? '▶' : '▼';
+      }
+
       async function startInstallation() {
         showStep(3);
 
@@ -369,10 +386,14 @@
           const data = await response.json();
 
           if (data.success) {
+            // Show output in details
+            document.getElementById('logOutput').textContent = data.output || 'Installation completed successfully';
             document.getElementById('serverUrl').textContent = window.location.origin;
             document.getElementById('spinner').style.display = 'none';
             showStep(4);
           } else {
+            // Show error output in details
+            document.getElementById('logOutput').textContent = data.output || data.message;
             showError(data.message || 'Installation failed');
           }
         } catch (error) {
