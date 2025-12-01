@@ -9,17 +9,32 @@ export default function EntryListTab({
 }) {
   const [entries, setEntries] = useState([]);
 
-  // Populate entries from selected cars
+  // Sync entries with selectedCars - add new cars, remove deleted cars
   useEffect(() => {
-    if (selectedCars && selectedCars.length > 0 && entries.length === 0) {
-      const initialEntries = selectedCars.map((carId, index) => {
+    if (!selectedCars || selectedCars.length === 0) {
+      setEntries([]);
+      return;
+    }
+
+    setEntries((prevEntries) => {
+      // Create a map of existing entries by carId for quick lookup
+      const existingEntriesMap = new Map(prevEntries.map((entry) => [entry.carId, entry]));
+
+      // Build new entries array based on selectedCars order
+      const newEntries = selectedCars.map((carId) => {
+        // If entry already exists, keep it (preserves user edits)
+        if (existingEntriesMap.has(carId)) {
+          return existingEntriesMap.get(carId);
+        }
+
+        // Otherwise, create a new entry
         const car = cars.find((c) => c.id === carId);
         return {
           carId: carId,
           car: car?.name || carId,
           author: car?.author || 'Unknown',
           skin: car?.skins?.[0] || 'default',
-          skinColor: '#' + Math.floor(Math.random() * 16777215).toString(16), // Random color for now
+          skinColor: '#' + Math.floor(Math.random() * 16777215).toString(16),
           guid: '',
           name: '',
           team: '',
@@ -31,9 +46,10 @@ export default function EntryListTab({
           driverNation: '',
         };
       });
-      setEntries(initialEntries);
-    }
-  }, [selectedCars, cars, entries.length]);
+
+      return newEntries;
+    });
+  }, [selectedCars, cars]);
 
   return (
     <>
@@ -72,113 +88,137 @@ export default function EntryListTab({
             </div>
 
             {/* Table Header */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400">
-                      #
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400">
-                      Car
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400">
-                      Skin
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400">
-                      GUID
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400">
-                      Name
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400">
-                      Team
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400">
-                      Ballast
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400">
-                      Restrictor
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-400">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan="9"
-                        className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
-                      >
-                        No entries configured. Click "+ Add Entry" to add vehicles to the entry
-                        list.
-                      </td>
-                    </tr>
-                  ) : (
-                    entries.map((entry, index) => (
-                      <tr
-                        key={index}
-                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                          {index + 1}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-block w-3 h-3 bg-blue-500 rounded-full"></span>
-                            {entry.car}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            ID: {entry.carId}, author: {entry.author}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-8 h-6"
-                              style={{ backgroundColor: entry.skinColor || '#ccc' }}
-                            ></div>
-                            <span className="text-gray-900 dark:text-gray-100">{entry.skin}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+            <div className="bg-gray-100 dark:bg-gray-800 border-y border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-4 px-4 py-2">
+                <div className="flex-shrink-0 w-8 text-xs font-medium text-gray-600 dark:text-gray-400">
+                  #
+                </div>
+                <div className="flex-1 min-w-0 text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Car
+                </div>
+                <div className="flex-shrink-0 w-24 text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Skin
+                </div>
+                <div className="flex-shrink-0 min-w-[120px] text-xs font-medium text-gray-600 dark:text-gray-400">
+                  GUID
+                </div>
+                <div className="flex-shrink-0 min-w-[140px] text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Name
+                </div>
+                <div className="flex-shrink-0 min-w-[100px] text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Team
+                </div>
+                <div className="flex-shrink-0 min-w-[80px] text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Ballast
+                </div>
+                <div className="flex-shrink-0 min-w-[80px] text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Restrictor
+                </div>
+              </div>
+            </div>
+
+            {/* Entry List - 2-Row Card Layout */}
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {entries.length === 0 ? (
+                <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                  No entries configured. Click "+ Add Entry" to add vehicles to the entry list.
+                </div>
+              ) : (
+                entries.map((entry, index) => (
+                  <div
+                    key={index}
+                    className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    {/* Top Row - Main Info */}
+                    <div className="flex items-center gap-4 mb-2">
+                      {/* Entry Number */}
+                      <div className="flex-shrink-0 w-8 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        #{index + 1}
+                      </div>
+
+                      {/* Car Name with Color Indicator */}
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="inline-block w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {entry.car}
+                        </span>
+                      </div>
+
+                      {/* Skin */}
+                      <div className="flex items-center gap-2 flex-shrink-0 w-24">
+                        <div
+                          className="w-8 h-6 border border-gray-300 dark:border-gray-600 rounded"
+                          style={{ backgroundColor: entry.skinColor || '#ccc' }}
+                        ></div>
+                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                          {entry.skin}
+                        </span>
+                      </div>
+
+                      {/* GUID */}
+                      <div className="flex-shrink-0 min-w-[120px]">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
                           {entry.guid || 'Any'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                        </span>
+                      </div>
+
+                      {/* Name */}
+                      <div className="flex-shrink-0 min-w-[140px]">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
                           {entry.name || 'Client-defined'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                        </span>
+                      </div>
+
+                      {/* Team */}
+                      <div className="flex-shrink-0 min-w-[100px]">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
                           {entry.team || 'None'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                        </span>
+                      </div>
+
+                      {/* Ballast */}
+                      <div className="flex-shrink-0 min-w-[80px]">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {entry.ballast || 0} kg
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                        </span>
+                      </div>
+
+                      {/* Restrictor */}
+                      <div className="flex-shrink-0 min-w-[80px]">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {entry.restrictor || 0}%
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <div className="flex gap-2">
-                            <button className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
-                              Random skin
-                            </button>
-                            <button className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
-                              Store
-                            </button>
-                            <button className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
-                              Clone
-                            </button>
-                            <button className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Row - Vehicle ID, Author, Actions */}
+                    <div className="flex items-center justify-between pl-12">
+                      {/* Left: Vehicle ID & Author */}
+                      <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                        <span>
+                          <span className="font-medium">ID:</span> {entry.carId}
+                        </span>
+                        <span>
+                          <span className="font-medium">Author:</span> {entry.author}
+                        </span>
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div className="flex gap-2">
+                        <button className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors">
+                          Random skin
+                        </button>
+                        <button className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                          Clone
+                        </button>
+                        <button className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {entries.length > 0 && (
