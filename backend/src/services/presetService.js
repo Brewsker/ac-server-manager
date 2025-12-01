@@ -185,3 +185,27 @@ export async function deletePreset(id) {
   index.presets.splice(presetIndex, 1);
   await writePresetsIndex(index);
 }
+
+// Open presets folder in file explorer
+export async function openPresetsFolder() {
+  await ensurePresetsDir();
+  
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+  
+  const platform = process.platform;
+  
+  try {
+    if (platform === 'win32') {
+      await execAsync(`explorer "${PRESETS_DIR}"`);
+    } else if (platform === 'darwin') {
+      await execAsync(`open "${PRESETS_DIR}"`);
+    } else {
+      await execAsync(`xdg-open "${PRESETS_DIR}"`);
+    }
+  } catch (error) {
+    console.error('Failed to open presets folder:', error);
+    throw new Error('Failed to open presets folder');
+  }
+}

@@ -101,6 +101,11 @@ export const deletePreset = async (id) => {
   return response.data;
 };
 
+export const openPresetsFolder = async () => {
+  const response = await client.post('/config/presets/open-folder');
+  return response.data;
+};
+
 // Content endpoints
 export const getTracks = async () => {
   const response = await client.get('/content/tracks');

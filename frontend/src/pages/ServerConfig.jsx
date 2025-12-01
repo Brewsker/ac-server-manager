@@ -55,6 +55,25 @@ function ServerConfig() {
     localStorage.setItem('serverConfigActiveTab', ui.activeTab);
   }, [ui.activeTab]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl+S - Save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveConfig();
+      }
+      // Ctrl+F - Open Folder
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        handleOpenFolder();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [data.currentPresetId, data.config, data.selectedCars]);
+
   // Helper functions for state updates
   const updateData = (updates) => setData((prev) => ({ ...prev, ...updates }));
   const updateModals = (updates) => setModals((prev) => ({ ...prev, ...updates }));
@@ -464,6 +483,62 @@ function ServerConfig() {
     return track ? track.name : trackId;
   };
 
+  // New button handlers for multi-instance manager
+  const handleSaveConfig = async () => {
+    if (!data.currentPresetId) {
+      alert('Please save as a preset first');
+      return;
+    }
+
+    try {
+      const updatedConfig = {
+        ...data.config,
+        SERVER: {
+          ...data.config.SERVER,
+          CARS: data.selectedCars.join(';'),
+        },
+      };
+      await api.updateConfig(updatedConfig);
+      await api.savePreset(data.config.SERVER.NAME);
+      console.log('Configuration saved to preset');
+      
+      // Dispatch event to refresh sidebar
+      window.dispatchEvent(new CustomEvent('presetSaved'));
+    } catch (error) {
+      console.error('Failed to save config:', error);
+      alert('Failed to save configuration');
+    }
+  };
+
+  const handleOpenFolder = async () => {
+    try {
+      await api.openPresetsFolder();
+    } catch (error) {
+      console.error('Failed to open folder:', error);
+      alert('Failed to open presets folder');
+    }
+  };
+
+  const handleRunServer = async () => {
+    if (!data.currentPresetId) {
+      alert('Please select a preset first');
+      return;
+    }
+
+    try {
+      // First save current config
+      await handleSaveConfig();
+      
+      // Then start server (API to be implemented)
+      // await api.startServer(data.currentPresetId);
+      console.log('Starting server for preset:', data.currentPresetId);
+      alert('Server start functionality coming soon!');
+    } catch (error) {
+      console.error('Failed to start server:', error);
+      alert('Failed to start server');
+    }
+  };
+
   if (data.loading) {
     return <div className="text-center py-12">Loading...</div>;
   }
@@ -518,41 +593,14 @@ function ServerConfig() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Configuration Editor
+            Server Manager
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Edit settings and apply to server
-            <span className="ml-2 text-xs italic text-gray-500 dark:text-gray-500">
-              (Changes persist while navigating)
-            </span>
+            Configure and manage server instances
           </p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => updateModals({ showLoadActive: true })}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            title="Discard your changes and reload from active server config"
-          >
-            🔄 Reset to Active
-          </button>
-          <button
-            type="button"
-            className="px-4 py-2 bg-purple-600 dark:bg-purple-700 text-white rounded hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
-            onClick={handleSaveAsPreset}
-          >
-            📋 Save as Preset
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold"
-          >
-            ✅ Apply Config
-          </button>
         </div>
       </div>
 
@@ -672,66 +720,55 @@ function ServerConfig() {
           )}
         </Suspense>
 
-        {/* Static Action Buttons - Always visible below tabs */}
+        {/* Action Buttons - CM Style */}
         <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Preset Actions
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {data.currentPresetId ? (
-                  <>
-                    Currently editing:{' '}
-                    <span className="font-semibold">{data.config?.SERVER?.NAME}</span>
-                  </>
-                ) : (
-                  'No preset selected - save as preset first to enable actions'
-                )}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => loadTabDefaults(ui.activeTab)}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                🔄 Load Tab Defaults
-              </button>
-              <button
-                type="button"
-                onClick={loadAllDefaults}
-                className="px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
-              >
-                🔄 Load All Defaults
-              </button>
-              <button
-                type="button"
-                onClick={() => data.currentPresetId && updateModals({ showClone: true })}
-                disabled={!data.currentPresetId}
-                className="px-4 py-2 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-950/50 transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-100 dark:disabled:hover:bg-blue-950/30"
-                title={
-                  data.currentPresetId
-                    ? 'Clone this preset'
-                    : 'Save as preset first to enable cloning'
-                }
-              >
-                📋 Clone Preset
-              </button>
-              <button
-                type="button"
-                onClick={() => data.currentPresetId && updateModals({ showDelete: true })}
-                disabled={!data.currentPresetId}
-                className="px-4 py-2 bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-950/50 transition-colors border border-red-200 dark:border-red-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-100 dark:disabled:hover:bg-red-950/30"
-                title={
-                  data.currentPresetId
-                    ? 'Delete this preset'
-                    : 'Save as preset first to enable deletion'
-                }
-              >
-                🗑️ Delete Preset
-              </button>
-            </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleOpenFolder}
+              className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors"
+              title="Open presets folder (Ctrl+F)"
+            >
+              📁 Folder
+            </button>
+            <button
+              type="button"
+              onClick={() => data.currentPresetId && updateModals({ showClone: true })}
+              disabled={!data.currentPresetId}
+              className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Clone this preset"
+            >
+              📋 Clone
+            </button>
+            
+            <div className="flex-1"></div>
+            
+            <button
+              type="button"
+              onClick={handleSaveConfig}
+              className="px-6 py-2 bg-green-600 dark:bg-green-700 text-white rounded hover:bg-green-700 dark:hover:bg-green-600 transition-colors font-semibold"
+              title="Save configuration (Ctrl+S)"
+            >
+              💾 Save
+            </button>
+            <button
+              type="button"
+              onClick={() => data.currentPresetId && updateModals({ showDelete: true })}
+              disabled={!data.currentPresetId}
+              className="px-4 py-2 bg-red-600 dark:bg-red-700 text-white rounded hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Delete this preset"
+            >
+              🗑️ Delete
+            </button>
+            <button
+              type="button"
+              onClick={handleRunServer}
+              disabled={!data.currentPresetId}
+              className="px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Start server instance"
+            >
+              ▶️ Run
+            </button>
           </div>
         </div>
       </form>

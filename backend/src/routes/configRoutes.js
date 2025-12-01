@@ -140,4 +140,14 @@ router.delete('/presets/:id', async (req, res, next) => {
   }
 });
 
+// Open presets folder in file explorer
+router.post('/presets/open-folder', async (req, res, next) => {
+  try {
+    await presetService.openPresetsFolder();
+    res.json({ message: 'Opened presets folder' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
