@@ -377,11 +377,14 @@ install_application() {
     # Clone repository (or use current directory if already cloned)
     if [ ! -d ".git" ]; then
         print_info "Cloning repository..."
-        if git clone https://github.com/Brewsker/ac-server-manager.git . 2>&1 | grep -v "Cloning into"; then
+        # Disable credential prompts and use HTTPS
+        export GIT_TERMINAL_PROMPT=0
+        if git clone --depth 1 https://github.com/Brewsker/ac-server-manager.git . 2>&1 | grep -v "Cloning into"; then
             print_success "Repository cloned"
         else
             print_error "Failed to clone repository"
-            print_info "You may need to clone manually or check your internet connection"
+            print_info "This usually means the repository is private or your network is blocking GitHub"
+            print_info "Please verify the repository is public at: https://github.com/Brewsker/ac-server-manager"
             exit 1
         fi
     else
