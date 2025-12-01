@@ -30,6 +30,26 @@ function Layout({ children }) {
     }
   }, [location.pathname]);
 
+  // Also refresh when window regains focus (catches saves from modals)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchPresets();
+    };
+    
+    const handlePresetSaved = () => {
+      console.log('[Layout] Preset saved event received, refreshing list');
+      fetchPresets();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('presetSaved', handlePresetSaved);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('presetSaved', handlePresetSaved);
+    };
+  }, []);
+
   const fetchPresets = async () => {
     try {
       const data = await api.getPresets();

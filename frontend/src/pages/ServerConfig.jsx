@@ -187,6 +187,9 @@ function ServerConfig() {
       await api.savePreset(ui.presetName);
       console.log('Configuration saved as preset:', ui.presetName);
 
+      // Dispatch event to refresh preset list in sidebar
+      window.dispatchEvent(new CustomEvent('presetSaved'));
+
       updateModals({ showSave: false });
       updateUi({ presetName: '' });
 
