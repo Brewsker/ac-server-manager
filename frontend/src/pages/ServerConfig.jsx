@@ -108,25 +108,53 @@ function ServerConfig() {
       // Only update state if component is still mounted
       if (!isMountedRef.current) return;
 
+      // AUTO-LOAD LOGIC: If this is initial load and no preset was explicitly loaded
+      let configToUse = configData;
+      
+      if (!location.state?.presetLoaded && !location.state?.defaultLoaded && !data.config) {
+        // First time loading the editor
+        if (presetsData.presets && presetsData.presets.length > 0) {
+          // Load first preset
+          console.log('[ServerConfig] Auto-loading first preset:', presetsData.presets[0].name);
+          try {
+            await api.loadPreset(presetsData.presets[0].id);
+            configToUse = await api.getConfig();
+          } catch (error) {
+            console.error('[ServerConfig] Failed to auto-load first preset:', error);
+            // Fall back to current config
+          }
+        } else {
+          // No presets exist, load default config
+          console.log('[ServerConfig] No presets found, loading default config');
+          try {
+            await api.loadDefaultConfig();
+            configToUse = await api.getConfig();
+          } catch (error) {
+            console.error('[ServerConfig] Failed to load default config:', error);
+            // Fall back to current config
+          }
+        }
+      }
+
       // Ensure all sections exist in config with defaults if backend values missing
       const normalizedConfig = {
-        ...configData,
+        ...configToUse,
         SERVER: {
-          ...configData?.SERVER,
-          SUN_ANGLE: configData?.SERVER?.SUN_ANGLE ?? 960,
-          TIME_OF_DAY_MULT: configData?.SERVER?.TIME_OF_DAY_MULT ?? 1,
-          REGISTER_TO_LOBBY: configData?.SERVER?.REGISTER_TO_LOBBY ?? 1,
-          ADMIN_PASSWORD: configData?.SERVER?.ADMIN_PASSWORD ?? 'mypassword',
-          MAX_CLIENTS: configData?.SERVER?.MAX_CLIENTS ?? 18,
+          ...configToUse?.SERVER,
+          SUN_ANGLE: configToUse?.SERVER?.SUN_ANGLE ?? 960,
+          TIME_OF_DAY_MULT: configToUse?.SERVER?.TIME_OF_DAY_MULT ?? 1,
+          REGISTER_TO_LOBBY: configToUse?.SERVER?.REGISTER_TO_LOBBY ?? 1,
+          ADMIN_PASSWORD: configToUse?.SERVER?.ADMIN_PASSWORD ?? 'mypassword',
+          MAX_CLIENTS: configToUse?.SERVER?.MAX_CLIENTS ?? 18,
         },
         DYNAMIC_TRACK: {
-          ...configData?.DYNAMIC_TRACK,
-          SESSION_START: configData?.DYNAMIC_TRACK?.SESSION_START ?? 95,
-          RANDOMNESS: configData?.DYNAMIC_TRACK?.RANDOMNESS ?? 2,
-          SESSION_TRANSFER: configData?.DYNAMIC_TRACK?.SESSION_TRANSFER ?? 90,
-          LAP_GAIN: configData?.DYNAMIC_TRACK?.LAP_GAIN ?? 10,
+          ...configToUse?.DYNAMIC_TRACK,
+          SESSION_START: configToUse?.DYNAMIC_TRACK?.SESSION_START ?? 95,
+          RANDOMNESS: configToUse?.DYNAMIC_TRACK?.RANDOMNESS ?? 2,
+          SESSION_TRANSFER: configToUse?.DYNAMIC_TRACK?.SESSION_TRANSFER ?? 90,
+          LAP_GAIN: configToUse?.DYNAMIC_TRACK?.LAP_GAIN ?? 10,
         },
-        WEATHER_0: configData?.WEATHER_0 || {},
+        WEATHER_0: configToUse?.WEATHER_0 || {},
       };
 
       const carsInConfig = normalizedConfig?.SERVER?.CARS || '';
@@ -151,6 +179,11 @@ function ServerConfig() {
         currentPresetId: currentPreset?.id || null,
         loading: false,
       });
+
+      // Emit event to notify Layout of selected preset
+      window.dispatchEvent(
+        new CustomEvent('presetSelected', { detail: { presetId: currentPreset?.id || null } })
+      );
     } catch (error) {
       console.error('Failed to fetch data:', error);
       if (isMountedRef.current) {
@@ -301,16 +334,34 @@ function ServerConfig() {
   };
 
   const updateConfigValue = (section, key, value) => {
-    setData((prev) => ({
-      ...prev,
-      config: {
+    setData((prev) => {
+      const newConfig = {
         ...prev.config,
         [section]: {
           ...prev.config[section],
           [key]: value,
         },
-      },
-    }));
+      };
+
+      // If SERVER.NAME changed, check if it matches a preset and emit selection event
+      if (section === 'SERVER' && key === 'NAME') {
+        const matchedPreset = prev.presets?.find((p) => p.name === value);
+        const newPresetId = matchedPreset?.id || null;
+        
+        // Update currentPresetId
+        setTimeout(() => {
+          updateData({ currentPresetId: newPresetId });
+          window.dispatchEvent(
+            new CustomEvent('presetSelected', { detail: { presetId: newPresetId } })
+          );
+        }, 0);
+      }
+
+      return {
+        ...prev,
+        config: newConfig,
+      };
+    });
   };
 
   const getAllDefaults = () => {

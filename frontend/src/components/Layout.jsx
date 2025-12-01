@@ -9,6 +9,7 @@ function Layout({ children }) {
   const navigate = useNavigate();
   const [presets, setPresets] = useState([]);
   const [loadingPresets, setLoadingPresets] = useState(true);
+  const [selectedPresetId, setSelectedPresetId] = useState(null);
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
@@ -40,12 +41,19 @@ function Layout({ children }) {
       fetchPresets();
     };
 
+    const handlePresetSelected = (event) => {
+      console.log('[Layout] Preset selected event received:', event.detail.presetId);
+      setSelectedPresetId(event.detail.presetId);
+    };
+
     window.addEventListener('focus', handleFocus);
     window.addEventListener('presetSaved', handlePresetSaved);
+    window.addEventListener('presetSelected', handlePresetSelected);
 
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('presetSaved', handlePresetSaved);
+      window.removeEventListener('presetSelected', handlePresetSelected);
     };
   }, []);
 
@@ -62,6 +70,7 @@ function Layout({ children }) {
 
   const handleLoadPreset = async (presetId) => {
     try {
+      setSelectedPresetId(presetId);
       await api.loadPreset(presetId);
       navigate('/config', { state: { presetLoaded: true, timestamp: Date.now() } });
     } catch (error) {
@@ -71,6 +80,9 @@ function Layout({ children }) {
 
   const handleNewPreset = async () => {
     try {
+      // Clear selection since we're loading default config (not a preset)
+      setSelectedPresetId(null);
+      
       // First, load default config to working state
       await api.loadDefaultConfig();
 
@@ -188,7 +200,11 @@ function Layout({ children }) {
                 <button
                   key={preset.id}
                   onClick={() => handleLoadPreset(preset.id)}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white rounded transition-colors truncate"
+                  className={`w-full text-left px-3 py-2 text-sm rounded transition-colors truncate ${
+                    selectedPresetId === preset.id
+                      ? 'bg-blue-600 text-white font-medium'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }`}
                   title={`Load ${preset.name} into editor`}
                 >
                   {preset.name}

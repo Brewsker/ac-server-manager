@@ -1,3 +1,15 @@
 {
-  "presets": []
+  "presets": [
+    {
+      "id": "e5074886-557e-4df2-bde3-300b59a06954",
+      "name": "AC_Server_0",
+      "description": "Newly created preset from defaults",
+      "created": "2025-12-01T01:53:32.452Z",
+      "modified": "2025-12-01T01:53:32.452Z",
+      "track": "ks_red_bull_ring",
+      "cars": 1,
+      "maxClients": "24",
+      "sessions": "Practice, Qualify, Race"
+    }
+  ]
 }
