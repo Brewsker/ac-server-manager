@@ -56,11 +56,11 @@ async function handleInstall(req, res) {
         PATH: process.env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
       };
 
-      // Download installer script first, then execute with env vars
+      // Download installer script first, then execute with inline env vars
       const installCmd =
         config.installType === 'app-only'
-          ? 'curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh -o /tmp/install.sh && export NON_INTERACTIVE=yes INSTALL_AC_SERVER="$INSTALL_AC_SERVER" AC_SERVER_DIR="$AC_SERVER_DIR" STEAM_USER="$STEAM_USER" STEAM_PASS="$STEAM_PASS" && bash /tmp/install.sh --app-only'
-          : 'curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh -o /tmp/install.sh && export NON_INTERACTIVE=yes INSTALL_AC_SERVER="$INSTALL_AC_SERVER" AC_SERVER_DIR="$AC_SERVER_DIR" STEAM_USER="$STEAM_USER" STEAM_PASS="$STEAM_PASS" && bash /tmp/install.sh';
+          ? `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh -o /tmp/install.sh && NON_INTERACTIVE=yes INSTALL_AC_SERVER="${config.downloadAC ? 'yes' : 'no'}" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${config.steamPass}" bash /tmp/install.sh --app-only`
+          : `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh -o /tmp/install.sh && NON_INTERACTIVE=yes INSTALL_AC_SERVER="${config.downloadAC ? 'yes' : 'no'}" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${config.steamPass}" bash /tmp/install.sh`;
 
       console.log('[Setup] Running installer...');
       const { stdout, stderr } = await execAsync(installCmd, { env });
