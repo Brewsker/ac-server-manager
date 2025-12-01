@@ -27,8 +27,17 @@ const app = express();
 // ============================================
 
 // Set security-related HTTP headers
+// In production, enable full CSP; in development, use a permissive policy
 app.use(helmet({
-  contentSecurityPolicy: false // Disable for development
+  contentSecurityPolicy: config.isProduction ? undefined : {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "ws:", "wss:"]
+    }
+  }
 }));
 
 // Enable CORS with configuration
