@@ -106,6 +106,31 @@ export const openPresetsFolder = async () => {
   return response.data;
 };
 
+export const getFolderContents = async (folderPath) => {
+  const response = await client.post('/config/presets/folder-contents', { folderPath });
+  return response.data;
+};
+
+export const listCMPacks = async () => {
+  const response = await client.get('/config/cm-packs');
+  return response.data;
+};
+
+export const importCMPack = async (filename, presetName) => {
+  const response = await client.post('/config/cm-packs/import', { filename, presetName });
+  return response.data;
+};
+
+export const uploadCMPack = async (fileData, fileName, presetName) => {
+  const response = await client.post('/config/cm-packs/upload', { fileData, fileName, presetName });
+  return response.data;
+};
+
+export const deleteCMPack = async (filename) => {
+  const response = await client.delete(`/config/cm-packs/${encodeURIComponent(filename)}`);
+  return response.data;
+};
+
 // Process management endpoints
 export const checkACInstallation = async () => {
   const response = await client.get('/process/installation');
@@ -298,6 +323,11 @@ export const getUpdateStatus = async () => {
   return response.data;
 };
 
+export const applyUpdate = async () => {
+  const response = await client.post('/update/apply');
+  return response.data;
+};
+
 export default {
   getServerStatus,
   startServer,
@@ -318,6 +348,11 @@ export default {
   renamePreset,
   deletePreset,
   openPresetsFolder,
+  getFolderContents,
+  listCMPacks,
+  importCMPack,
+  uploadCMPack,
+  deleteCMPack,
   checkACInstallation,
   startServerInstance,
   stopServerInstance,
@@ -355,6 +390,7 @@ export default {
   getCurrentVersion,
   checkForUpdates,
   getUpdateStatus,
+  applyUpdate,
   // Also export the axios instance for direct use
   get: (url, config) => client.get(url, config),
   post: (url, data, config) => client.post(url, data, config),

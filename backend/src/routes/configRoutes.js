@@ -140,11 +140,68 @@ router.delete('/presets/:id', async (req, res, next) => {
   }
 });
 
-// Open presets folder in file explorer
+// Get presets folder path and open in file explorer if possible
 router.post('/presets/open-folder', async (req, res, next) => {
   try {
-    await presetService.openPresetsFolder();
-    res.json({ message: 'Opened presets folder' });
+    const result = await presetService.openPresetsFolder();
+    res.json({
+      message: result.opened ? 'Opened presets folder' : 'Presets folder path',
+      path: result.path,
+      opened: result.opened,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get folder contents
+router.post('/presets/folder-contents', async (req, res, next) => {
+  try {
+    const { folderPath } = req.body;
+    const result = await presetService.getFolderContents(folderPath);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// List available CM packs
+router.get('/cm-packs', async (req, res, next) => {
+  try {
+    const packs = await presetService.listCMPacks();
+    res.json({ packs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Import a CM pack
+router.post('/cm-packs/import', async (req, res, next) => {
+  try {
+    const { filename, presetName } = req.body;
+    const preset = await presetService.importCMPack(filename, presetName);
+    res.json({ message: 'CM pack imported successfully', preset });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Upload and import a CM pack from user's PC
+router.post('/cm-packs/upload', async (req, res, next) => {
+  try {
+    const { fileData, fileName, presetName } = req.body;
+    const preset = await presetService.uploadAndImportCMPack(fileData, fileName, presetName);
+    res.json({ message: 'CM pack uploaded and imported successfully', preset });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete a CM pack
+router.delete('/cm-packs/:filename', async (req, res, next) => {
+  try {
+    await presetService.deleteCMPack(req.params.filename);
+    res.json({ message: 'CM pack deleted' });
   } catch (error) {
     next(error);
   }

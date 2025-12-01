@@ -6,6 +6,8 @@ function Settings() {
   const [updateInfo, setUpdateInfo] = useState(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [currentVersion, setCurrentVersion] = useState('Loading...');
+  const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
+  const [applyingUpdate, setApplyingUpdate] = useState(false);
   const { theme, setTheme } = useTheme();
 
   // Content upload states
@@ -49,6 +51,40 @@ function Settings() {
   const openReleaseUrl = () => {
     if (updateInfo?.releaseUrl) {
       window.open(updateInfo.releaseUrl, '_blank');
+    }
+  };
+
+  const handleApplyUpdate = async () => {
+    setApplyingUpdate(true);
+    try {
+      const result = await api.applyUpdate();
+
+      if (result.success) {
+        // Show success message
+        setUploadMessage({
+          type: 'success',
+          text: result.message || 'Update applied successfully! Restarting...',
+        });
+
+        // If server is restarting, reload page after delay
+        if (result.requiresRestart) {
+          setTimeout(() => {
+            window.location.reload();
+          }, 5000);
+        } else {
+          // Just close modal and refresh update status
+          setShowUpdateConfirm(false);
+          await handleCheckForUpdates();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to apply update:', error);
+      setUploadMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to apply update',
+      });
+    } finally {
+      setApplyingUpdate(false);
     }
   };
 
@@ -316,12 +352,21 @@ function Settings() {
                             Released: {new Date(updateInfo.publishedAt).toLocaleDateString()}
                           </p>
                         </div>
-                        <button
-                          onClick={openReleaseUrl}
-                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium"
-                        >
-                          Download Update
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={openReleaseUrl}
+                            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm font-medium"
+                          >
+                            View Release
+                          </button>
+                          <button
+                            onClick={() => setShowUpdateConfirm(true)}
+                            disabled={applyingUpdate}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {applyingUpdate ? 'Installing...' : 'Install Update'}
+                          </button>
+                        </div>
                       </div>
 
                       {updateInfo.releaseNotes && (
@@ -396,6 +441,111 @@ function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Update Confirmation Modal */}
+      {showUpdateConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full">
+            <div className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <svg
+                  className="w-6 h-6 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                  />
+                </svg>
+                Confirm Update
+              </h3>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    Update from <span className="font-semibold">v{currentVersion}</span> to{' '}
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      v{updateInfo?.latestVersion}
+                    </span>
+                    ?
+                  </p>
+                </div>
+
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-4">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">⚠️ This will:</p>
+                  <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-2 ml-4 list-disc space-y-1">
+                    <li>Pull the latest code from Git</li>
+                    <li>Install updated dependencies</li>
+                    <li>Rebuild the frontend</li>
+                    <li>Restart the application</li>
+                  </ul>
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-3">
+                    The page will automatically reload when the update is complete.
+                  </p>
+                </div>
+
+                {updateInfo?.releaseNotes && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-4 max-h-40 overflow-y-auto">
+                    <p className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-2">
+                      Release Notes:
+                    </p>
+                    <div className="text-sm text-blue-600 dark:text-blue-500 whitespace-pre-wrap">
+                      {updateInfo.releaseNotes}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowUpdateConfirm(false)}
+                  disabled={applyingUpdate}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApplyUpdate}
+                  disabled={applyingUpdate}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {applyingUpdate ? (
+                    <>
+                      <svg
+                        className="animate-spin h-4 w-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Installing...
+                    </>
+                  ) : (
+                    'Install Update & Restart'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

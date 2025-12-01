@@ -172,6 +172,63 @@ class UpdateService {
       currentVersion: this.currentVersion,
     };
   }
+
+  /**
+   * Apply update by pulling latest code from git
+   * This will:
+   * 1. Pull latest code from git
+   * 2. Install dependencies (if package.json changed)
+   * 3. Rebuild frontend
+   * 4. Restart the server
+   */
+  async applyUpdate() {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+
+    console.log('[UpdateService] Starting update process...');
+
+    try {
+      // Check if we're in a git repository
+      try {
+        await execAsync('git rev-parse --git-dir');
+      } catch (error) {
+        throw new Error('Not a git repository. Manual update required.');
+      }
+
+      // Pull latest code
+      console.log('[UpdateService] Pulling latest code from git...');
+      const { stdout: gitOutput } = await execAsync('git pull');
+      console.log('[UpdateService] Git pull output:', gitOutput);
+
+      if (gitOutput.includes('Already up to date')) {
+        return {
+          success: true,
+          message: 'Already up to date',
+          requiresRestart: false,
+        };
+      }
+
+      // Install/update dependencies
+      console.log('[UpdateService] Installing dependencies...');
+      await execAsync('npm install', { cwd: path.join(__dirname, '../..') });
+
+      // Build frontend
+      console.log('[UpdateService] Building frontend...');
+      await execAsync('npm run build', { cwd: path.join(__dirname, '../../frontend') });
+
+      console.log('[UpdateService] Update completed successfully');
+
+      return {
+        success: true,
+        message: 'Update applied successfully. Server will restart in 3 seconds.',
+        requiresRestart: true,
+      };
+    } catch (error) {
+      console.error('[UpdateService] Failed to apply update:', error);
+      throw new Error(`Update failed: ${error.message}`);
+    }
+  }
 }
 
 export default new UpdateService();

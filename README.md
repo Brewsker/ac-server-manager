@@ -2,13 +2,31 @@
 
 Modern web-based management interface for Assetto Corsa dedicated servers.
 
+## 🚀 Quick Start
+
+**New users:** See [QUICKSTART.md](./QUICKSTART.md) for the fastest way to get running!
+
+```powershell
+# Quick install (Windows)
+.\install.ps1
+
+# Or manual install
+npm install --prefix backend
+npm install --prefix frontend
+```
+
+Then start both servers and open http://localhost:5173
+
+---
+
 ## Project Status
 
 **Current Phase:** Active Development  
-**Last Updated:** November 30, 2025  
+**Last Updated:** December 1, 2025  
+**Version:** 0.13.6+  
 **Developer:** Brook
 
-### Quick Start
+### Development Quick Start
 
 The project includes a VS Code control panel with buttons in the status bar:
 
