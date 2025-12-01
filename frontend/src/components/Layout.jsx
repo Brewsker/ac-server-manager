@@ -79,8 +79,8 @@ function Layout({ children }) {
 
       // Generate a unique name for the new preset
       const baseNewName = 'AC_Server';
-      let newName = baseNewName;
-      let counter = 1;
+      let newName = `${baseNewName}_0`;
+      let counter = 0;
 
       // Find a unique name by checking existing presets
       while (presets.some((p) => p.name === newName)) {

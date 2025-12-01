@@ -658,7 +658,11 @@ function ServerConfig() {
                 onClick={() => data.currentPresetId && updateModals({ showClone: true })}
                 disabled={!data.currentPresetId}
                 className="px-4 py-2 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-950/50 transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-100 dark:disabled:hover:bg-blue-950/30"
-                title={data.currentPresetId ? 'Clone this preset' : 'Save as preset first to enable cloning'}
+                title={
+                  data.currentPresetId
+                    ? 'Clone this preset'
+                    : 'Save as preset first to enable cloning'
+                }
               >
                 📋 Clone Preset
               </button>
@@ -667,7 +671,11 @@ function ServerConfig() {
                 onClick={() => data.currentPresetId && updateModals({ showDelete: true })}
                 disabled={!data.currentPresetId}
                 className="px-4 py-2 bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-950/50 transition-colors border border-red-200 dark:border-red-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-100 dark:disabled:hover:bg-red-950/30"
-                title={data.currentPresetId ? 'Delete this preset' : 'Save as preset first to enable deletion'}
+                title={
+                  data.currentPresetId
+                    ? 'Delete this preset'
+                    : 'Save as preset first to enable deletion'
+                }
               >
                 🗑️ Delete Preset
               </button>
