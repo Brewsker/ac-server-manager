@@ -107,7 +107,22 @@ const server = http.createServer((req, res) => {
   }
 });
 
+// Get local IP address for display
+function getLocalIP() {
+  const { networkInterfaces } = require('os');
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
 server.listen(PORT, '0.0.0.0', () => {
+  const localIP = getLocalIP();
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
@@ -115,8 +130,9 @@ server.listen(PORT, '0.0.0.0', () => {
 ║                                                           ║
 ║   Setup wizard is running at:                            ║
 ║   http://localhost:${PORT}                                    ║
+║   http://${localIP}:${PORT}                               ║
 ║                                                           ║
-║   Open this URL in your browser to begin setup           ║
+║   Open either URL in your browser to begin setup         ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
