@@ -66,7 +66,7 @@ function App() {
   // Show main app if configured
   return (
     <ThemeProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Layout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
