@@ -17,7 +17,7 @@ HOSTNAME="ac-test"
 PASSWORD="TestPass123"
 CORES=2
 MEMORY=2048
-DISK=100
+DISK=60
 STORAGE="local-lvm"
 TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
 
@@ -58,6 +58,12 @@ create_container() {
     
     # Wait for container to be ready
     sleep 3
+    
+    # Install curl for installer bootstrap
+    print_info "Installing curl for installer..."
+    pct exec $CTID -- apt-get update -qq
+    pct exec $CTID -- apt-get install -y curl >/dev/null 2>&1
+    print_success "Bootstrap packages installed"
     
     # Get IP address
     IP=$(pct exec $CTID -- hostname -I | awk '{print $1}')
