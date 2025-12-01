@@ -9,7 +9,7 @@ function Dashboard() {
   const [monitoringData, setMonitoringData] = useState({
     players: [],
     session: null,
-    logs: []
+    logs: [],
   });
   const isMountedRef = useRef(true);
 
@@ -42,13 +42,13 @@ function Dashboard() {
       if (isMountedRef.current) {
         const running = statuses.servers.filter((s) => s.running);
         setRunningServers(running);
-        
+
         // Auto-select first running server if none selected
         if (running.length > 0 && !selectedServer) {
           setSelectedServer(running[0].presetId);
         }
         // Clear selection if selected server is no longer running
-        if (selectedServer && !running.find(s => s.presetId === selectedServer)) {
+        if (selectedServer && !running.find((s) => s.presetId === selectedServer)) {
           setSelectedServer(running.length > 0 ? running[0].presetId : null);
         }
       }
@@ -63,18 +63,18 @@ function Dashboard() {
 
   const fetchMonitoringData = async () => {
     if (!selectedServer) return;
-    
+
     try {
       // Fetch logs for selected server
       const logsData = await api.getServerInstanceLogs(selectedServer, 50);
       // Fetch players for selected server (placeholder - will need UDP integration)
       const playersData = await api.getPlayers();
-      
+
       if (isMountedRef.current) {
         setMonitoringData({
           players: playersData.players || [],
           session: playersData.session || null,
-          logs: logsData.logs || []
+          logs: logsData.logs || [],
         });
       }
     } catch (error) {
@@ -150,7 +150,12 @@ function Dashboard() {
               {runningServers.map((server) => (
                 <div
                   key={server.presetId}
-                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
+                  onClick={() => setSelectedServer(server.presetId)}
+                  className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all ${
+                    selectedServer === server.presetId
+                      ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500 dark:border-blue-500'
+                      : 'bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-700'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-green-500 text-lg">●</span>
@@ -173,29 +178,14 @@ function Dashboard() {
         </div>
 
         {/* Live Monitoring Section */}
-        {runningServers.length > 0 && (
+        {runningServers.length > 0 && selectedServer && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Live Monitoring
-              </h2>
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-gray-600 dark:text-gray-400">
-                  Monitoring:
-                </label>
-                <select
-                  value={selectedServer || ''}
-                  onChange={(e) => setSelectedServer(e.target.value)}
-                  className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                >
-                  {runningServers.map((server) => (
-                    <option key={server.presetId} value={server.presetId}>
-                      {server.name || 'Unknown Server'} (Port {server.port || 'N/A'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Live Monitoring
+              <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-3">
+                {runningServers.find((s) => s.presetId === selectedServer)?.name || 'Unknown Server'}
+              </span>
+            </h2>
           </div>
         )}
 
@@ -205,9 +195,7 @@ function Dashboard() {
             {selectedServer ? (
               <div className="space-y-2">
                 {monitoringData.players.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">
-                    No players connected
-                  </p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">No players connected</p>
                 ) : (
                   monitoringData.players.map((player, idx) => (
                     <div
@@ -272,7 +260,10 @@ function Dashboard() {
                   <tbody>
                     {monitoringData.players.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="text-center py-4 text-gray-500 dark:text-gray-400">
+                        <td
+                          colSpan="5"
+                          className="text-center py-4 text-gray-500 dark:text-gray-400"
+                        >
                           No timing data available
                         </td>
                       </tr>
