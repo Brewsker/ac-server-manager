@@ -361,12 +361,11 @@ export default function MainTab({
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <label className="label whitespace-nowrap min-w-[7rem]">Manager description</label>
+              <div>
+                <label className="label">Manager description</label>
                 <input
                   type="text"
-                  className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 flex-1"
-                  style={{ position: 'relative', top: '-4px' }}
+                  className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 w-full"
                   placeholder="None"
                   value={config?.SERVER?.WELCOME_MESSAGE || ''}
                   onChange={(e) => updateConfigValue('SERVER', 'WELCOME_MESSAGE', e.target.value)}
