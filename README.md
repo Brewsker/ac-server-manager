@@ -4,18 +4,41 @@ Modern web-based management interface for Assetto Corsa dedicated servers.
 
 ## 🚀 Quick Start
 
-**New users:** See [QUICKSTART.md](./QUICKSTART.md) for the fastest way to get running!
+### Windows (Local Development)
 
+**One-click installer:**
 ```powershell
-# Quick install (Windows)
 .\install.ps1
+```
+Opens browser automatically, complete Setup Wizard, done!
 
-# Or manual install
-npm install --prefix backend
-npm install --prefix frontend
+**Manual:** See [QUICKSTART.md](./QUICKSTART.md)
+
+### Linux Server (Production)
+
+**One-command installer:**
+```bash
+curl -sSL https://raw.githubusercontent.com/yourusername/ac-server-manager/main/install-server.sh | sudo bash
 ```
 
-Then start both servers and open http://localhost:5173
+Installs Node.js, PM2, optionally downloads AC server via Steam, configures everything!
+
+**Full guide:** See [SERVER_INSTALL.md](./SERVER_INSTALL.md)
+
+### Docker / Proxmox
+
+See [PROXMOX_DEPLOYMENT.md](./PROXMOX_DEPLOYMENT.md) for containerized deployment.
+
+---
+
+## 📚 Documentation
+
+- 📖 **[QUICKSTART.md](./QUICKSTART.md)** - Get running in 5 minutes (Windows/local)
+- 🖥️ **[SERVER_INSTALL.md](./SERVER_INSTALL.md)** - Production server deployment (Linux)
+- 🐳 **[PROXMOX_DEPLOYMENT.md](./PROXMOX_DEPLOYMENT.md)** - Docker & Proxmox LXC guide
+- 🔄 **[UPDATE_SYSTEM.md](./UPDATE_SYSTEM.md)** - How updates work
+- 🔧 **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Common issues
+- 🚀 **[docs/API.md](./docs/API.md)** - API reference
 
 ---
 
