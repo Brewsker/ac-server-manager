@@ -16,9 +16,21 @@ function Settings() {
   const [uploadingCar, setUploadingCar] = useState(false);
   const [uploadMessage, setUploadMessage] = useState(null);
 
+  // Steam/AC server download states
+  const [steamcmdInstalled, setSteamcmdInstalled] = useState(null);
+  const [checkingSteamCmd, setCheckingSteamCmd] = useState(false);
+  const [installingSteamCmd, setInstallingSteamCmd] = useState(false);
+  const [downloadingACServer, setDownloadingACServer] = useState(false);
+  const [acServerPath, setAcServerPath] = useState('/opt/acserver');
+  const [steamUser, setSteamUser] = useState('');
+  const [steamPass, setSteamPass] = useState('');
+  const [steamMessage, setSteamMessage] = useState(null);
+
   useEffect(() => {
     // Load current version on mount
     loadCurrentVersion();
+    // Check SteamCMD status on mount
+    checkSteamCMDStatus();
   }, []);
 
   const loadCurrentVersion = async () => {
@@ -171,6 +183,90 @@ function Settings() {
     }
   };
 
+  const checkSteamCMDStatus = async () => {
+    setCheckingSteamCmd(true);
+    setSteamMessage(null);
+    try {
+      const result = await api.checkSteamCMD();
+      setSteamcmdInstalled(result.installed);
+    } catch (error) {
+      console.error('Failed to check SteamCMD status:', error);
+      setSteamMessage({
+        type: 'error',
+        text: 'Failed to check SteamCMD status',
+      });
+    } finally {
+      setCheckingSteamCmd(false);
+    }
+  };
+
+  const handleInstallSteamCMD = async () => {
+    setInstallingSteamCmd(true);
+    setSteamMessage(null);
+    try {
+      const result = await api.installSteamCMD();
+      if (result.success) {
+        setSteamMessage({
+          type: 'success',
+          text: result.message || 'SteamCMD installed successfully!',
+        });
+        setSteamcmdInstalled(true);
+      } else {
+        setSteamMessage({
+          type: 'error',
+          text: result.message || 'Failed to install SteamCMD',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to install SteamCMD:', error);
+      setSteamMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to install SteamCMD',
+      });
+    } finally {
+      setInstallingSteamCmd(false);
+    }
+  };
+
+  const handleDownloadACServer = async () => {
+    if (!acServerPath.trim()) {
+      setSteamMessage({
+        type: 'error',
+        text: 'Please enter an installation path',
+      });
+      return;
+    }
+
+    setDownloadingACServer(true);
+    setSteamMessage(null);
+    try {
+      const result = await api.downloadACServer(
+        acServerPath,
+        steamUser || undefined,
+        steamPass || undefined
+      );
+      if (result.success) {
+        setSteamMessage({
+          type: 'success',
+          text: `AC Server installed successfully! Version: ${result.version || 'Unknown'}`,
+        });
+      } else {
+        setSteamMessage({
+          type: 'error',
+          text: result.message || 'Failed to download AC server',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to download AC server:', error);
+      setSteamMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to download AC server',
+      });
+    } finally {
+      setDownloadingACServer(false);
+    }
+  };
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
@@ -209,6 +305,169 @@ function Settings() {
                   placeholder="C:/Steam/steamapps/common/assettocorsa/server/cfg"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* AC Server Download Section */}
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4">Download AC Dedicated Server</h2>
+
+            <div className="space-y-4">
+              {steamMessage && (
+                <div
+                  className={`p-3 rounded-lg ${
+                    steamMessage.type === 'success'
+                      ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                      : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                  }`}
+                >
+                  <p
+                    className={`text-sm font-medium ${
+                      steamMessage.type === 'success'
+                        ? 'text-green-700 dark:text-green-400'
+                        : 'text-red-700 dark:text-red-400'
+                    }`}
+                  >
+                    {steamMessage.text}
+                  </p>
+                </div>
+              )}
+
+              {/* SteamCMD Status */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div>
+                  <p className="font-medium">SteamCMD Status</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {checkingSteamCmd
+                      ? 'Checking...'
+                      : steamcmdInstalled === null
+                      ? 'Unknown'
+                      : steamcmdInstalled
+                      ? '✅ Installed'
+                      : '❌ Not Installed'}
+                  </p>
+                </div>
+                {!steamcmdInstalled && steamcmdInstalled !== null && (
+                  <button
+                    onClick={handleInstallSteamCMD}
+                    disabled={installingSteamCmd}
+                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {installingSteamCmd ? 'Installing...' : 'Install SteamCMD'}
+                  </button>
+                )}
+              </div>
+
+              {/* AC Server Download Form */}
+              {steamcmdInstalled && (
+                <>
+                  <div>
+                    <label className="label">Installation Path</label>
+                    <input
+                      type="text"
+                      value={acServerPath}
+                      onChange={(e) => setAcServerPath(e.target.value)}
+                      disabled={downloadingACServer}
+                      className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="/opt/acserver"
+                    />
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Directory where the AC dedicated server will be installed
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Steam Username (Optional)</label>
+                      <input
+                        type="text"
+                        value={steamUser}
+                        onChange={(e) => setSteamUser(e.target.value)}
+                        disabled={downloadingACServer}
+                        className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="username"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="label">Steam Password (Optional)</label>
+                      <input
+                        type="password"
+                        value={steamPass}
+                        onChange={(e) => setSteamPass(e.target.value)}
+                        disabled={downloadingACServer}
+                        className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="password"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3">
+                    <p className="text-sm text-blue-700 dark:text-blue-400">
+                      ℹ️ Steam credentials are only needed if you don't have an anonymous download
+                      license. They are not stored and only used for this download.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleDownloadACServer}
+                    disabled={downloadingACServer || !acServerPath.trim()}
+                    className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {downloadingACServer ? (
+                      <>
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Downloading AC Server... This may take several minutes
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                        Download AC Dedicated Server
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+
+              {!steamcmdInstalled && steamcmdInstalled !== null && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-4">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    ⚠️ SteamCMD is required to download the Assetto Corsa dedicated server. Click
+                    "Install SteamCMD" above to install it first.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

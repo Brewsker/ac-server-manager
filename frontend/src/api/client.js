@@ -332,6 +332,31 @@ export const applyUpdate = async (branch = null) => {
   return response.data;
 };
 
+// Steam/AC Server endpoints
+export const checkSteamCMD = async () => {
+  const response = await client.get('/steam/check-steamcmd');
+  return response.data;
+};
+
+export const installSteamCMD = async () => {
+  const response = await client.post('/steam/install-steamcmd');
+  return response.data;
+};
+
+export const downloadACServer = async (installPath, steamUser = 'anonymous', steamPass = '') => {
+  const response = await client.post('/steam/download-ac-server', {
+    installPath,
+    steamUser,
+    steamPass,
+  });
+  return response.data;
+};
+
+export const checkACServer = async (path) => {
+  const response = await client.get('/steam/check-ac-server', { params: { path } });
+  return response.data;
+};
+
 export default {
   getServerStatus,
   startServer,
@@ -395,6 +420,10 @@ export default {
   checkForUpdates,
   getUpdateStatus,
   applyUpdate,
+  checkSteamCMD,
+  installSteamCMD,
+  downloadACServer,
+  checkACServer,
   // Also export the axios instance for direct use
   get: (url, config) => client.get(url, config),
   post: (url, data, config) => client.post(url, data, config),
