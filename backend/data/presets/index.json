@@ -21,6 +21,17 @@
       "cars": 1,
       "maxClients": "24",
       "sessions": "Practice, Qualify, Race"
+    },
+    {
+      "id": "184e9aee-132e-4fc2-8c81-0953893dbeb1",
+      "name": "New Preset 3",
+      "description": "Newly created preset from defaults",
+      "created": "2025-12-01T00:47:36.881Z",
+      "modified": "2025-12-01T00:47:36.881Z",
+      "track": "ks_red_bull_ring",
+      "cars": 1,
+      "maxClients": "24",
+      "sessions": "Practice, Qualify, Race"
     }
   ]
 }

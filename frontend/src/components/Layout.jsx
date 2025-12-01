@@ -74,19 +74,19 @@ function Layout({ children }) {
     try {
       // First, load default config to working state
       await api.loadDefaultConfig();
-      
+
       // Get the default config that was just loaded
       const defaultConfig = await api.getConfig();
 
       // Generate a unique name for the new preset
-      const baseNewName = 'New Preset';
+      const baseNewName = 'AC_Server';
       let newName = baseNewName;
       let counter = 1;
 
       // Find a unique name by checking existing presets
       while (presets.some((p) => p.name === newName)) {
         counter++;
-        newName = `${baseNewName} ${counter}`;
+        newName = `${baseNewName}_${counter}`;
       }
 
       // Update the SERVER.NAME to match the preset name
@@ -97,7 +97,7 @@ function Layout({ children }) {
           NAME: newName,
         },
       };
-      
+
       // Save the updated config to working state
       await api.updateConfig(updatedConfig);
 

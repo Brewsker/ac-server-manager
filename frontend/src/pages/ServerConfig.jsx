@@ -180,6 +180,7 @@ function ServerConfig() {
         ...data.config,
         SERVER: {
           ...data.config.SERVER,
+          NAME: ui.presetName,
           CARS: data.selectedCars.join(';'),
         },
       };

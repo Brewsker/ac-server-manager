@@ -146,9 +146,20 @@ export async function renamePreset(id, newName) {
     throw new Error('Preset not found');
   }
 
+  // Update preset name in index
   preset.name = newName;
   preset.modified = new Date().toISOString();
   
+  // Also update SERVER.NAME in the preset's config file to match
+  const configPath = path.join(PRESETS_DIR, `${id}.json`);
+  const configData = await fs.readFile(configPath, 'utf-8');
+  const config = JSON.parse(configData);
+  
+  if (config.SERVER) {
+    config.SERVER.NAME = newName;
+  }
+  
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2));
   await writePresetsIndex(index);
   
   return preset;

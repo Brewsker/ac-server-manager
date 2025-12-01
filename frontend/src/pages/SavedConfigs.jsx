@@ -26,12 +26,12 @@ function SavedConfigs() {
     }
   };
 
-  const handleEdit = async (presetId) => {
+  const handleLoadPreset = async (presetId) => {
     try {
       await api.loadPreset(presetId);
       navigate('/config', { state: { presetLoaded: true, timestamp: Date.now() } });
     } catch (error) {
-      console.error('Failed to load preset for editing:', error);
+      console.error('Failed to load preset:', error);
     }
   };
 
@@ -56,6 +56,9 @@ function SavedConfigs() {
       await fetchPresets();
       setShowRenameModal(null);
       setNewName('');
+      
+      // Notify sidebar to refresh
+      window.dispatchEvent(new CustomEvent('presetSaved'));
     } catch (error) {
       console.error('Failed to rename preset:', error);
     }
@@ -69,21 +72,11 @@ function SavedConfigs() {
       await fetchPresets();
       setShowDeleteModal(null);
       console.log('Configuration deleted');
+      
+      // Notify sidebar to refresh
+      window.dispatchEvent(new CustomEvent('presetSaved'));
     } catch (error) {
       console.error('Failed to delete preset:', error);
-    }
-  };
-
-  const handleSaveCurrent = async () => {
-    const name = prompt('Save current configuration as:');
-    if (!name) return;
-
-    try {
-      await api.savePreset(name);
-      await fetchPresets();
-      console.log('Current configuration saved as:', name);
-    } catch (error) {
-      console.error('Failed to save preset:', error);
     }
   };
 
@@ -95,30 +88,27 @@ function SavedConfigs() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Saved Configurations</h1>
-          <p className="text-gray-600 mt-2">Manage your configuration presets</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Preset Management</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Organize and maintain your server configuration presets
+          </p>
         </div>
         <button
-          onClick={handleSaveCurrent}
-          className="btn-primary"
+          onClick={fetchPresets}
+          className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          title="Refresh preset list"
         >
-          + Save Current Config
+          ↻ Refresh
         </button>
       </div>
 
       {presets.length === 0 ? (
         <div className="card text-center py-12">
           <div className="text-6xl mb-4">📋</div>
-          <h3 className="text-xl font-semibold mb-2">No saved configurations</h3>
-          <p className="text-gray-600 mb-6">
-            Create your first preset by configuring your server and clicking "Save Current Config"
+          <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">No saved configurations</h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Use the "+ New" button in the sidebar to create your first preset
           </p>
-          <button
-            onClick={() => navigate('/config')}
-            className="btn-primary"
-          >
-            Go to Config Editor
-          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -171,16 +161,6 @@ function SavedConfigs() {
               </div>
 
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(preset.id)}
-                  className="flex-1 px-3 py-2 bg-blue-600 dark:bg-blue-700 text-white text-sm font-medium rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
-                  title="Open this preset in the editor"
-                >
-                  ✏️ Edit
-                </button>
-              </div>
-              
-              <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => handleDuplicate(preset)}
                   className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -245,16 +225,16 @@ function DeleteModal({ preset, onClose, onConfirm }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-        <h3 className="text-xl font-semibold mb-4">Delete Configuration?</h3>
-        <p className="text-gray-600 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+        <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Delete Configuration?</h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
           Are you sure you want to delete "{preset.name}"? This action cannot be undone.
         </p>
         <div className="flex gap-3 justify-end">
           <button
             ref={(el) => (buttonRefs.current[0] = el)}
             onClick={onClose}
-            className={`px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors ${
+            className={`px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${
               selectedIndex === 0 ? 'ring-2 ring-blue-500' : ''
             }`}
           >
@@ -289,8 +269,11 @@ function RenameModal({ preset, currentName, onNameChange, onClose, onConfirm }) 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-        <h3 className="text-xl font-semibold mb-4">Rename Configuration</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+        <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Rename Configuration</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          This will update both the preset name and the server name in the configuration.
+        </p>
         <input
           type="text"
           value={currentName}
@@ -309,7 +292,7 @@ function RenameModal({ preset, currentName, onNameChange, onClose, onConfirm }) 
           <button
             ref={(el) => (buttonRefs.current[0] = el)}
             onClick={onClose}
-            className={`px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors ${
+            className={`px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${
               selectedIndex === 0 ? 'ring-2 ring-blue-500' : ''
             }`}
           >
@@ -319,7 +302,7 @@ function RenameModal({ preset, currentName, onNameChange, onClose, onConfirm }) 
             ref={(el) => (buttonRefs.current[1] = el)}
             onClick={onConfirm}
             disabled={!currentName.trim()}
-            className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors ${
+            className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors ${
               selectedIndex === 1 ? 'ring-2 ring-blue-800' : ''
             }`}
           >
