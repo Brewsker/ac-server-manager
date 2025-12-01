@@ -25,9 +25,10 @@ APP_DIR="/opt/ac-server-manager"
 AC_SERVER_DIR="/opt/assetto-corsa-server"
 STEAM_USER=""
 STEAM_PASS=""
-INSTALL_AC_SERVER="yes"
+INSTALL_AC_SERVER="no"
 USE_DOCKER="no"
 NODE_VERSION="20"
+NON_INTERACTIVE="${NON_INTERACTIVE:-no}"  # Set to "yes" for non-interactive mode
 
 ###############################################################################
 # Helper Functions
@@ -126,6 +127,11 @@ EOF
 }
 
 prompt_installation_type() {
+    if [[ "$NON_INTERACTIVE" == "yes" ]]; then
+        print_info "Non-interactive mode: Full installation selected"
+        return
+    fi
+    
     print_step "Choose installation type"
     echo ""
     echo "1) Full Installation (Node.js + PM2 + App)"
