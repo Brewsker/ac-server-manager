@@ -142,6 +142,13 @@ function ServerConfig() {
         (p) => p.name === normalizedConfig?.SERVER?.NAME
       );
 
+      console.log('[ServerConfig] Preset matching:', {
+        serverName: normalizedConfig?.SERVER?.NAME,
+        availablePresets: presetsData.presets?.map(p => ({ id: p.id, name: p.name })),
+        matchedPreset: currentPreset,
+        currentPresetId: currentPreset?.id || null
+      });
+
       updateData({
         config: normalizedConfig,
         tracks: tracksData,
@@ -232,21 +239,21 @@ function ServerConfig() {
 
     const currentPreset = data.presets.find((p) => p.id === data.currentPresetId);
     const defaultName = currentPreset ? `${currentPreset.name} (Copy)` : 'Cloned Preset';
-    
+
     const name = prompt(`Clone "${currentPreset?.name || 'this preset'}" as:`, defaultName);
     if (!name) return;
 
     try {
       await api.duplicatePreset(data.currentPresetId, name);
       console.log('Preset cloned:', name);
-      
+
       // Refresh presets list
       const presetsData = await api.getPresets();
       updateData({ presets: presetsData.presets || [] });
-      
+
       // Dispatch event to refresh sidebar
       window.dispatchEvent(new CustomEvent('presetSaved'));
-      
+
       updateModals({ showClone: false });
     } catch (error) {
       console.error('Failed to clone preset:', error);
@@ -259,14 +266,14 @@ function ServerConfig() {
     try {
       await api.deletePreset(data.currentPresetId);
       console.log('Preset deleted');
-      
+
       // Load default config after deletion
       await api.loadDefaultConfig();
       await fetchData();
-      
+
       // Dispatch event to refresh sidebar
       window.dispatchEvent(new CustomEvent('presetSaved'));
-      
+
       updateModals({ showDelete: false });
     } catch (error) {
       console.error('Failed to delete preset:', error);
@@ -635,6 +642,11 @@ function ServerConfig() {
         </Suspense>
 
         {/* Static Action Buttons - Always visible below tabs */}
+        {console.log('[ServerConfig] Render check:', { 
+          currentPresetId: data.currentPresetId, 
+          serverName: data.config?.SERVER?.NAME,
+          hasPresets: data.presets?.length > 0
+        })}
         {data.currentPresetId && (
           <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
@@ -643,7 +655,8 @@ function ServerConfig() {
                   Preset Actions
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Currently editing: <span className="font-semibold">{data.config?.SERVER?.NAME}</span>
+                  Currently editing:{' '}
+                  <span className="font-semibold">{data.config?.SERVER?.NAME}</span>
                 </p>
               </div>
               <div className="flex gap-3">

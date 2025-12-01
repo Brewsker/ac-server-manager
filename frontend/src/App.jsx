@@ -14,9 +14,9 @@ function App() {
 
   useEffect(() => {
     const abortController = new AbortController();
-    
+
     checkSetup(abortController.signal);
-    
+
     return () => {
       abortController.abort();
     };
@@ -32,7 +32,7 @@ function App() {
     } catch (error) {
       // Ignore AbortError when component unmounts
       if (error.name === 'AbortError') return;
-      
+
       console.error('Failed to check setup status:', error);
       if (!signal.aborted) {
         setSetupComplete(false);
