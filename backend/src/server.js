@@ -7,6 +7,7 @@ import contentRoutes from './routes/contentRoutes.js';
 import entryRoutes from './routes/entryRoutes.js';
 import playerRoutes from './routes/playerRoutes.js';
 import setupRoutes from './routes/setupRoutes.js';
+import processRoutes from './routes/processRoutes.js';
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use('/api/config', configRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/entries', entryRoutes);
 app.use('/api/players', playerRoutes);
+app.use('/api/process', processRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -62,16 +64,25 @@ process.on('uncaughtException', (error) => {
 const gracefulShutdown = async (signal) => {
   console.log(`\n${signal} received. Starting graceful shutdown...`);
   
-  // Stop AC server if running
+  // Stop all running server instances
+  try {
+    const { stopAllServers } = await import('./services/serverProcessManager.js');
+    console.log('Stopping all AC server instances...');
+    await stopAllServers();
+  } catch (error) {
+    console.error('Error stopping AC servers during shutdown:', error);
+  }
+  
+  // Stop legacy single AC server if running
   try {
     const { getServerStatus, stopServer } = await import('./services/serverService.js');
     const status = await getServerStatus();
     if (status.running) {
-      console.log('Stopping AC server...');
+      console.log('Stopping legacy AC server...');
       await stopServer();
     }
   } catch (error) {
-    console.error('Error stopping AC server during shutdown:', error);
+    console.error('Error stopping legacy AC server during shutdown:', error);
   }
   
   // Close Express server

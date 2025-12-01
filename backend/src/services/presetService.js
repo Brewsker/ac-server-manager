@@ -189,13 +189,13 @@ export async function deletePreset(id) {
 // Open presets folder in file explorer
 export async function openPresetsFolder() {
   await ensurePresetsDir();
-  
+
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
   const execAsync = promisify(exec);
-  
+
   const platform = process.platform;
-  
+
   try {
     if (platform === 'win32') {
       await execAsync(`explorer "${PRESETS_DIR}"`);

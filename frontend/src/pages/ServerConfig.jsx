@@ -501,7 +501,7 @@ function ServerConfig() {
       await api.updateConfig(updatedConfig);
       await api.savePreset(data.config.SERVER.NAME);
       console.log('Configuration saved to preset');
-      
+
       // Dispatch event to refresh sidebar
       window.dispatchEvent(new CustomEvent('presetSaved'));
     } catch (error) {
@@ -528,18 +528,17 @@ function ServerConfig() {
     try {
       // First save current config
       await handleSaveConfig();
-      
-      // Then start server (API to be implemented)
-      // await api.startServer(data.currentPresetId);
-      console.log('Starting server for preset:', data.currentPresetId);
-      alert('Server start functionality coming soon!');
+
+      // Then start server
+      const result = await api.startServerInstance(data.currentPresetId);
+      console.log('Server started:', result);
+      alert(`Server starting for ${data.config.SERVER.NAME}\nPID: ${result.pid}`);
     } catch (error) {
       console.error('Failed to start server:', error);
-      alert('Failed to start server');
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      alert(`Failed to start server: ${errorMsg}`);
     }
-  };
-
-  if (data.loading) {
+  };  if (data.loading) {
     return <div className="text-center py-12">Loading...</div>;
   }
 
@@ -595,9 +594,7 @@ function ServerConfig() {
     <div>
       <div className="mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Server Manager
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Server Manager</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Configure and manage server instances
           </p>
@@ -740,9 +737,9 @@ function ServerConfig() {
             >
               📋 Clone
             </button>
-            
+
             <div className="flex-1"></div>
-            
+
             <button
               type="button"
               onClick={handleSaveConfig}

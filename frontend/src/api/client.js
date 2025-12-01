@@ -106,6 +106,47 @@ export const openPresetsFolder = async () => {
   return response.data;
 };
 
+// Process management endpoints
+export const checkACInstallation = async () => {
+  const response = await client.get('/process/installation');
+  return response.data;
+};
+
+export const startServerInstance = async (presetId) => {
+  const response = await client.post(`/process/start/${presetId}`);
+  return response.data;
+};
+
+export const stopServerInstance = async (presetId) => {
+  const response = await client.post(`/process/stop/${presetId}`);
+  return response.data;
+};
+
+export const restartServerInstance = async (presetId) => {
+  const response = await client.post(`/process/restart/${presetId}`);
+  return response.data;
+};
+
+export const getServerInstanceStatus = async (presetId) => {
+  const response = await client.get(`/process/status/${presetId}`);
+  return response.data;
+};
+
+export const getAllServerStatuses = async () => {
+  const response = await client.get('/process/status');
+  return response.data;
+};
+
+export const getServerInstanceLogs = async (presetId, lines = 100) => {
+  const response = await client.get(`/process/logs/${presetId}`, { params: { lines } });
+  return response.data;
+};
+
+export const stopAllServerInstances = async () => {
+  const response = await client.post('/process/stop-all');
+  return response.data;
+};
+
 // Content endpoints
 export const getTracks = async () => {
   const response = await client.get('/content/tracks');
