@@ -506,7 +506,8 @@ function Settings() {
                     <option value="develop">develop (latest features)</option>
                   </select>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Choose which branch to pull from. Use 'develop' for latest features or 'main' for stable releases.
+                    Choose which branch to pull from. Use 'develop' for latest features or 'main'
+                    for stable releases.
                   </p>
                 </div>
 

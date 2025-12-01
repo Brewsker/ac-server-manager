@@ -50,7 +50,7 @@ app.get('/health', (req, res) => {
 if (process.env.NODE_ENV === 'production') {
   const frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
   app.use(express.static(frontendDistPath));
-  
+
   // Serve index.html for all non-API routes (SPA fallback)
   app.get('*', (req, res) => {
     res.sendFile(path.join(frontendDistPath, 'index.html'));
