@@ -24,6 +24,8 @@ function ServerConfig() {
     tracks: [],
     cars: [],
     selectedCars: [],
+    presets: [],
+    currentPresetId: null,
     loading: true,
   });
 
@@ -34,6 +36,8 @@ function ServerConfig() {
     showCar: false,
     showTrack: false,
     showCspOptions: false,
+    showClone: false,
+    showDelete: false,
   });
 
   // Consolidated UI state
@@ -94,10 +98,11 @@ function ServerConfig() {
 
   const fetchData = async () => {
     try {
-      const [configData, tracksData, carsData] = await Promise.all([
+      const [configData, tracksData, carsData, presetsData] = await Promise.all([
         api.getConfig(),
         api.getTracks(),
         api.getCars(),
+        api.getPresets(),
       ]);
 
       // Only update state if component is still mounted
@@ -132,11 +137,18 @@ function ServerConfig() {
           ? carsInConfig
           : [];
 
+      // Try to match current config name to a preset
+      const currentPreset = presetsData.presets?.find(
+        (p) => p.name === normalizedConfig?.SERVER?.NAME
+      );
+
       updateData({
         config: normalizedConfig,
         tracks: tracksData,
         cars: carsData,
         selectedCars,
+        presets: presetsData.presets || [],
+        currentPresetId: currentPreset?.id || null,
         loading: false,
       });
     } catch (error) {
@@ -212,6 +224,52 @@ function ServerConfig() {
       console.log('Loaded active server configuration');
     } catch (error) {
       console.error('Failed to load active config:', error);
+    }
+  };
+
+  const handleClonePreset = async () => {
+    if (!data.currentPresetId) return;
+
+    const currentPreset = data.presets.find((p) => p.id === data.currentPresetId);
+    const defaultName = currentPreset ? `${currentPreset.name} (Copy)` : 'Cloned Preset';
+    
+    const name = prompt(`Clone "${currentPreset?.name || 'this preset'}" as:`, defaultName);
+    if (!name) return;
+
+    try {
+      await api.duplicatePreset(data.currentPresetId, name);
+      console.log('Preset cloned:', name);
+      
+      // Refresh presets list
+      const presetsData = await api.getPresets();
+      updateData({ presets: presetsData.presets || [] });
+      
+      // Dispatch event to refresh sidebar
+      window.dispatchEvent(new CustomEvent('presetSaved'));
+      
+      updateModals({ showClone: false });
+    } catch (error) {
+      console.error('Failed to clone preset:', error);
+    }
+  };
+
+  const handleDeletePreset = async () => {
+    if (!data.currentPresetId) return;
+
+    try {
+      await api.deletePreset(data.currentPresetId);
+      console.log('Preset deleted');
+      
+      // Load default config after deletion
+      await api.loadDefaultConfig();
+      await fetchData();
+      
+      // Dispatch event to refresh sidebar
+      window.dispatchEvent(new CustomEvent('presetSaved'));
+      
+      updateModals({ showDelete: false });
+    } catch (error) {
+      console.error('Failed to delete preset:', error);
     }
   };
 
@@ -575,6 +633,38 @@ function ServerConfig() {
             </div>
           )}
         </Suspense>
+
+        {/* Static Action Buttons - Always visible below tabs */}
+        {data.currentPresetId && (
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Preset Actions
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Currently editing: <span className="font-semibold">{data.config?.SERVER?.NAME}</span>
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => updateModals({ showClone: true })}
+                  className="px-4 py-2 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-950/50 transition-colors border border-blue-200 dark:border-blue-800"
+                >
+                  📋 Clone Preset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateModals({ showDelete: true })}
+                  className="px-4 py-2 bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-950/50 transition-colors border border-red-200 dark:border-red-800"
+                >
+                  🗑️ Delete Preset
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
 
       {/* Modals */}
@@ -628,6 +718,24 @@ function ServerConfig() {
               updateModals({ showCspOptions: false });
             }}
             onClose={() => updateModals({ showCspOptions: false })}
+          />
+        )}
+
+        {modals.showClone && (
+          <ConfirmModal
+            title="Clone Preset"
+            message={`This will create a copy of "${data.config?.SERVER?.NAME}". You'll be prompted to name the clone.`}
+            onConfirm={handleClonePreset}
+            onClose={() => updateModals({ showClone: false })}
+          />
+        )}
+
+        {modals.showDelete && (
+          <ConfirmModal
+            title="Delete Preset"
+            message={`Are you sure you want to delete "${data.config?.SERVER?.NAME}"? This action cannot be undone. The default configuration will be loaded after deletion.`}
+            onConfirm={handleDeletePreset}
+            onClose={() => updateModals({ showDelete: false })}
           />
         )}
       </Suspense>

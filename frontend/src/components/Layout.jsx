@@ -13,7 +13,6 @@ function Layout({ children }) {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/config', label: 'Config Editor', icon: '✏️' },
-    { path: '/saved-configs', label: 'Preset Management', icon: '📋' },
     { path: '/active-drivers', label: 'Active Drivers', icon: '🏎️' },
     { path: '/monitoring', label: 'Monitoring', icon: '📈' },
     { path: '/settings', label: 'Settings', icon: '🔧' },
@@ -23,9 +22,9 @@ function Layout({ children }) {
     fetchPresets();
   }, []);
 
-  // Refresh presets when navigating to certain pages (after potential preset changes)
+  // Refresh presets when navigating to config page (after potential preset changes)
   useEffect(() => {
-    if (location.pathname === '/saved-configs' || location.pathname === '/config') {
+    if (location.pathname === '/config') {
       fetchPresets();
     }
   }, [location.pathname]);

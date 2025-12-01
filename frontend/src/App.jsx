@@ -5,7 +5,6 @@ import Layout from './components/Layout';
 import SetupWizard from './components/SetupWizard';
 import Dashboard from './pages/Dashboard';
 import ServerConfig from './pages/ServerConfig';
-import SavedConfigs from './pages/SavedConfigs';
 import ActiveDrivers from './pages/ActiveDrivers';
 import Monitoring from './pages/Monitoring';
 import Settings from './pages/Settings';
@@ -72,7 +71,6 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/config" element={<ServerConfig />} />
-            <Route path="/saved-configs" element={<SavedConfigs />} />
             <Route path="/active-drivers" element={<ActiveDrivers />} />
             <Route path="/monitoring" element={<Monitoring />} />
             <Route path="/settings" element={<Settings />} />
