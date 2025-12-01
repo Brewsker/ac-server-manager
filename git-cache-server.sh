@@ -74,7 +74,8 @@ create_container() {
     
     # Clone repository
     print_info "Cloning repository..."
-    pct exec $CTID -- bash -c "mkdir -p /opt/git-cache && cd /opt/git-cache && git clone --mirror $GIT_REPO_URL"
+    pct exec $CTID -- bash -c "mkdir -p /opt/git-cache && cd /opt/git-cache && git clone $GIT_REPO_URL"
+    pct exec $CTID -- bash -c "cd $GIT_REPO_PATH && git checkout $BRANCH"
     
     # Configure nginx to serve git repo
     print_info "Configuring nginx..."
