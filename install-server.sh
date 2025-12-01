@@ -211,22 +211,24 @@ confirm_installation() {
 install_system_packages() {
     print_step "Installing system packages"
     
-    apt-get update -qq
-    apt-get install -y \
-        curl \
-        wget \
-        git \
-        build-essential \
-        software-properties-common \
-        apt-transport-https \
-        ca-certificates \
-        gnupg \
-        lsb-release \
-        lib32gcc-s1 \
-        lib32stdc++6 \
-        > /dev/null 2>&1
+    # Build list of packages to install
+    PACKAGES_TO_INSTALL=()
     
-    print_success "System packages installed"
+    # Check each package
+    for pkg in curl wget git build-essential software-properties-common apt-transport-https ca-certificates gnupg lsb-release lib32gcc-s1 lib32stdc++6; do
+        if ! dpkg -l | grep -q "^ii  $pkg "; then
+            PACKAGES_TO_INSTALL+=("$pkg")
+        fi
+    done
+    
+    # Install only missing packages
+    if [ ${#PACKAGES_TO_INSTALL[@]} -gt 0 ]; then
+        apt-get update -qq
+        apt-get install -y "${PACKAGES_TO_INSTALL[@]}" > /dev/null 2>&1
+        print_success "Installed ${#PACKAGES_TO_INSTALL[@]} system packages"
+    else
+        print_success "All system packages already installed"
+    fi
 }
 
 install_nodejs() {
