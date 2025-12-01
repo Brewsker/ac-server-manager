@@ -110,6 +110,7 @@ function ServerConfig() {
 
       // AUTO-LOAD LOGIC: If this is initial load and no preset was explicitly loaded
       let configToUse = configData;
+      let shouldShowEditor = true;
 
       if (!location.state?.presetLoaded && !location.state?.defaultLoaded && !data.config) {
         // First time loading the editor
@@ -124,15 +125,9 @@ function ServerConfig() {
             // Fall back to current config
           }
         } else {
-          // No presets exist, load default config
-          console.log('[ServerConfig] No presets found, loading default config');
-          try {
-            await api.loadDefaultConfig();
-            configToUse = await api.getConfig();
-          } catch (error) {
-            console.error('[ServerConfig] Failed to load default config:', error);
-            // Fall back to current config
-          }
+          // No presets exist, don't show editor - show empty state instead
+          console.log('[ServerConfig] No presets found, showing empty state');
+          shouldShowEditor = false;
         }
       }
 
@@ -171,10 +166,10 @@ function ServerConfig() {
       );
 
       updateData({
-        config: normalizedConfig,
+        config: shouldShowEditor ? normalizedConfig : null,
         tracks: tracksData,
         cars: carsData,
-        selectedCars,
+        selectedCars: shouldShowEditor ? selectedCars : [],
         presets: presetsData.presets || [],
         currentPresetId: currentPreset?.id || null,
         loading: false,
@@ -319,9 +314,13 @@ function ServerConfig() {
         await api.loadPreset(nextPreset.id);
         await fetchData();
       } else {
-        // No presets left, load default config
-        await api.loadDefaultConfig();
-        await fetchData();
+        // No presets left, clear config to show empty state
+        updateData({
+          config: null,
+          selectedCars: [],
+          currentPresetId: null,
+          presets: [],
+        });
       }
 
       // Dispatch event to refresh sidebar
@@ -465,6 +464,54 @@ function ServerConfig() {
 
   if (data.loading) {
     return <div className="text-center py-12">Loading...</div>;
+  }
+
+  // Show empty state if no presets exist and no config loaded
+  if (!data.config && data.presets.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-gray-400 dark:text-gray-500 mb-6">
+            Nothing to display
+          </h2>
+          <button
+            onClick={async () => {
+              try {
+                // Load default config
+                await api.loadDefaultConfig();
+                const defaultConfig = await api.getConfig();
+
+                // Generate unique name
+                const newName = 'AC_Server_0';
+
+                // Update SERVER.NAME
+                const updatedConfig = {
+                  ...defaultConfig,
+                  SERVER: {
+                    ...defaultConfig.SERVER,
+                    NAME: newName,
+                  },
+                };
+
+                // Save config
+                await api.updateConfig(updatedConfig);
+
+                // Save as new preset
+                await api.savePreset(newName, 'Newly created preset from defaults');
+
+                // Reload the page to show the new preset
+                window.location.reload();
+              } catch (error) {
+                console.error('Failed to create new preset:', error);
+              }
+            }}
+            className="px-6 py-3 bg-gray-700 dark:bg-gray-600 text-gray-200 rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors"
+          >
+            + Create a new one
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

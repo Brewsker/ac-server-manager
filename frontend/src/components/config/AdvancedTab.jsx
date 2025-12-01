@@ -94,6 +94,75 @@ export default function AdvancedTab({
               onChange={(e) => updateConfigValue('SERVER', 'WEB_LINK', e.target.value)}
             />
           </div>
+        </div>
+
+        {/* Right Column (1/2) */}
+        <div className="space-y-6">
+          {/* Server Plugin Section */}
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Server plugin:
+            </h2>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <label className="label whitespace-nowrap min-w-[5rem]">Address:</label>
+                <input
+                  type="text"
+                  className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 flex-1"
+                  style={{ position: 'relative', top: '-4px' }}
+                  placeholder="None"
+                  value={config?.SERVER?.PLUGIN_ADDRESS || ''}
+                  onChange={(e) => updateConfigValue('SERVER', 'PLUGIN_ADDRESS', e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-4">
+                <label className="label whitespace-nowrap min-w-[5rem]">Local port:</label>
+                <input
+                  type="text"
+                  className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 flex-1"
+                  style={{ position: 'relative', top: '-4px' }}
+                  placeholder="None"
+                  value={config?.SERVER?.PLUGIN_LOCAL_PORT || ''}
+                  onChange={(e) => updateConfigValue('SERVER', 'PLUGIN_LOCAL_PORT', e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-4">
+                <label className="label whitespace-nowrap min-w-[5rem]">Auth:</label>
+                <input
+                  type="text"
+                  className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 flex-1"
+                  style={{ position: 'relative', top: '-4px' }}
+                  placeholder="None"
+                  value={config?.SERVER?.AUTH_PLUGIN_ADDRESS || ''}
+                  onChange={(e) =>
+                    updateConfigValue('SERVER', 'AUTH_PLUGIN_ADDRESS', e.target.value)
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* CM Plugin Section */}
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              CM plugin:
+            </h2>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="w-4 h-4 text-blue-600"
+                checked={config?.SERVER?.USE_CM_AS_PLUGIN === 1}
+                onChange={(e) =>
+                  updateConfigValue('SERVER', 'USE_CM_AS_PLUGIN', e.target.checked ? 1 : 0)
+                }
+              />
+              <span className="text-gray-900 dark:text-gray-100">
+                Use Content Manager as server plugin
+              </span>
+            </label>
+          </div>
 
           {/* FTP Data Section */}
           <div className="card">
@@ -200,75 +269,6 @@ export default function AdvancedTab({
                 Upload content
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Right Column (1/2) */}
-        <div className="space-y-6">
-          {/* Server Plugin Section */}
-          <div className="card">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-              Server plugin:
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <label className="label whitespace-nowrap min-w-[5rem]">Address:</label>
-                <input
-                  type="text"
-                  className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 flex-1"
-                  style={{ position: 'relative', top: '-4px' }}
-                  placeholder="None"
-                  value={config?.SERVER?.PLUGIN_ADDRESS || ''}
-                  onChange={(e) => updateConfigValue('SERVER', 'PLUGIN_ADDRESS', e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center gap-4">
-                <label className="label whitespace-nowrap min-w-[5rem]">Local port:</label>
-                <input
-                  type="text"
-                  className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 flex-1"
-                  style={{ position: 'relative', top: '-4px' }}
-                  placeholder="None"
-                  value={config?.SERVER?.PLUGIN_LOCAL_PORT || ''}
-                  onChange={(e) => updateConfigValue('SERVER', 'PLUGIN_LOCAL_PORT', e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center gap-4">
-                <label className="label whitespace-nowrap min-w-[5rem]">Auth:</label>
-                <input
-                  type="text"
-                  className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 flex-1"
-                  style={{ position: 'relative', top: '-4px' }}
-                  placeholder="None"
-                  value={config?.SERVER?.AUTH_PLUGIN_ADDRESS || ''}
-                  onChange={(e) =>
-                    updateConfigValue('SERVER', 'AUTH_PLUGIN_ADDRESS', e.target.value)
-                  }
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* CM Plugin Section */}
-          <div className="card">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-              CM plugin:
-            </h2>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-blue-600"
-                checked={config?.SERVER?.USE_CM_AS_PLUGIN === 1}
-                onChange={(e) =>
-                  updateConfigValue('SERVER', 'USE_CM_AS_PLUGIN', e.target.checked ? 1 : 0)
-                }
-              />
-              <span className="text-gray-900 dark:text-gray-100">
-                Use Content Manager as server plugin
-              </span>
-            </label>
           </div>
         </div>
       </div>
