@@ -110,7 +110,7 @@ function ServerConfig() {
 
       // AUTO-LOAD LOGIC: If this is initial load and no preset was explicitly loaded
       let configToUse = configData;
-      
+
       if (!location.state?.presetLoaded && !location.state?.defaultLoaded && !data.config) {
         // First time loading the editor
         if (presetsData.presets && presetsData.presets.length > 0) {
@@ -347,7 +347,7 @@ function ServerConfig() {
       if (section === 'SERVER' && key === 'NAME') {
         const matchedPreset = prev.presets?.find((p) => p.name === value);
         const newPresetId = matchedPreset?.id || null;
-        
+
         // Update currentPresetId
         setTimeout(() => {
           updateData({ currentPresetId: newPresetId });
@@ -364,151 +364,60 @@ function ServerConfig() {
     });
   };
 
-  const getAllDefaults = () => {
-    return {
-      MAIN: {
-        SERVER: {
-          MAX_CLIENTS: 18,
-          PASSWORD: '',
-          ADMIN_PASSWORD: 'mypassword',
-          UDP_PORT: 9600,
-          TCP_PORT: 9600,
-          HTTP_PORT: 8081,
-          PICKUP_MODE_ENABLED: 0,
-          WELCOME_MESSAGE: '',
-          CLIENT_SEND_INTERVAL_HZ: 18,
-          NUM_THREADS: 2,
-          REGISTER_TO_LOBBY: 1,
-          CSP_PHYSICS_LEVEL: 0,
-          CSP_USE_RAIN_CLOUDS: 0,
-          CSP_RAIN_CLOUDS_CONTROL: 0,
-          CSP_SHADOWS_STATE: 0,
-          CSP_EXTRA_OPTIONS: '',
-        },
-      },
-      RULES: {
-        SERVER: {
-          ABS_ALLOWED: 1,
-          TC_ALLOWED: 1,
-          STABILITY_ALLOWED: 0,
-          AUTOCLUTCH_ALLOWED: 0,
-          TYRE_BLANKETS_ALLOWED: 0,
-          FORCE_VIRTUAL_MIRROR: 1,
-          FUEL_RATE: 100,
-          DAMAGE_MULTIPLIER: 100,
-          TYRE_WEAR_RATE: 100,
-          ALLOWED_TYRES_OUT: 2,
-          START_RULE: 1,
-          RACE_GAS_PENALTY_DISABLED: 0,
-          KICK_QUORUM: 85,
-          VOTING_QUORUM: 80,
-          VOTE_DURATION: 20,
-          BLACKLIST_MODE: 1,
-          MAX_CONTACTS_PER_KM: -1,
-        },
-      },
-      CONDITIONS: {
-        SERVER: {
-          SUN_ANGLE: 960,
-          TIME_OF_DAY_MULT: 1,
-        },
-        DYNAMIC_TRACK: {
-          SESSION_START: 95,
-          RANDOMNESS: 2,
-          SESSION_TRANSFER: 90,
-          LAP_GAIN: 10,
-        },
-      },
-      SESSIONS: {
-        SERVER: {
-          PICKUP_MODE_ENABLED: 0,
-          LOCKED_ENTRY_LIST: 0,
-          LOOP_MODE: 1,
-          RACE_OVER_TIME: 180,
-        },
-        BOOKING: {
-          IS_OPEN: 0,
-          TIME: 10,
-        },
-        PRACTICE: {
-          IS_OPEN: 1,
-          TIME: 10,
-          CAN_JOIN: 1,
-        },
-        QUALIFY: {
-          IS_OPEN: 1,
-          TIME: 10,
-          CAN_JOIN: 1,
-          QUALIFY_MAX_WAIT_PERC: 120,
-        },
-        RACE: {
-          IS_OPEN: 1,
-          LAPS: 5,
-          WAIT_TIME: 60,
-          RESULT_SCREEN_TIME: 60,
-          RACE_JOIN_TYPE: 0,
-          MANDATORY_PIT: 0,
-          MANDATORY_PIT_FROM: 0,
-          MANDATORY_PIT_TO: 0,
-          REVERSED_GRID_RACE_POSITIONS: 0,
-        },
-      },
-      ADVANCED: {
-        SERVER: {
-          PLUGIN_ADDRESS: '',
-          PLUGIN_LOCAL_PORT: '',
-          AUTH_PLUGIN_ADDRESS: '',
-          USE_CM_AS_PLUGIN: 0,
-          WEB_LINK: '',
-          LEGAL_TYRES: '',
-        },
-        FTP: {
-          HOST: '',
-          LOGIN: '',
-          PASSWORD: '',
-          FOLDER: '',
-          UPLOAD_DATA_ONLY: 0,
-          TARGET: 'windows',
-        },
-      },
-    };
-  };
-
-  const loadTabDefaults = (tabId) => {
-    const defaults = getAllDefaults();
-    const tabDefaults = defaults[tabId];
-    if (tabDefaults) {
-      console.log('[loadTabDefaults] Loading defaults for tab:', tabId, tabDefaults);
+  const loadTabDefaults = async (tabId) => {
+    try {
+      // Get the default config from backend
+      const defaultConfig = await api.getDefaultConfig();
+      
+      console.log('[loadTabDefaults] Loading defaults for tab:', tabId);
+      
+      // Map tab IDs to the sections they affect
+      const tabSectionMap = {
+        MAIN: ['SERVER'], // Main settings only
+        RULES: ['SERVER'], // Rules settings (ABS, TC, fuel rate, etc.)
+        CONDITIONS: ['SERVER', 'DYNAMIC_TRACK', 'WEATHER_0'], // Time, weather, track conditions
+        SESSIONS: ['SERVER', 'BOOKING', 'PRACTICE', 'QUALIFY', 'RACE'], // Session configs
+        ADVANCED: ['SERVER', 'FTP'], // Advanced settings
+      };
+      
+      const sectionsToUpdate = tabSectionMap[tabId] || [];
+      
+      if (sectionsToUpdate.length === 0) {
+        console.warn('[loadTabDefaults] No sections mapped for tab:', tabId);
+        return;
+      }
+      
+      // Update only the sections for this tab
       updateData((prev) => {
         const updated = { ...prev.config };
-        Object.keys(tabDefaults).forEach((section) => {
-          updated[section] = {
-            ...updated[section],
-            ...tabDefaults[section],
-          };
+        
+        sectionsToUpdate.forEach((section) => {
+          if (defaultConfig[section]) {
+            updated[section] = {
+              ...updated[section],
+              ...defaultConfig[section],
+            };
+          }
         });
-        console.log('[loadTabDefaults] Updated config:', updated);
-        return { config: updated };
+        
+        console.log('[loadTabDefaults] Updated config for tab', tabId);
+        return { ...prev, config: updated };
       });
+    } catch (error) {
+      console.error('[loadTabDefaults] Failed to load defaults:', error);
     }
   };
 
-  const loadAllDefaults = () => {
-    const defaults = getAllDefaults();
-    console.log('[loadAllDefaults] Loading all defaults:', defaults);
-    updateData((prev) => {
-      const updated = { ...prev.config };
-      Object.keys(defaults).forEach((tabId) => {
-        Object.keys(defaults[tabId]).forEach((section) => {
-          updated[section] = {
-            ...updated[section],
-            ...defaults[tabId][section],
-          };
-        });
-      });
-      console.log('[loadAllDefaults] Updated config:', updated);
-      return { config: updated };
-    });
+  const loadAllDefaults = async () => {
+    try {
+      console.log('[loadAllDefaults] Loading all defaults from backend');
+      await api.loadDefaultConfig();
+      
+      // Fetch the newly loaded config
+      await fetchData();
+    } catch (error) {
+      console.error('[loadAllDefaults] Failed to load all defaults:', error);
+    }
   };
 
   const toggleCar = (carId) => {

@@ -82,7 +82,7 @@ function Layout({ children }) {
     try {
       // Clear selection since we're loading default config (not a preset)
       setSelectedPresetId(null);
-      
+
       // First, load default config to working state
       await api.loadDefaultConfig();
 
