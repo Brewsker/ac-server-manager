@@ -69,6 +69,13 @@ create_container() {
     IP=$(pct exec $CTID -- hostname -I | awk '{print $1}')
     print_success "Container IP: $IP"
     
+    # Run installer
+    print_info "Running AC Server Manager installer..."
+    echo ""
+    pct exec $CTID -- bash -c "curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh | bash"
+    echo ""
+    print_success "Installation complete!"
+    
     print_info "Container Details:"
     echo "  ID:       $CTID"
     echo "  Hostname: $HOSTNAME"
