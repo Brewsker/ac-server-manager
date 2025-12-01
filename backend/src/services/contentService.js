@@ -200,6 +200,40 @@ export async function getCars() {
 }
 
 /**
+ * Common AC tire types database (fallback when data folders aren't unpacked)
+ */
+const COMMON_TIRE_TYPES = {
+  // Street tires
+  ST: { code: 'ST', name: 'Street', category: 'Street' },
+  SV: { code: 'SV', name: 'Street 90s', category: 'Street' },
+
+  // Semi-slick
+  SM: { code: 'SM', name: 'Semislick', category: 'Semi-Slick' },
+
+  // Slick tires
+  H: { code: 'H', name: 'Hard', category: 'Slick' },
+  M: { code: 'M', name: 'Medium', category: 'Slick' },
+  S: { code: 'S', name: 'Soft', category: 'Slick' },
+  SS: { code: 'SS', name: 'Super Soft', category: 'Slick' },
+
+  // Vintage
+  '70sH': { code: '70sH', name: 'Hard GP70', category: 'Vintage' },
+  '70sM': { code: '70sM', name: 'Medium GP70', category: 'Vintage' },
+  '70sS': { code: '70sS', name: 'Soft GP70', category: 'Vintage' },
+
+  // Modern F1
+  F1_H: { code: 'F1_H', name: 'F1 Hard', category: 'F1' },
+  F1_M: { code: 'F1_M', name: 'F1 Medium', category: 'F1' },
+  F1_S: { code: 'F1_S', name: 'F1 Soft', category: 'F1' },
+  F1_SS: { code: 'F1_SS', name: 'F1 Super Soft', category: 'F1' },
+
+  // GT3/Racing
+  DHD2: { code: 'DHD2', name: 'Hard', category: 'GT3' },
+  DHM2: { code: 'DHM2', name: 'Medium', category: 'GT3' },
+  DHS2: { code: 'DHS2', name: 'Soft', category: 'GT3' },
+};
+
+/**
  * Get weather presets
  */
 export async function getWeatherPresets() {
@@ -212,6 +246,175 @@ export async function getWeatherPresets() {
     { id: '5_heavy_clouds', name: 'Heavy Clouds' },
     { id: '6_storm', name: 'Storm' },
   ];
+}
+
+/**
+ * Extract tire codes from tyres.ini content
+ */
+function parseTyresIni(content) {
+  const tires = [];
+  const lines = content.split('\n');
+  let currentSection = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Check for section headers like [FRONT] or [REAR]
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      currentSection = trimmed.slice(1, -1);
+      continue;
+    }
+
+    // Look for SHORT_NAME in tire sections
+    if (trimmed.startsWith('SHORT_NAME=')) {
+      const shortName = trimmed.split('=')[1].trim();
+      if (shortName && !tires.includes(shortName)) {
+        tires.push(shortName);
+      }
+    }
+
+    // Also check NAME field as fallback
+    if (trimmed.startsWith('NAME=') && !trimmed.startsWith('SHORT_NAME=')) {
+      const name = trimmed.split('=')[1].trim();
+      if (name && !tires.includes(name)) {
+        tires.push(name);
+      }
+    }
+  }
+
+  return tires;
+}
+
+/**
+ * Get all available tire types from all cars
+ */
+export async function getAllTires() {
+  console.log('[getAllTires] Starting tire scan...');
+  const acContentPath = process.env.AC_CONTENT_PATH;
+
+  if (!acContentPath) {
+    throw new Error('AC_CONTENT_PATH not configured in .env');
+  }
+
+  const carsPath = path.join(acContentPath, 'cars');
+  const allTires = new Map(); // Map<tireCode, { code, name, cars: Set<carId> }>
+
+  try {
+    const carFolders = await fs.readdir(carsPath);
+    console.log(`[getAllTires] Scanning ${carFolders.length} cars...`);
+
+    for (const carId of carFolders) {
+      const carPath = path.join(carsPath, carId);
+      const stat = await fs.stat(carPath);
+
+      if (!stat.isDirectory()) continue;
+
+      // Try to read tyres.ini from unpacked data folder first
+      const tyresIniPath = path.join(carPath, 'data', 'tyres.ini');
+
+      try {
+        const tyresContent = await fs.readFile(tyresIniPath, 'utf-8');
+        const tireCodes = parseTyresIni(tyresContent);
+
+        for (const code of tireCodes) {
+          if (!allTires.has(code)) {
+            allTires.set(code, {
+              code: code,
+              name: code,
+              cars: new Set([carId]),
+            });
+          } else {
+            allTires.get(code).cars.add(carId);
+          }
+        }
+      } catch (error) {
+        // File not found or not readable - skip this car
+        // Note: data.acd extraction would require additional tools
+        continue;
+      }
+    }
+
+    // Convert to array format
+    const tires = Array.from(allTires.values()).map((tire) => ({
+      code: tire.code,
+      name: tire.name,
+      cars: Array.from(tire.cars),
+      carCount: tire.cars.size,
+    }));
+
+    console.log(`[getAllTires] Found ${tires.length} unique tire types`);
+    return tires;
+  } catch (error) {
+    console.error('[getAllTires] Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get tire types for specific cars
+ */
+export async function getTiresForCars(carIds) {
+  console.log('[getTiresForCars] Getting tires for:', carIds);
+
+  if (!carIds || carIds.length === 0) {
+    return [];
+  }
+
+  const acContentPath = process.env.AC_CONTENT_PATH;
+
+  if (!acContentPath) {
+    throw new Error('AC_CONTENT_PATH not configured in .env');
+  }
+
+  const carsPath = path.join(acContentPath, 'cars');
+  const tireMap = new Map(); // Map<tireCode, { code, name, cars: Set<carId> }>
+  let foundAnyData = false;
+
+  for (const carId of carIds) {
+    const tyresIniPath = path.join(carsPath, carId, 'data', 'tyres.ini');
+
+    try {
+      const tyresContent = await fs.readFile(tyresIniPath, 'utf-8');
+      const tireCodes = parseTyresIni(tyresContent);
+      foundAnyData = true;
+
+      for (const code of tireCodes) {
+        if (!tireMap.has(code)) {
+          const tireInfo = COMMON_TIRE_TYPES[code] || { code, name: code };
+          tireMap.set(code, {
+            code: tireInfo.code,
+            name: tireInfo.name,
+            category: tireInfo.category,
+            cars: new Set([carId]),
+          });
+        } else {
+          tireMap.get(code).cars.add(carId);
+        }
+      }
+    } catch (error) {
+      // Car doesn't have unpacked data/tyres.ini - skip
+      console.log(`[getTiresForCars] Could not read tires for ${carId} (data.acd encrypted)`);
+      continue;
+    }
+  }
+
+  // If no unpacked data found, return empty array
+  // We can't accurately determine tires from encrypted data.acd files
+  if (!foundAnyData) {
+    console.log('[getTiresForCars] No unpacked data found (encrypted data.acd files)');
+    return [];
+  }
+
+  const tires = Array.from(tireMap.values()).map((tire) => ({
+    code: tire.code,
+    name: tire.name,
+    category: tire.category,
+    cars: Array.from(tire.cars),
+    carCount: tire.cars.size,
+  }));
+
+  console.log(`[getTiresForCars] Found ${tires.length} tire types for ${carIds.length} cars`);
+  return tires;
 }
 
 /**

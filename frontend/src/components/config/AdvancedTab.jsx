@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react';
+import api from '../../api/client';
+
 export default function AdvancedTab({
   config,
   updateConfigValue,
@@ -5,16 +8,36 @@ export default function AdvancedTab({
   selectedCars,
   cars,
 }) {
-  // Extract unique tyres from selected cars
-  // For now, show common AC tyre types as placeholder
-  // TODO: Parse car data.acd or tyres.ini to get actual tyre compounds
-  const availableTyres = [
-    { code: 'H', label: '[H] Hard GP70', info: 'Ferrari 312T' },
-    { code: 'S', label: '[S] Soft GP70', info: 'Ferrari 312T' },
-    { code: 'SM', label: '[SM] Semislick', info: 'BMW M3 E30 and KTM X-Bow R' },
-    { code: 'ST', label: '[ST] Street', info: 'BMW M3 E30' },
-    { code: 'SV', label: '[SV] Street 90s', info: 'BMW M3 E30' },
-  ];
+  const [availableTyres, setAvailableTyres] = useState([]);
+  const [loadingTyres, setLoadingTyres] = useState(false);
+
+  // Fetch available tires when selected cars change
+  useEffect(() => {
+    const fetchTires = async () => {
+      console.log('[AdvancedTab] selectedCars changed:', selectedCars);
+
+      if (!selectedCars || selectedCars.length === 0) {
+        console.log('[AdvancedTab] No cars selected, clearing tires');
+        setAvailableTyres([]);
+        return;
+      }
+
+      setLoadingTyres(true);
+      try {
+        console.log('[AdvancedTab] Fetching tires for:', selectedCars);
+        const tires = await api.getTiresForCars(selectedCars);
+        console.log('[AdvancedTab] Received tires:', tires);
+        setAvailableTyres(tires);
+      } catch (error) {
+        console.error('[AdvancedTab] Failed to fetch tires:', error);
+        setAvailableTyres([]);
+      } finally {
+        setLoadingTyres(false);
+      }
+    };
+
+    fetchTires();
+  }, [selectedCars]);
 
   const selectedTyres = config?.SERVER?.LEGAL_TYRES?.split(';').filter((t) => t) || [];
 
@@ -44,24 +67,60 @@ export default function AdvancedTab({
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Select allowed tire types (leave empty to allow all)
               </p>
-              <div className="space-y-2">
-                {availableTyres.map((tyre) => {
-                  return (
-                    <div key={tyre.code}>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 text-blue-600"
-                          checked={selectedTyres.includes(tyre.code)}
-                          onChange={() => toggleTyre(tyre.code)}
-                        />
-                        <span className="text-gray-900 dark:text-gray-100">{tyre.label}</span>
-                      </label>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">{tyre.info}</p>
-                    </div>
-                  );
-                })}
-              </div>
+
+              {loadingTyres ? (
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Loading available tires...
+                </div>
+              ) : availableTyres.length === 0 ? (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3 space-y-2">
+                  <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
+                    {selectedCars.length === 0
+                      ? '📋 Add cars to the entry list to see available tires'
+                      : '🔒 Cannot read tire data (encrypted data.acd files)'}
+                  </p>
+                  {selectedCars.length > 0 && (
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      The selected cars use encrypted data files. Leave the tire restriction empty
+                      to allow all tire types, or manually enter tire codes if known (separated by
+                      semicolons).
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-2 rounded mb-2">
+                    ✓ Showing tires available for selected cars
+                  </div>
+                  <div className="space-y-2">
+                    {availableTyres.map((tyre) => {
+                      return (
+                        <div key={tyre.code}>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 text-blue-600"
+                              checked={selectedTyres.includes(tyre.code)}
+                              onChange={() => toggleTyre(tyre.code)}
+                            />
+                            <span className="text-gray-900 dark:text-gray-100 font-medium">
+                              [{tyre.code}] {tyre.name}
+                            </span>
+                          </label>
+                          {tyre.category && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
+                              {tyre.category}{' '}
+                              {tyre.fallback
+                                ? ''
+                                : `• Used by ${tyre.carCount} car${tyre.carCount !== 1 ? 's' : ''}`}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

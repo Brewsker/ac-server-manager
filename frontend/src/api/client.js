@@ -122,6 +122,16 @@ export const scanContent = async () => {
   return response.data;
 };
 
+export const getAllTires = async () => {
+  const response = await client.get('/content/tires/all');
+  return response.data;
+};
+
+export const getTiresForCars = async (carIds) => {
+  const response = await client.post('/content/tires/for-cars', { carIds });
+  return response.data;
+};
+
 // Entry endpoints
 export const getEntries = async () => {
   const response = await client.get('/entries');
@@ -249,6 +259,8 @@ export default {
   getCars,
   getWeather,
   scanContent,
+  getAllTires,
+  getTiresForCars,
   getEntries,
   addEntry,
   updateEntry,

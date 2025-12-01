@@ -35,6 +35,27 @@ router.get('/weather', async (req, res, next) => {
   }
 });
 
+// Get all available tire types
+router.get('/tires/all', async (req, res, next) => {
+  try {
+    const tires = await contentService.getAllTires();
+    res.json(tires);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get tire types for specific cars
+router.post('/tires/for-cars', async (req, res, next) => {
+  try {
+    const { carIds } = req.body;
+    const tires = await contentService.getTiresForCars(carIds);
+    res.json(tires);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Scan AC content folder
 router.post('/scan', async (req, res, next) => {
   try {
