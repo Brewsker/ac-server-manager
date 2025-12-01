@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
-import ThemeToggle from './ThemeToggle';
 import api from '../api/client';
 
 function Layout({ children }) {
@@ -161,11 +160,6 @@ function Layout({ children }) {
             <h1 className="text-2xl font-bold">AC Server Manager</h1>
             <p className="text-gray-400 text-sm mt-1">v0.1.0</p>
           </div>
-        </div>
-
-        {/* Theme Toggle at top of sidebar */}
-        <div className="px-6 pb-4 border-b border-gray-800 dark:border-gray-900">
-          <ThemeToggle />
         </div>
 
         <nav className="mt-6">
