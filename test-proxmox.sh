@@ -57,12 +57,19 @@ create_container() {
     print_success "Container created and started"
     
     # Wait for container to be ready
-    sleep 3
+    sleep 5
     
     # Install curl for installer bootstrap
     print_info "Installing curl for installer..."
-    pct exec $CTID -- apt-get update -qq
-    pct exec $CTID -- apt-get install -y curl >/dev/null 2>&1
+    if ! pct exec $CTID -- apt-get update -qq 2>&1; then
+        print_error "Failed to update package lists"
+        exit 1
+    fi
+    
+    if ! pct exec $CTID -- apt-get install -y curl 2>&1 | grep -q "Setting up curl"; then
+        print_error "Failed to install curl"
+        exit 1
+    fi
     print_success "Bootstrap packages installed"
     
     # Get IP address
