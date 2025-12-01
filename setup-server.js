@@ -52,13 +52,15 @@ async function handleInstall(req, res) {
         STEAM_PASS: config.steamPass || '',
         TERM: 'xterm',
         DEBIAN_FRONTEND: 'noninteractive',
+        HOME: process.env.HOME || '/root',
+        PATH: process.env.PATH || '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
       };
 
-      // Download and run installer
+      // Download installer script first, then execute
       const installCmd =
         config.installType === 'app-only'
-          ? 'curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh | bash -s -- --app-only'
-          : 'curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh | bash';
+          ? 'curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh -o /tmp/install.sh && bash /tmp/install.sh --app-only'
+          : 'curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh -o /tmp/install.sh && bash /tmp/install.sh';
 
       console.log('[Setup] Running installer...');
       const { stdout, stderr } = await execAsync(installCmd, { env });
