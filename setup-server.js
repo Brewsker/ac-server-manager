@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * AC Server Manager - Setup Wizard Server
- * 
+ *
  * Lightweight HTTP server that serves the setup wizard
  * and handles installation via the web interface
  */
@@ -32,8 +32,8 @@ function serveSetupPage(req, res) {
 // Handle installation request
 async function handleInstall(req, res) {
   let body = '';
-  
-  req.on('data', chunk => {
+
+  req.on('data', (chunk) => {
     body += chunk.toString();
   });
 
@@ -49,13 +49,14 @@ async function handleInstall(req, res) {
         INSTALL_AC_SERVER: config.downloadAC ? 'yes' : 'no',
         AC_SERVER_DIR: config.acPath || '/opt/acserver',
         STEAM_USER: config.steamUser || '',
-        STEAM_PASS: config.steamPass || ''
+        STEAM_PASS: config.steamPass || '',
       };
 
       // Download and run installer
-      const installCmd = config.installType === 'app-only'
-        ? 'curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh | bash -s -- --app-only'
-        : 'curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh | bash';
+      const installCmd =
+        config.installType === 'app-only'
+          ? 'curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh | bash -s -- --app-only'
+          : 'curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh | bash';
 
       console.log('[Setup] Running installer...');
       const { stdout, stderr } = await execAsync(installCmd, { env });
@@ -65,26 +66,29 @@ async function handleInstall(req, res) {
       if (stderr) console.log('STDERR:', stderr);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        message: 'Installation completed successfully',
-        output: stdout
-      }));
+      res.end(
+        JSON.stringify({
+          success: true,
+          message: 'Installation completed successfully',
+          output: stdout,
+        })
+      );
 
       // Exit after sending response - PM2 will restart with the actual app
       setTimeout(() => {
         console.log('[Setup] Exiting setup server, PM2 will restart with main app...');
         process.exit(0);
       }, 2000);
-
     } catch (error) {
       console.error('[Setup] Installation failed:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: false,
-        message: error.message,
-        output: error.stdout || error.stderr || ''
-      }));
+      res.end(
+        JSON.stringify({
+          success: false,
+          message: error.message,
+          output: error.stdout || error.stderr || '',
+        })
+      );
     }
   });
 }
