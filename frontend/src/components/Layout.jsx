@@ -150,6 +150,18 @@ function Layout({ children }) {
     }
   };
 
+  const handleStartServer = async (presetId, e) => {
+    e.stopPropagation(); // Prevent preset selection when clicking start button
+    try {
+      await api.startServerInstance(presetId);
+      console.log('[Layout] Started server for preset:', presetId);
+      // Status will update via polling
+    } catch (error) {
+      console.error('Failed to start server:', error);
+      alert('Failed to start server: ' + (error.response?.data?.error?.message || error.message));
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950">
       {/* Sidebar */}
@@ -226,6 +238,15 @@ function Layout({ children }) {
                       ●
                     </span>
                     <span className="flex-1 truncate">{preset.name}</span>
+                    {!isRunning && (
+                      <button
+                        onClick={(e) => handleStartServer(preset.id, e)}
+                        className="text-green-500 hover:text-green-400 hover:bg-gray-700 rounded px-1 transition-colors"
+                        title="Start this server instance"
+                      >
+                        ▶
+                      </button>
+                    )}
                   </button>
                 );
               })
