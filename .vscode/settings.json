@@ -17,30 +17,25 @@
     "reloadButton": null,
     "commands": [
       {
-        "cwd": "${workspaceFolder}/backend",
-        "name": "🚀 Backend",
+        "name": "▶️ Start",
         "color": "green",
-        "singleInstance": true,
-        "command": "npm run dev"
+        "useVsCodeApi": true,
+        "command": "workbench.action.tasks.runTask",
+        "args": ["🚀 Start Both Services"]
       },
       {
-        "cwd": "${workspaceFolder}/frontend",
-        "name": "🎨 Frontend",
-        "color": "lightblue",
-        "singleInstance": true,
-        "command": "npm run dev"
-      },
-      {
-        "cwd": "${workspaceFolder}",
         "name": "🔄 Restart",
         "color": "orange",
-        "command": "$wsf = '${workspaceFolder}' -replace '/', '\\'; Get-Process -Name 'node','nodemon' -ErrorAction SilentlyContinue | Stop-Process -Force; @(3001, 5173, 5174) | ForEach-Object { $conn = Get-NetTCPConnection -LocalPort $_ -ErrorAction SilentlyContinue; if ($conn) { Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue } }; Write-Host 'Restarting services...' -ForegroundColor Yellow; Start-Sleep -Seconds 1; Start-Process powershell -ArgumentList '-NoExit', '-Command', \"cd '$wsf\\backend'; npm run dev\"; Start-Sleep -Seconds 1; Start-Process powershell -ArgumentList '-NoExit', '-Command', \"cd '$wsf\\frontend'; npm run dev\"; Write-Host 'Services restarted' -ForegroundColor Green"
+        "useVsCodeApi": true,
+        "command": "workbench.action.tasks.runTask",
+        "args": ["🔴 Hard Reset - Kill All & Restart"]
       },
       {
-        "cwd": "${workspaceFolder}",
-        "name": "🔴 Kill All",
+        "name": "⏹️ Stop",
         "color": "red",
-        "command": "Get-Process -Name 'node','nodemon' -ErrorAction SilentlyContinue | Stop-Process -Force; @(3001, 5173, 5174) | ForEach-Object { $conn = Get-NetTCPConnection -LocalPort $_ -ErrorAction SilentlyContinue; if ($conn) { Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue } }; Write-Host 'Processes killed' -ForegroundColor Green"
+        "useVsCodeApi": true,
+        "command": "workbench.action.tasks.runTask",
+        "args": ["🧹 Cleanup Only (No Restart)"]
       }
     ]
   }

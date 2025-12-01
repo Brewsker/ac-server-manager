@@ -12,6 +12,7 @@ const ConditionsTab = lazy(() => import('../components/config/ConditionsTab'));
 const SessionsTab = lazy(() => import('../components/config/SessionsTab'));
 const AdvancedTab = lazy(() => import('../components/config/AdvancedTab'));
 const EntryListTab = lazy(() => import('../components/config/EntryListTab'));
+const DetailsTab = lazy(() => import('../components/config/DetailsTab'));
 
 function ServerConfig() {
   const navigate = useNavigate();
@@ -377,6 +378,7 @@ function ServerConfig() {
         CONDITIONS: ['SERVER', 'DYNAMIC_TRACK', 'WEATHER_0'], // Time, weather, track conditions
         SESSIONS: ['SERVER', 'BOOKING', 'PRACTICE', 'QUALIFY', 'RACE'], // Session configs
         ADVANCED: ['SERVER', 'FTP'], // Advanced settings
+        DETAILS: ['SERVER'], // Server description and details
       };
 
       const sectionsToUpdate = tabSectionMap[tabId] || [];
@@ -662,9 +664,11 @@ function ServerConfig() {
           )}
 
           {ui.activeTab === 'DETAILS' && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <p className="text-gray-500 dark:text-gray-400">Server details coming soon...</p>
-            </div>
+            <DetailsTab
+              config={data.config}
+              updateConfigValue={updateConfigValue}
+              loadTabDefaults={loadTabDefaults}
+            />
           )}
         </Suspense>
 

@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import * as acdDecryptor from '../utils/acdDecryptor.js';
 
 // In-memory cache
 const cache = {
@@ -309,11 +310,18 @@ export async function getAllTires() {
 
       if (!stat.isDirectory()) continue;
 
-      // Try to read tyres.ini from unpacked data folder first
       const tyresIniPath = path.join(carPath, 'data', 'tyres.ini');
+      let tyresContent = null;
 
+      // Try to read from unpacked data folder first
       try {
-        const tyresContent = await fs.readFile(tyresIniPath, 'utf-8');
+        tyresContent = await fs.readFile(tyresIniPath, 'utf-8');
+      } catch (error) {
+        // Unpacked data not found, try to decrypt from data.acd
+        tyresContent = await acdDecryptor.extractTyresIni(carPath);
+      }
+
+      if (tyresContent) {
         const tireCodes = parseTyresIni(tyresContent);
 
         for (const code of tireCodes) {
@@ -327,10 +335,6 @@ export async function getAllTires() {
             allTires.get(code).cars.add(carId);
           }
         }
-      } catch (error) {
-        // File not found or not readable - skip this car
-        // Note: data.acd extraction would require additional tools
-        continue;
       }
     }
 
@@ -371,10 +375,29 @@ export async function getTiresForCars(carIds) {
   let foundAnyData = false;
 
   for (const carId of carIds) {
-    const tyresIniPath = path.join(carsPath, carId, 'data', 'tyres.ini');
+    const carPath = path.join(carsPath, carId);
+    const tyresIniPath = path.join(carPath, 'data', 'tyres.ini');
+    let tyresContent = null;
 
+    // Try to read from unpacked data folder first
     try {
-      const tyresContent = await fs.readFile(tyresIniPath, 'utf-8');
+      tyresContent = await fs.readFile(tyresIniPath, 'utf-8');
+      console.log(`[getTiresForCars] Read tyres.ini from unpacked data for ${carId}`);
+    } catch (error) {
+      // Unpacked data not found, try to decrypt from data.acd
+      console.log(`[getTiresForCars] Attempting to decrypt data.acd for ${carId}`);
+      tyresContent = await acdDecryptor.extractTyresIni(carPath);
+
+      if (tyresContent) {
+        console.log(`[getTiresForCars] Successfully decrypted tyres.ini for ${carId}`);
+      } else {
+        console.log(`[getTiresForCars] Could not extract tires for ${carId} (no data found)`);
+        continue;
+      }
+    }
+
+    // Parse tire codes from the content
+    if (tyresContent) {
       const tireCodes = parseTyresIni(tyresContent);
       foundAnyData = true;
 
@@ -391,17 +414,12 @@ export async function getTiresForCars(carIds) {
           tireMap.get(code).cars.add(carId);
         }
       }
-    } catch (error) {
-      // Car doesn't have unpacked data/tyres.ini - skip
-      console.log(`[getTiresForCars] Could not read tires for ${carId} (data.acd encrypted)`);
-      continue;
     }
   }
 
-  // If no unpacked data found, return empty array
-  // We can't accurately determine tires from encrypted data.acd files
+  // If no data found for any car, return empty array
   if (!foundAnyData) {
-    console.log('[getTiresForCars] No unpacked data found (encrypted data.acd files)');
+    console.log('[getTiresForCars] No tire data found for any selected cars');
     return [];
   }
 

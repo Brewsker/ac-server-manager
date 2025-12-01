@@ -73,24 +73,51 @@ export default function AdvancedTab({
                   Loading available tires...
                 </div>
               ) : availableTyres.length === 0 ? (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3 space-y-2">
-                  <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
-                    {selectedCars.length === 0
-                      ? '📋 Add cars to the entry list to see available tires'
-                      : '🔒 Cannot read tire data (encrypted data.acd files)'}
-                  </p>
-                  {selectedCars.length > 0 && (
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      The selected cars use encrypted data files. Leave the tire restriction empty
-                      to allow all tire types, or manually enter tire codes if known (separated by
-                      semicolons).
+                <div className="space-y-3">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3">
+                    <p className="text-sm text-blue-900 dark:text-blue-100 font-medium mb-1">
+                      {selectedCars.length === 0
+                        ? '📋 Add cars to the entry list to see available tires'
+                        : '🔒 Cannot auto-detect tires (encrypted car data)'}
                     </p>
-                  )}
+                    {selectedCars.length > 0 && (
+                      <>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                          Most AC cars use encrypted .acd files. To enable auto-detection:
+                        </p>
+                        <ol className="text-xs text-blue-700 dark:text-blue-300 list-decimal list-inside space-y-1 ml-2">
+                          <li>Open AC Content Manager</li>
+                          <li>Go to Content → Cars → Select car → Unpack data</li>
+                          <li>Repeat for each car in your entry list</li>
+                        </ol>
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 italic">
+                          Or use manual entry below →
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Manual tire input */}
+                  <div>
+                    <label className="label text-sm mb-1">Manual tire codes:</label>
+                    <input
+                      type="text"
+                      className="input bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 w-full text-sm"
+                      placeholder="e.g., ST;SV;SM (semicolon-separated, or leave empty for all)"
+                      value={config?.SERVER?.LEGAL_TYRES || ''}
+                      onChange={(e) => updateConfigValue('SERVER', 'LEGAL_TYRES', e.target.value)}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Common codes: ST (Street), SV (Street 90s), SM (Semi-slick), H/M/S
+                      (Hard/Medium/Soft slicks)
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <>
                   <div className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-2 rounded mb-2">
-                    ✓ Showing tires available for selected cars
+                    ✓ Showing {availableTyres.length} tire type
+                    {availableTyres.length !== 1 ? 's' : ''} for selected cars
                   </div>
                   <div className="space-y-2">
                     {availableTyres.map((tyre) => {
