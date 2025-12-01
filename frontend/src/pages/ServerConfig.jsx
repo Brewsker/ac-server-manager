@@ -142,13 +142,6 @@ function ServerConfig() {
         (p) => p.name === normalizedConfig?.SERVER?.NAME
       );
 
-      console.log('[ServerConfig] Preset matching:', {
-        serverName: normalizedConfig?.SERVER?.NAME,
-        availablePresets: presetsData.presets?.map(p => ({ id: p.id, name: p.name })),
-        matchedPreset: currentPreset,
-        currentPresetId: currentPreset?.id || null
-      });
-
       updateData({
         config: normalizedConfig,
         tracks: tracksData,
@@ -642,42 +635,45 @@ function ServerConfig() {
         </Suspense>
 
         {/* Static Action Buttons - Always visible below tabs */}
-        {console.log('[ServerConfig] Render check:', { 
-          currentPresetId: data.currentPresetId, 
-          serverName: data.config?.SERVER?.NAME,
-          hasPresets: data.presets?.length > 0
-        })}
-        {data.currentPresetId && (
-          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Preset Actions
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Currently editing:{' '}
-                  <span className="font-semibold">{data.config?.SERVER?.NAME}</span>
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => updateModals({ showClone: true })}
-                  className="px-4 py-2 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-950/50 transition-colors border border-blue-200 dark:border-blue-800"
-                >
-                  📋 Clone Preset
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateModals({ showDelete: true })}
-                  className="px-4 py-2 bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-950/50 transition-colors border border-red-200 dark:border-red-800"
-                >
-                  🗑️ Delete Preset
-                </button>
-              </div>
+        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Preset Actions
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {data.currentPresetId ? (
+                  <>
+                    Currently editing:{' '}
+                    <span className="font-semibold">{data.config?.SERVER?.NAME}</span>
+                  </>
+                ) : (
+                  'No preset selected - save as preset first to enable actions'
+                )}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => data.currentPresetId && updateModals({ showClone: true })}
+                disabled={!data.currentPresetId}
+                className="px-4 py-2 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-950/50 transition-colors border border-blue-200 dark:border-blue-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-100 dark:disabled:hover:bg-blue-950/30"
+                title={data.currentPresetId ? 'Clone this preset' : 'Save as preset first to enable cloning'}
+              >
+                📋 Clone Preset
+              </button>
+              <button
+                type="button"
+                onClick={() => data.currentPresetId && updateModals({ showDelete: true })}
+                disabled={!data.currentPresetId}
+                className="px-4 py-2 bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-950/50 transition-colors border border-red-200 dark:border-red-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-100 dark:disabled:hover:bg-red-950/30"
+                title={data.currentPresetId ? 'Delete this preset' : 'Save as preset first to enable deletion'}
+              >
+                🗑️ Delete Preset
+              </button>
             </div>
           </div>
-        )}
+        </div>
       </form>
 
       {/* Modals */}
