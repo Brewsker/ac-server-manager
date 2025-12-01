@@ -78,7 +78,7 @@ class UpdateService {
   }
 
   /**
-   * Check GitHub for the latest release
+   * Check GitHub for the latest version (tags)
    */
   async checkForUpdates() {
     if (this.checkInProgress) {
@@ -90,9 +90,9 @@ class UpdateService {
     try {
       const currentVersion = await this.getCurrentVersion();
 
-      // Fetch latest release from GitHub
+      // Fetch latest tags from GitHub
       const response = await this.fetchJSON(
-        `${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`,
+        `${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/tags`,
         {
           headers: {
             Accept: 'application/vnd.github.v3+json',
@@ -103,19 +103,29 @@ class UpdateService {
 
       if (!response.ok) {
         if (response.status === 404) {
-          // No releases found
           return {
             updateAvailable: false,
             currentVersion,
             latestVersion: currentVersion,
-            message: 'No releases found on GitHub',
+            message: 'No tags found on GitHub',
           };
         }
         throw new Error(`GitHub API returned ${response.status}`);
       }
 
-      const release = response.data;
-      const latestVersion = release.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
+      const tags = response.data;
+      if (!tags || tags.length === 0) {
+        return {
+          updateAvailable: false,
+          currentVersion,
+          latestVersion: currentVersion,
+          message: 'No version tags found',
+        };
+      }
+
+      // Get the latest tag (first in list)
+      const latestTag = tags[0];
+      const latestVersion = latestTag.name.replace(/^v/, ''); // Remove 'v' prefix if present
 
       const updateAvailable = this.compareVersions(latestVersion, currentVersion) > 0;
 
@@ -123,14 +133,9 @@ class UpdateService {
         updateAvailable,
         currentVersion,
         latestVersion,
-        releaseUrl: release.html_url,
-        releaseNotes: release.body,
-        publishedAt: release.published_at,
-        assets: release.assets.map((asset) => ({
-          name: asset.name,
-          size: asset.size,
-          downloadUrl: asset.browser_download_url,
-        })),
+        releaseUrl: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tag/${latestTag.name}`,
+        releaseNotes: updateAvailable ? `Update to version ${latestVersion}` : null,
+        publishedAt: latestTag.commit?.author?.date || new Date().toISOString(),
       };
     } catch (error) {
       console.error('[UpdateService] Failed to check for updates:', error);
