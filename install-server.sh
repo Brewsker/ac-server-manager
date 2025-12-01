@@ -377,7 +377,13 @@ install_application() {
     # Clone repository (or use current directory if already cloned)
     if [ ! -d ".git" ]; then
         print_info "Cloning repository..."
-        git clone https://github.com/Brewsker/ac-server-manager.git . > /dev/null 2>&1
+        if git clone -b multi-instance-manager https://github.com/Brewsker/ac-server-manager.git . 2>&1 | grep -v "Cloning into"; then
+            print_success "Repository cloned"
+        else
+            print_error "Failed to clone repository"
+            print_info "You may need to clone manually or check your internet connection"
+            exit 1
+        fi
     else
         print_info "Using existing repository"
     fi
