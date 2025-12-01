@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import serverRoutes from './routes/serverRoutes.js';
 import configRoutes from './routes/configRoutes.js';
 import contentRoutes from './routes/contentRoutes.js';
@@ -11,6 +13,9 @@ import processRoutes from './routes/processRoutes.js';
 import updateRoutes from './routes/updateRoutes.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -40,6 +45,17 @@ app.use('/api/update', updateRoutes);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Serve static frontend files in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
+  app.use(express.static(frontendDistPath));
+  
+  // Serve index.html for all non-API routes (SPA fallback)
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
