@@ -35,15 +35,15 @@ function Layout({ children }) {
     const handleFocus = () => {
       fetchPresets();
     };
-    
+
     const handlePresetSaved = () => {
       console.log('[Layout] Preset saved event received, refreshing list');
       fetchPresets();
     };
-    
+
     window.addEventListener('focus', handleFocus);
     window.addEventListener('presetSaved', handlePresetSaved);
-    
+
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('presetSaved', handlePresetSaved);
@@ -72,11 +72,37 @@ function Layout({ children }) {
 
   const handleNewPreset = async () => {
     try {
-      // Load default config into editor
+      // First, load default config to working state
       await api.loadDefaultConfig();
-      navigate('/config', { state: { defaultLoaded: true, timestamp: Date.now() } });
+      
+      // Generate a unique name for the new preset
+      const baseNewName = 'New Preset';
+      let newName = baseNewName;
+      let counter = 1;
+      
+      // Find a unique name by checking existing presets
+      while (presets.some(p => p.name === newName)) {
+        counter++;
+        newName = `${baseNewName} ${counter}`;
+      }
+      
+      // Save the default config as a new preset
+      await api.savePreset(newName, 'Newly created preset from defaults');
+      console.log('[Layout] Created new preset:', newName);
+      
+      // Refresh preset list to show the new preset
+      await fetchPresets();
+      
+      // Load the newly created preset into the editor
+      const updatedPresets = await api.getPresets();
+      const newPreset = updatedPresets.presets.find(p => p.name === newName);
+      
+      if (newPreset) {
+        await api.loadPreset(newPreset.id);
+        navigate('/config', { state: { presetLoaded: true, timestamp: Date.now() } });
+      }
     } catch (error) {
-      console.error('Failed to load default config:', error);
+      console.error('Failed to create new preset:', error);
     }
   };
 

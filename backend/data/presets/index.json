@@ -1,3 +1,15 @@
 {
-  "presets": []
+  "presets": [
+    {
+      "id": "f9a75838-df89-4e69-b1cf-2b5b241a0b43",
+      "name": "New Preset",
+      "description": "Newly created preset from defaults",
+      "created": "2025-12-01T00:39:18.770Z",
+      "modified": "2025-12-01T00:39:18.770Z",
+      "track": "ks_red_bull_ring",
+      "cars": 1,
+      "maxClients": "24",
+      "sessions": "Practice, Qualify, Race"
+    }
+  ]
 }
