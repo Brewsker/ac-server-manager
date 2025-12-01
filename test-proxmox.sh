@@ -83,8 +83,10 @@ create_container() {
     print_info "Setting up web-based installation wizard..."
     pct exec $CTID -- bash -c "mkdir -p /opt/ac-setup && cd /opt/ac-setup && curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/setup-wizard.html -o setup-wizard.html && curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/setup-server.js -o setup-server.js"
     
-    # Start setup wizard server
-    pct exec $CTID -- bash -c "cd /opt/ac-setup && nohup node setup-server.js > /var/log/ac-setup.log 2>&1 &"
+    # Start setup wizard server in background
+    print_info "Starting setup wizard server..."
+    pct exec $CTID -- bash -c "cd /opt/ac-setup && setsid node setup-server.js > /var/log/ac-setup.log 2>&1 < /dev/null &"
+    sleep 2
     
     echo ""
     print_success "Setup wizard ready!"
