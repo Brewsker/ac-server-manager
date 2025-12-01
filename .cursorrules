@@ -243,6 +243,81 @@ When requirements are unclear:
 4. **Propose Assumptions**: "I'll assume Z unless specified otherwise"
 5. **Suggest Alternatives**: "Consider approach A vs B, here are tradeoffs..."
 
+## 🌿 Git Branching & Version Control
+
+### Branch Structure
+
+```text
+main (production releases only - tagged versions)
+├── develop (integration branch - base all work here)
+│   ├── feature/* (new features)
+│   ├── fix/* (bug fixes)
+│   ├── chore/* (maintenance, refactoring, dependencies)
+│   └── docs/* (documentation updates)
+```
+
+### Workflow
+
+1. **Start New Work**: Always branch from `develop`
+
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Commit Messages**: Use [Conventional Commits](https://www.conventionalcommits.org/)
+
+   - `feat:` New feature
+   - `fix:` Bug fix
+   - `docs:` Documentation only
+   - `chore:` Maintenance (refactor, deps, cleanup)
+   - `test:` Adding/updating tests
+   - `perf:` Performance improvement
+   - `ci:` CI/CD changes
+
+3. **Examples**:
+
+   ```text
+   feat: Add real-time player monitoring dashboard
+   fix: Resolve config save failure on Windows paths
+   docs: Update API documentation for server endpoints
+   chore: Upgrade Tailwind to v3.4
+   ```
+
+4. **Complete Feature**: Merge to `develop`
+
+   ```bash
+   git checkout develop
+   git merge feature/your-feature-name
+   git push origin develop
+   git branch -d feature/your-feature-name
+   ```
+
+5. **Release**: Only merge `develop` → `main` for releases
+
+   ```bash
+   git checkout main
+   git merge develop
+   git tag v0.15.0 -a -m "Release v0.15.0: Description"
+   git push origin main
+   git push origin v0.15.0
+   ```
+
+### Version Management
+
+- Current version: **0.14.1**
+- Update in 3 places:
+  1. `backend/package.json`
+  2. `frontend/package.json`
+  3. `frontend/src/components/Layout.jsx` (sidebar display)
+- Tag all releases on `main` branch
+
+### References
+
+- Full branching strategy: `.github/BRANCHING_STRATEGY.md`
+- Contributing guidelines: `.github/CONTRIBUTING.md`
+
 ## 🔧 Technology Stack Reference
 
 - **Backend**: Node.js (ES modules), Express 4.x
@@ -266,6 +341,7 @@ Every new feature must include:
 ## 🎯 Success Criteria
 
 Code is ready when:
+
 - ✅ Runs without errors in dev environment
 - ✅ Handles all expected error cases gracefully
 - ✅ Follows project patterns consistently
