@@ -25,9 +25,17 @@ Installs Node.js, PM2, optionally downloads AC server via Steam, configures ever
 
 **Full guide:** See [SERVER_INSTALL.md](./SERVER_INSTALL.md)
 
-### Docker / Proxmox
+### Proxmox (Auto-Creates LXC Container)
 
-See [PROXMOX_DEPLOYMENT.md](./PROXMOX_DEPLOYMENT.md) for containerized deployment.
+**One-command setup:**
+```bash
+# Run on Proxmox HOST (creates container + installs everything)
+curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/main/install-proxmox.sh | bash
+```
+
+Creates Ubuntu 22.04 LXC, installs app, optionally downloads AC via Steam!
+
+**Manual Docker:** See [PROXMOX_DEPLOYMENT.md](./PROXMOX_DEPLOYMENT.md)
 
 ---
 
