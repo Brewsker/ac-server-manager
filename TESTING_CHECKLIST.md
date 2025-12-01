@@ -7,7 +7,7 @@ Complete testing protocol before releasing the one-click installer to users.
 ### Required Test Platforms
 
 - [ ] Ubuntu 22.04 LTS (clean install)
-- [ ] Ubuntu 20.04 LTS (clean install)  
+- [ ] Ubuntu 20.04 LTS (clean install)
 - [ ] Debian 11 (clean install)
 - [ ] Proxmox LXC (Ubuntu 22.04 template)
 - [ ] Windows 10/11 (local dev with install.ps1)
@@ -40,6 +40,7 @@ curl -sSL <installer-url> | sudo bash
 ```
 
 **Expected Result:**
+
 - ✅ System packages installed
 - ✅ Node.js 20 installed
 - ✅ PM2 installed and configured
@@ -52,6 +53,7 @@ curl -sSL <installer-url> | sudo bash
 - ✅ Setup Wizard shows (no AC server detected)
 
 **Test Checklist:**
+
 - [ ] Installer completes without errors
 - [ ] `pm2 status` shows service running
 - [ ] `curl http://localhost:3001/health` returns OK
@@ -78,6 +80,7 @@ curl -sSL <installer-url> | sudo bash
 ```
 
 **Expected Result:**
+
 - ✅ All from Scenario 1, plus:
 - ✅ SteamCMD installed
 - ✅ AC Dedicated Server downloaded
@@ -87,6 +90,7 @@ curl -sSL <installer-url> | sudo bash
 - ✅ Can start AC server from UI
 
 **Test Checklist:**
+
 - [ ] SteamCMD authenticates successfully
 - [ ] AC server downloads completely (~3GB)
 - [ ] `/opt/assetto-corsa-server/acServer` exists
@@ -97,6 +101,7 @@ curl -sSL <installer-url> | sudo bash
 - [ ] AC server logs appear in monitoring
 
 **Steam Guard Testing:**
+
 - [ ] Works with email code
 - [ ] Works with mobile authenticator
 - [ ] Handles invalid code gracefully
@@ -118,6 +123,7 @@ curl -sSL <installer-url> | sudo bash
 ```
 
 **Expected Result:**
+
 - ✅ Docker and Docker Compose installed
 - ✅ App cloned
 - ✅ docker-compose.yml configured
@@ -127,6 +133,7 @@ curl -sSL <installer-url> | sudo bash
 - ✅ Web UI accessible
 
 **Test Checklist:**
+
 - [ ] `docker ps` shows container running
 - [ ] `docker-compose logs` shows no errors
 - [ ] Health check endpoint responds
@@ -151,12 +158,14 @@ curl -sSL <installer-url> | sudo bash
 ```
 
 **Expected Result:**
+
 - ✅ Skips Node.js installation
 - ✅ Uses existing Node.js
 - ✅ Installs app only
 - ✅ User must manually start service
 
 **Test Checklist:**
+
 - [ ] Detects existing Node.js
 - [ ] Skips NodeSource repository setup
 - [ ] Installs dependencies successfully
@@ -176,6 +185,7 @@ curl -sSL <installer-url> | sudo bash
 ```
 
 **Expected Result:**
+
 - ✅ Checks Node.js installed
 - ✅ Installs backend dependencies
 - ✅ Installs frontend dependencies
@@ -186,6 +196,7 @@ curl -sSL <installer-url> | sudo bash
 - ✅ Setup Wizard appears
 
 **Test Checklist:**
+
 - [ ] Node.js version check works
 - [ ] Warns if Node.js missing
 - [ ] Both terminals open and start services
@@ -214,6 +225,7 @@ curl -sSL <installer-url> | sudo bash
 ```
 
 **Expected Result:**
+
 - ✅ Docker works in LXC (nesting enabled)
 - ✅ Container deploys successfully
 - ✅ Network accessible from Proxmox host
@@ -221,6 +233,7 @@ curl -sSL <installer-url> | sudo bash
 - ✅ Survives LXC container restart
 
 **Test Checklist:**
+
 - [ ] LXC nesting allows Docker
 - [ ] No permission issues
 - [ ] Port forwarding works
@@ -273,6 +286,7 @@ curl -sSL <installer-url> | sudo bash
 For each test scenario, verify:
 
 ### Installation Success
+
 - [ ] No errors in installer output
 - [ ] All components installed
 - [ ] Service starts automatically
@@ -280,6 +294,7 @@ For each test scenario, verify:
 - [ ] No zombie processes
 
 ### Post-Installation Functionality
+
 - [ ] Web UI loads
 - [ ] Setup Wizard works
 - [ ] Can save configuration
@@ -289,6 +304,7 @@ For each test scenario, verify:
 - [ ] Can upload content (tracks/cars)
 
 ### Service Management
+
 - [ ] Service survives reboot
 - [ ] Service auto-restarts on crash
 - [ ] Logs are accessible
@@ -296,6 +312,7 @@ For each test scenario, verify:
 - [ ] Can manually stop/start
 
 ### Update System
+
 - [ ] Can check for updates
 - [ ] Can install updates
 - [ ] Update confirmation works
@@ -303,6 +320,7 @@ For each test scenario, verify:
 - [ ] No data loss after update
 
 ### Security
+
 - [ ] Firewall rules applied
 - [ ] No sensitive data in logs
 - [ ] Steam credentials not stored
@@ -314,22 +332,26 @@ For each test scenario, verify:
 ## 📊 Performance Benchmarks
 
 ### Installation Time
+
 - **Target:** < 10 minutes (without AC download)
 - **Measure:** Time from script start to health check pass
 - **With AC:** < 20 minutes (depends on connection speed)
 
 ### Resource Usage
+
 - **RAM (PM2):** < 150MB idle
 - **RAM (Docker):** < 250MB idle
 - **CPU:** < 5% idle
 - **Disk:** < 500MB (app only, excludes AC server)
 
 ### First Startup
+
 - **Backend:** < 5 seconds to ready
 - **Frontend:** Instant (pre-built)
 - **Health check:** < 1 second response
 
 ### AC Server Control
+
 - **Start:** < 3 seconds
 - **Stop:** < 2 seconds
 - **Restart:** < 5 seconds
@@ -339,6 +361,7 @@ For each test scenario, verify:
 ## 🐛 Known Issues to Watch For
 
 ### Common Problems
+
 - [ ] SteamCMD hangs on Steam Guard prompt
 - [ ] PM2 doesn't survive reboot (startup script)
 - [ ] Docker permission denied in LXC
@@ -346,6 +369,7 @@ For each test scenario, verify:
 - [ ] AC server ports already in use
 
 ### Edge Cases
+
 - [ ] Install on non-English system
 - [ ] Install with custom SSH port
 - [ ] Install behind corporate proxy
@@ -359,6 +383,7 @@ For each test scenario, verify:
 Before tagging v1.0 or promoting installer:
 
 ### Code Quality
+
 - [ ] All shell script variables quoted
 - [ ] Proper error handling (set -e)
 - [ ] All paths absolute
@@ -367,6 +392,7 @@ Before tagging v1.0 or promoting installer:
 - [ ] Comments explain complex sections
 
 ### Documentation
+
 - [ ] SERVER_INSTALL.md complete
 - [ ] All commands tested
 - [ ] Screenshots added (optional)
@@ -374,6 +400,7 @@ Before tagging v1.0 or promoting installer:
 - [ ] Security notes included
 
 ### Testing
+
 - [ ] All scenarios pass
 - [ ] All platforms tested
 - [ ] Error conditions handled
@@ -381,6 +408,7 @@ Before tagging v1.0 or promoting installer:
 - [ ] No regression in existing features
 
 ### Security
+
 - [ ] No secrets committed
 - [ ] Installer served over HTTPS
 - [ ] Checksums provided
@@ -388,6 +416,7 @@ Before tagging v1.0 or promoting installer:
 - [ ] Security advisory process documented
 
 ### Support
+
 - [ ] GitHub issues enabled
 - [ ] Discussion forum ready
 - [ ] Support email monitored
@@ -398,22 +427,26 @@ Before tagging v1.0 or promoting installer:
 ## 🚀 Release Process
 
 1. **Final Testing Round**
+
    - Run all scenarios
    - Document any issues
    - Fix critical bugs
 
 2. **Update Documentation**
+
    - Verify all links work
    - Update version numbers
    - Add release notes
 
 3. **Create Release**
+
    ```bash
    git tag -a v1.0.0 -m "Release v1.0.0: Production ready"
    git push origin v1.0.0
    ```
 
 4. **Publish Installer**
+
    - Upload to GitHub releases
    - Create install link: `https://raw.githubusercontent.com/.../install-server.sh`
    - Test curl command works
@@ -429,12 +462,14 @@ Before tagging v1.0 or promoting installer:
 ## 📞 Support Plan
 
 ### During Beta
+
 - Active monitoring of installs
 - Quick response to issues
 - Willingness to remote debug
 - Regular updates based on feedback
 
 ### Post-Release
+
 - GitHub issues for bugs
 - Discussions for questions
 - Monthly update cycle

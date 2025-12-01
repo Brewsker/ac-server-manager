@@ -13,6 +13,7 @@ curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/ma
 ```
 
 **What it does:**
+
 - ✅ Creates Ubuntu 22.04 LXC container
 - ✅ Configures resources (2 CPU, 2GB RAM, 20GB disk)
 - ✅ Installs Docker or PM2 (you choose)
@@ -36,6 +37,7 @@ curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/ma
 ```
 
 **What it does:**
+
 - ✅ Installs Node.js 20 or Docker
 - ✅ Installs PM2 process manager
 - ✅ Optionally downloads AC via SteamCMD
@@ -57,6 +59,7 @@ curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/ma
 ```
 
 **What it does:**
+
 - ✅ Checks Node.js installed
 - ✅ Installs dependencies
 - ✅ Starts backend + frontend
@@ -91,18 +94,21 @@ docker-compose up -d
 ### Check Status
 
 **Proxmox:**
+
 ```bash
 pct list | grep ac-manager
 pct enter <CONTAINER_ID>
 ```
 
 **Inside container (Docker):**
+
 ```bash
 docker-compose ps
 docker-compose logs -f
 ```
 
 **Inside container (PM2):**
+
 ```bash
 pm2 status
 pm2 logs ac-server-manager
@@ -111,6 +117,7 @@ pm2 logs ac-server-manager
 ### Access Web UI
 
 Open browser to:
+
 - Proxmox: `http://CONTAINER_IP:3001`
 - Linux: `http://SERVER_IP:3001`
 - Windows: `http://localhost:5173`
@@ -118,6 +125,7 @@ Open browser to:
 ### Manage Service
 
 **Docker:**
+
 ```bash
 docker-compose restart
 docker-compose stop
@@ -126,6 +134,7 @@ docker-compose logs -f
 ```
 
 **PM2:**
+
 ```bash
 pm2 restart ac-server-manager
 pm2 stop ac-server-manager
@@ -136,12 +145,14 @@ pm2 logs ac-server-manager
 ### Update Application
 
 **Via Web UI:**
+
 1. Go to Settings
 2. Click "Check for Updates"
 3. Click "Install Update"
 4. Confirm
 
 **Via Command Line:**
+
 ```bash
 cd /opt/ac-server-manager
 git pull
@@ -219,12 +230,14 @@ iptables -t nat -A POSTROUTING -j MASQUERADE
 ## Quick Uninstall
 
 **Proxmox:**
+
 ```bash
 pct stop <CONTAINER_ID>
 pct destroy <CONTAINER_ID>
 ```
 
 **Linux Server:**
+
 ```bash
 pm2 delete ac-server-manager
 rm -rf /opt/ac-server-manager
@@ -232,6 +245,7 @@ rm -rf /opt/assetto-corsa-server
 ```
 
 **Docker:**
+
 ```bash
 docker-compose down -v
 rm -rf /opt/ac-server-manager

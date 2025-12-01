@@ -23,6 +23,7 @@ sudo ./install-server.sh
 The installer handles everything automatically:
 
 ### System Packages
+
 - ✅ Node.js 20 LTS
 - ✅ Git (for updates)
 - ✅ PM2 (process manager) OR Docker + Docker Compose
@@ -30,10 +31,12 @@ The installer handles everything automatically:
 - ✅ 32-bit libraries (required for AC server)
 
 ### Optional Components
+
 - ✅ SteamCMD (if downloading AC server)
 - ✅ Assetto Corsa Dedicated Server (via Steam)
 
 ### Application
+
 - ✅ AC Server Manager (cloned from GitHub)
 - ✅ All dependencies installed
 - ✅ Frontend built for production
@@ -47,18 +50,21 @@ The installer handles everything automatically:
 The installer presents three choices:
 
 ### 1. Full Installation (Recommended)
+
 - Installs Node.js, PM2, and application
 - Best for: VPS, dedicated servers, bare metal
 - Service: Runs via PM2 with auto-restart
 - Memory: ~100MB RAM
 
 ### 2. Docker Installation
+
 - Installs Docker, Docker Compose, and runs containerized
 - Best for: Proxmox LXC, isolated environments
 - Service: Docker container with health checks
 - Memory: ~200MB RAM
 
 ### 3. App Only
+
 - Assumes Node.js 18+ already installed
 - Best for: Shared hosting, custom setups
 - You manage: Process startup and monitoring
@@ -76,6 +82,7 @@ The installer uses SteamCMD to download AC Dedicated Server:
 3. If Steam Guard enabled, enter the code when prompted
 
 **Security Notes:**
+
 - Credentials are used only during download
 - Not stored anywhere
 - Script runs locally on your server
@@ -144,6 +151,7 @@ Here's what happens step-by-step:
 ## System Requirements
 
 ### Minimum
+
 - **OS:** Ubuntu 20.04+ or Debian 11+
 - **CPU:** 2 cores
 - **RAM:** 2GB
@@ -151,6 +159,7 @@ Here's what happens step-by-step:
 - **Network:** Public IP with ports accessible
 
 ### Recommended
+
 - **OS:** Ubuntu 22.04 LTS
 - **CPU:** 4 cores
 - **RAM:** 4GB
@@ -158,6 +167,7 @@ Here's what happens step-by-step:
 - **Network:** 100Mbps+ connection
 
 ### Required Ports
+
 - **3001/TCP** - Web interface
 - **9600/TCP** - AC server HTTP API
 - **9600/UDP** - AC server game traffic
@@ -168,6 +178,7 @@ Here's what happens step-by-step:
 ## Supported Platforms
 
 ### Tested & Supported ✅
+
 - Ubuntu 22.04 LTS
 - Ubuntu 20.04 LTS
 - Debian 11 (Bullseye)
@@ -175,12 +186,14 @@ Here's what happens step-by-step:
 - Proxmox LXC containers (Ubuntu template)
 
 ### Should Work ⚠️
+
 - Ubuntu 24.04 LTS
 - Debian 10 (Buster)
 - Linux Mint 20+
-- Pop!_OS 22.04+
+- Pop!\_OS 22.04+
 
 ### Not Supported ❌
+
 - CentOS / RHEL (uses yum instead of apt)
 - Alpine Linux (musl libc incompatibility)
 - Windows Server (use install.ps1 instead)
@@ -209,6 +222,7 @@ http://YOUR_SERVER_IP:3001
 ### Service Management
 
 **PM2 Installation:**
+
 ```bash
 # View status
 pm2 status
@@ -227,6 +241,7 @@ pm2 start ac-server-manager
 ```
 
 **Docker Installation:**
+
 ```bash
 # View status
 docker-compose ps
@@ -271,6 +286,7 @@ pm2 restart ac-server-manager
 ### Installation Fails
 
 **Check logs:**
+
 ```bash
 # The installer outputs detailed error messages
 # Scroll up to see what failed
@@ -279,11 +295,13 @@ pm2 restart ac-server-manager
 **Common issues:**
 
 1. **"Not running as root"**
+
    ```bash
    sudo ./install-server.sh
    ```
 
 2. **"Node.js installation failed"**
+
    ```bash
    # Install manually then re-run
    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
@@ -300,12 +318,14 @@ pm2 restart ac-server-manager
 **Check service status:**
 
 PM2:
+
 ```bash
 pm2 status
 pm2 logs ac-server-manager --lines 50
 ```
 
 Docker:
+
 ```bash
 docker-compose ps
 docker-compose logs --tail=50
@@ -314,6 +334,7 @@ docker-compose logs --tail=50
 **Common fixes:**
 
 1. **Port already in use:**
+
    ```bash
    sudo lsof -i :3001
    sudo kill <PID>
@@ -321,6 +342,7 @@ docker-compose logs --tail=50
    ```
 
 2. **Missing dependencies:**
+
    ```bash
    cd /opt/ac-server-manager/backend
    npm install
@@ -336,6 +358,7 @@ docker-compose logs --tail=50
 ### Can't Access Web Interface
 
 **Check firewall:**
+
 ```bash
 # Ubuntu/Debian
 sudo ufw status
@@ -346,18 +369,21 @@ sudo netstat -tlnp | grep 3001
 ```
 
 **Check from server:**
+
 ```bash
 curl http://localhost:3001/health
 # Should return: {"status":"ok","timestamp":"..."}
 ```
 
 **Check from remote:**
+
 ```bash
 # From your computer
 curl http://SERVER_IP:3001/health
 ```
 
 If localhost works but remote doesn't:
+
 - Firewall blocking port 3001
 - Cloud provider security group blocking port
 - ISP blocking port (try different port)
@@ -365,17 +391,20 @@ If localhost works but remote doesn't:
 ### AC Server Won't Start
 
 **Check AC installation:**
+
 ```bash
 /opt/assetto-corsa-server/acServer -v
 # Should show version number
 ```
 
 **Check paths in .env:**
+
 ```bash
 cat /opt/ac-server-manager/backend/.env | grep AC_
 ```
 
 **Test manual start:**
+
 ```bash
 cd /opt/assetto-corsa-server
 ./acServer
@@ -442,7 +471,7 @@ sudo nano /etc/nginx/sites-available/ac-manager
 server {
     listen 80;
     server_name your-domain.com;
-    
+
     location / {
         proxy_pass http://localhost:3001;
         proxy_http_version 1.1;

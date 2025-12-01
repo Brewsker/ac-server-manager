@@ -7,9 +7,11 @@ Modern web-based management interface for Assetto Corsa dedicated servers.
 ### Windows (Local Development)
 
 **One-click installer:**
+
 ```powershell
 .\install.ps1
 ```
+
 Opens browser automatically, complete Setup Wizard, done!
 
 **Manual:** See [QUICKSTART.md](./QUICKSTART.md)
@@ -17,6 +19,7 @@ Opens browser automatically, complete Setup Wizard, done!
 ### Linux Server (Production)
 
 **One-command installer:**
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/yourusername/ac-server-manager/main/install-server.sh | sudo bash
 ```
@@ -28,6 +31,7 @@ Installs Node.js, PM2, optionally downloads AC server via Steam, configures ever
 ### Proxmox (Auto-Creates LXC Container)
 
 **One-command setup:**
+
 ```bash
 # Run on Proxmox HOST (creates container + installs everything)
 curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/main/install-proxmox.sh | bash
