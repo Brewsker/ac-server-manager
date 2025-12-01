@@ -50,6 +50,8 @@ async function handleInstall(req, res) {
         AC_SERVER_DIR: config.acPath || '/opt/acserver',
         STEAM_USER: config.steamUser || '',
         STEAM_PASS: config.steamPass || '',
+        TERM: 'xterm',
+        DEBIAN_FRONTEND: 'noninteractive',
       };
 
       // Download and run installer
