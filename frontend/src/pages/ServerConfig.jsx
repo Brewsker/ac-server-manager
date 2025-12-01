@@ -549,9 +549,9 @@ function ServerConfig() {
 
       {/* Horizontal Tab Navigation with Server Name */}
       <div className="mb-6">
-        <div className="flex items-end gap-4 border-b border-gray-200 dark:border-gray-700">
-          {/* Server Name Field - 1/3 Width */}
-          <div className="w-1/3">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4 border-b border-gray-200 dark:border-gray-700">
+          {/* Server Name Field - Full width on mobile, 1/3 on desktop */}
+          <div className="w-full lg:w-1/3">
             <input
               type="text"
               className="w-full text-lg font-semibold bg-transparent border-none outline-none focus:bg-white dark:focus:bg-gray-800 focus:border focus:border-blue-500 dark:focus:border-blue-400 rounded px-3 py-2 transition-all h-[42px]"
@@ -561,8 +561,8 @@ function ServerConfig() {
             />
           </div>
 
-          {/* Tab Navigation - 2/3 Width, Right Aligned */}
-          <nav className="flex gap-0.5 overflow-x-auto w-2/3 justify-end">
+          {/* Tab Navigation - Full width on mobile with scroll, 2/3 on desktop right aligned */}
+          <nav className="flex gap-0.5 overflow-x-auto w-full lg:w-2/3 lg:justify-end">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
