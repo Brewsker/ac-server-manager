@@ -9,7 +9,7 @@ Copy-paste these commands to deploy AC Server Manager.
 **Run on Proxmox HOST:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/main/install-proxmox.sh | bash
+curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/multi-instance-manager/install-proxmox.sh | bash
 ```
 
 **What it does:**
@@ -33,7 +33,7 @@ curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/ma
 **Run inside your server:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/main/install-server.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/brooksmtownsend/ac-server-manager/multi-instance-manager/install-server.sh | sudo bash
 ```
 
 **What it does:**

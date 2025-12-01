@@ -1,0 +1,27 @@
+# Force LF line endings for shell scripts (required for Linux)
+*.sh text eol=lf
+
+# Force LF for Unix config files
+*.conf text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+
+# Windows scripts use CRLF
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Auto-detect for other text files
+* text=auto
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.tgz binary
