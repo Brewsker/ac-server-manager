@@ -8,6 +8,7 @@ function Settings() {
   const [currentVersion, setCurrentVersion] = useState('Loading...');
   const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
   const [applyingUpdate, setApplyingUpdate] = useState(false);
+  const [updateBranch, setUpdateBranch] = useState('main');
   const { theme, setTheme } = useTheme();
 
   // Content upload states
@@ -59,7 +60,7 @@ function Settings() {
   const handleApplyUpdate = async () => {
     setApplyingUpdate(true);
     try {
-      const result = await api.applyUpdate();
+      const result = await api.applyUpdate(updateBranch);
 
       if (result.success) {
         // Show success message
@@ -480,13 +481,32 @@ function Settings() {
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-4">
                   <p className="text-sm text-yellow-800 dark:text-yellow-200">⚠️ This will:</p>
                   <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-2 ml-4 list-disc space-y-1">
-                    <li>Pull the latest code from Git</li>
+                    <li>Stash any local changes</li>
+                    <li>Pull the latest code from Git ({updateBranch} branch)</li>
                     <li>Install updated dependencies</li>
                     <li>Rebuild the frontend</li>
                     <li>Restart the application</li>
                   </ul>
                   <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-3">
                     The page will automatically reload when the update is complete.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Update Branch
+                  </label>
+                  <select
+                    value={updateBranch}
+                    onChange={(e) => setUpdateBranch(e.target.value)}
+                    disabled={applyingUpdate}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="main">main (production)</option>
+                    <option value="develop">develop (latest features)</option>
+                  </select>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Choose which branch to pull from. Use 'develop' for latest features or 'main' for stable releases.
                   </p>
                 </div>
 

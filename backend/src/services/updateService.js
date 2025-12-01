@@ -176,12 +176,14 @@ class UpdateService {
   /**
    * Apply update by pulling latest code from git
    * This will:
-   * 1. Pull latest code from git
-   * 2. Install dependencies (if package.json changed)
-   * 3. Rebuild frontend
-   * 4. Restart the server
+   * 1. Stash any local changes
+   * 2. Pull latest code from current branch
+   * 3. Install backend dependencies (if package.json changed)
+   * 4. Install frontend dependencies (if package.json changed)
+   * 5. Rebuild frontend
+   * 6. Signal for server restart
    */
-  async applyUpdate() {
+  async applyUpdate(branch = null) {
     const { exec } = await import('child_process');
     const { promisify } = await import('util');
     const execAsync = promisify(exec);
@@ -196,9 +198,20 @@ class UpdateService {
         throw new Error('Not a git repository. Manual update required.');
       }
 
-      // Pull latest code
-      console.log('[UpdateService] Pulling latest code from git...');
-      const { stdout: gitOutput } = await execAsync('git pull');
+      // Get current branch if not specified
+      if (!branch) {
+        const { stdout: branchOutput } = await execAsync('git branch --show-current');
+        branch = branchOutput.trim();
+        console.log(`[UpdateService] Using current branch: ${branch}`);
+      }
+
+      // Stash any local changes
+      console.log('[UpdateService] Stashing local changes...');
+      await execAsync('git stash');
+
+      // Pull latest code from specified branch
+      console.log(`[UpdateService] Pulling latest code from ${branch}...`);
+      const { stdout: gitOutput } = await execAsync(`git pull origin ${branch}`);
       console.log('[UpdateService] Git pull output:', gitOutput);
 
       if (gitOutput.includes('Already up to date')) {
@@ -209,13 +222,22 @@ class UpdateService {
         };
       }
 
-      // Install/update dependencies
-      console.log('[UpdateService] Installing dependencies...');
-      await execAsync('npm install', { cwd: path.join(__dirname, '../..') });
+      // Install/update backend dependencies
+      console.log('[UpdateService] Installing backend dependencies...');
+      const backendPath = path.join(__dirname, '../..');
+      await execAsync('npm ci --production', { cwd: backendPath });
+
+      // Install/update frontend dependencies
+      console.log('[UpdateService] Installing frontend dependencies...');
+      const frontendPath = path.join(__dirname, '../../../frontend');
+      await execAsync('npm ci', { cwd: frontendPath });
 
       // Build frontend
       console.log('[UpdateService] Building frontend...');
-      await execAsync('npm run build', { cwd: path.join(__dirname, '../../frontend') });
+      await execAsync('npm run build', { cwd: frontendPath });
+
+      // Clear any stale version cache
+      this.currentVersion = null;
 
       console.log('[UpdateService] Update completed successfully');
 
@@ -223,6 +245,7 @@ class UpdateService {
         success: true,
         message: 'Update applied successfully. Server will restart in 3 seconds.',
         requiresRestart: true,
+        newVersion: await this.getCurrentVersion(),
       };
     } catch (error) {
       console.error('[UpdateService] Failed to apply update:', error);

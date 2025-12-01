@@ -323,8 +323,8 @@ export const getUpdateStatus = async () => {
   return response.data;
 };
 
-export const applyUpdate = async () => {
-  const response = await client.post('/update/apply');
+export const applyUpdate = async (branch = null) => {
+  const response = await client.post('/update/apply', { branch });
   return response.data;
 };
 

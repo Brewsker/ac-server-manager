@@ -58,12 +58,14 @@ router.get('/version', async (req, res) => {
 
 /**
  * POST /api/update/apply
- * Apply the update (git pull, npm install, rebuild)
+ * Apply the update (stash, git pull, npm install, rebuild)
+ * Optional body: { branch: "develop" } to specify branch
  */
 router.post('/apply', async (req, res) => {
   try {
     console.log('[UpdateRoutes] Applying update...');
-    const result = await updateService.applyUpdate();
+    const { branch } = req.body || {};
+    const result = await updateService.applyUpdate(branch);
 
     // Send response before restarting
     res.json(result);
