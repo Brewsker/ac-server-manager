@@ -59,8 +59,8 @@ create_container() {
     # Wait for container to be ready
     sleep 5
     
-    # Install curl for installer bootstrap
-    print_info "Installing curl for installer..."
+    # Install bootstrap packages
+    print_info "Installing bootstrap packages (curl, Node.js)..."
     if ! pct exec $CTID -- apt-get update -qq 2>&1; then
         print_error "Failed to update package lists"
         exit 1
@@ -70,18 +70,25 @@ create_container() {
         print_error "Failed to install curl"
         exit 1
     fi
+    
+    # Install Node.js 20 for setup wizard
+    pct exec $CTID -- bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs" > /dev/null 2>&1
     print_success "Bootstrap packages installed"
     
     # Get IP address
     IP=$(pct exec $CTID -- hostname -I | awk '{print $1}')
     print_success "Container IP: $IP"
     
-    # Run installer
-    print_info "Running AC Server Manager installer..."
+    # Download setup wizard files
+    print_info "Setting up web-based installation wizard..."
+    pct exec $CTID -- bash -c "mkdir -p /opt/ac-setup && cd /opt/ac-setup && curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/setup-wizard.html -o setup-wizard.html && curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/setup-server.js -o setup-server.js"
+    
+    # Start setup wizard server
+    pct exec $CTID -- bash -c "cd /opt/ac-setup && nohup node setup-server.js > /var/log/ac-setup.log 2>&1 &"
+    
     echo ""
-    pct exec $CTID -- bash -c "curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-server.sh | bash"
-    echo ""
-    print_success "Installation complete!"
+    print_success "Setup wizard ready!"
+    print_info "Open http://$IP:3001 in your browser to complete installation"
     
     print_info "Container Details:"
     echo "  ID:       $CTID"

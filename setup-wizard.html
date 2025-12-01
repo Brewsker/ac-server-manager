@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AC Server Manager - Setup Wizard</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 600px;
+        width: 100%;
+        overflow: hidden;
+      }
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+      }
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+      .header p {
+        opacity: 0.9;
+        font-size: 14px;
+      }
+      .content {
+        padding: 40px 30px;
+      }
+      .step {
+        display: none;
+      }
+      .step.active {
+        display: block;
+        animation: fadeIn 0.3s;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .form-group {
+        margin-bottom: 24px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+      }
+      .help-text {
+        font-size: 13px;
+        color: #666;
+        margin-top: 4px;
+      }
+      input[type='text'],
+      input[type='password'],
+      select {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+      .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .checkbox-group input[type='checkbox'] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+      }
+      .btn {
+        padding: 14px 28px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        width: 100%;
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+      .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn-group {
+        display: flex;
+        gap: 12px;
+        margin-top: 30px;
+      }
+      .btn-secondary {
+        background: #f0f0f0;
+        color: #333;
+        flex: 1;
+      }
+      .progress {
+        height: 4px;
+        background: #e0e0e0;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 30px;
+      }
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        transition: width 0.3s;
+      }
+      .status {
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+      }
+      .status.info {
+        background: #e3f2fd;
+        color: #1976d2;
+        border-left: 4px solid #1976d2;
+      }
+      .status.success {
+        background: #e8f5e9;
+        color: #388e3c;
+        border-left: 4px solid #388e3c;
+      }
+      .status.error {
+        background: #ffebee;
+        color: #c62828;
+        border-left: 4px solid #c62828;
+      }
+      .log-output {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 16px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🏎️ AC Server Manager</h1>
+        <p>Setup Wizard</p>
+      </div>
+
+      <div class="content">
+        <div class="progress">
+          <div class="progress-bar" id="progressBar" style="width: 33%"></div>
+        </div>
+
+        <!-- Step 1: Welcome -->
+        <div class="step active" id="step1">
+          <h2 style="margin-bottom: 20px">Welcome!</h2>
+          <div class="status info">
+            <strong>🎉 Ready to set up your Assetto Corsa server</strong><br />
+            This wizard will guide you through installing:<br />
+            • Node.js 20 LTS<br />
+            • AC Server Manager application<br />
+            • Optionally: Assetto Corsa Dedicated Server
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="nextStep()">Get Started</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Installation Options -->
+        <div class="step" id="step2">
+          <h2 style="margin-bottom: 20px">Installation Options</h2>
+
+          <div class="form-group">
+            <label>Installation Type</label>
+            <select id="installType">
+              <option value="full">Full Installation (Recommended)</option>
+              <option value="app-only">App Only (Node.js already installed)</option>
+            </select>
+            <div class="help-text">Choose full installation for a fresh system</div>
+          </div>
+
+          <div class="form-group">
+            <div class="checkbox-group">
+              <input type="checkbox" id="downloadAC" onchange="toggleACFields()" />
+              <label for="downloadAC" style="margin-bottom: 0"
+                >Download AC Dedicated Server now</label
+              >
+            </div>
+            <div class="help-text">You can also download AC later from the Settings page</div>
+          </div>
+
+          <div id="acFields" style="display: none">
+            <div class="form-group">
+              <label>AC Server Install Path</label>
+              <input type="text" id="acPath" value="/opt/acserver" placeholder="/opt/acserver" />
+            </div>
+
+            <div class="form-group">
+              <label>Steam Username (Optional)</label>
+              <input type="text" id="steamUser" placeholder="username" />
+              <div class="help-text">Leave empty for anonymous download (if available)</div>
+            </div>
+
+            <div class="form-group">
+              <label>Steam Password (Optional)</label>
+              <input type="password" id="steamPass" placeholder="password" />
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+            <button class="btn btn-primary" onclick="nextStep()">Continue</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Installing -->
+        <div class="step" id="step3">
+          <h2 style="margin-bottom: 20px">Installing...</h2>
+          <div class="status info" id="statusMessage">
+            <strong>⏳ Installation in progress</strong><br />
+            Please wait while we set up your server...
+          </div>
+          <div class="spinner" id="spinner"></div>
+          <div class="log-output" id="logOutput"></div>
+        </div>
+
+        <!-- Step 4: Complete -->
+        <div class="step" id="step4">
+          <h2 style="margin-bottom: 20px">Installation Complete! 🎉</h2>
+          <div class="status success">
+            <strong>✅ Success!</strong><br />
+            AC Server Manager has been installed successfully.
+          </div>
+          <div style="margin-top: 20px">
+            <p><strong>Access your server:</strong></p>
+            <p style="margin-top: 10px">
+              <code
+                id="serverUrl"
+                style="
+                  background: #f0f0f0;
+                  padding: 8px 12px;
+                  border-radius: 4px;
+                  display: inline-block;
+                "
+              ></code>
+            </p>
+          </div>
+          <div class="btn-group" style="margin-top: 30px">
+            <button class="btn btn-primary" onclick="goToApp()">Open AC Server Manager</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentStep = 1;
+      const totalSteps = 4;
+
+      function updateProgress() {
+        const progress = (currentStep / totalSteps) * 100;
+        document.getElementById('progressBar').style.width = progress + '%';
+      }
+
+      function showStep(step) {
+        document.querySelectorAll('.step').forEach((el) => el.classList.remove('active'));
+        document.getElementById('step' + step).classList.add('active');
+        currentStep = step;
+        updateProgress();
+      }
+
+      function nextStep() {
+        if (currentStep < totalSteps) {
+          if (currentStep === 2) {
+            startInstallation();
+          } else {
+            showStep(currentStep + 1);
+          }
+        }
+      }
+
+      function prevStep() {
+        if (currentStep > 1) {
+          showStep(currentStep - 1);
+        }
+      }
+
+      function toggleACFields() {
+        const checked = document.getElementById('downloadAC').checked;
+        document.getElementById('acFields').style.display = checked ? 'block' : 'none';
+      }
+
+      async function startInstallation() {
+        showStep(3);
+
+        const config = {
+          installType: document.getElementById('installType').value,
+          downloadAC: document.getElementById('downloadAC').checked,
+          acPath: document.getElementById('acPath').value,
+          steamUser: document.getElementById('steamUser').value,
+          steamPass: document.getElementById('steamPass').value,
+        };
+
+        try {
+          const response = await fetch('/setup/install', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            document.getElementById('serverUrl').textContent = window.location.origin;
+            document.getElementById('spinner').style.display = 'none';
+            showStep(4);
+          } else {
+            showError(data.message || 'Installation failed');
+          }
+        } catch (error) {
+          showError('Installation failed: ' + error.message);
+        }
+      }
+
+      function showError(message) {
+        document.getElementById('statusMessage').className = 'status error';
+        document.getElementById('statusMessage').innerHTML =
+          '<strong>❌ Error</strong><br>' + message;
+        document.getElementById('spinner').style.display = 'none';
+      }
+
+      function goToApp() {
+        window.location.href = '/';
+      }
+
+      // Set server URL
+      document.getElementById('serverUrl').textContent = window.location.origin;
+    </script>
+  </body>
+</html>
