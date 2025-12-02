@@ -508,6 +508,9 @@ setup_pm2_service() {
     # Save PM2 configuration
     pm2 save > /dev/null 2>&1
     
+    # Start PM2 systemd service to ensure it survives wizard exit
+    systemctl start pm2-root > /dev/null 2>&1
+    
     print_success "PM2 service configured"
 }
 
