@@ -567,7 +567,7 @@ start_container() {
     fi
     
     print_info "Waiting for container to boot..."
-    sleep 8  # Give it time to initialize
+    sleep 8 || true  # Give it time to initialize
     
     print_success "Container started and responsive"
 }
