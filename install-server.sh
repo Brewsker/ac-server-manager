@@ -190,6 +190,11 @@ prompt_ac_server() {
 }
 
 prompt_installation_dir() {
+    if [[ "$NON_INTERACTIVE" == "yes" ]]; then
+        print_info "Non-interactive mode: Installing to $APP_DIR"
+        return
+    fi
+    
     print_step "Installation Directory"
     echo ""
     read -p "Install location [$APP_DIR]: " custom_dir
@@ -202,6 +207,11 @@ prompt_installation_dir() {
 }
 
 confirm_installation() {
+    if [[ "$NON_INTERACTIVE" == "yes" ]]; then
+        print_info "Non-interactive mode: Proceeding with installation"
+        return
+    fi
+    
     echo ""
     print_header "Installation Summary"
     echo ""
