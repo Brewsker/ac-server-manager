@@ -19,7 +19,7 @@
 #   --storage <name>   Storage pool (default: local-lvm)
 #   --template <path>  LXC template (default: ubuntu-22.04)
 #   --password <pwd>   Root password (default: auto-generated)
-#   --destroy          Destroy existing container before creating
+#   --keep-existing    Keep existing container (default: auto-replace)
 #   --debug            Enable verbose debugging
 #
 ###############################################################################
@@ -40,7 +40,7 @@ MEMORY=4096
 DISK=60
 STORAGE="local-lvm"
 TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-DESTROY_EXISTING=false
+DESTROY_EXISTING=true  # Auto-replace existing containers by default
 DEBUG=false
 
 # Application settings
@@ -178,9 +178,9 @@ parse_args() {
                 debug "Password set (hidden)"
                 shift 2
                 ;;
-            --destroy)
-                DESTROY_EXISTING=true
-                debug "Will destroy existing container"
+            --keep-existing)
+                DESTROY_EXISTING=false
+                debug "Will keep existing container if present"
                 shift
                 ;;
             --debug)
@@ -216,19 +216,19 @@ Options:
   --storage <name>   Storage pool (default: $STORAGE)
   --template <path>  LXC template (default: ubuntu-22.04)
   --password <pwd>   Root password (default: auto-generated)
-  --destroy          Destroy existing container before creating
+  --keep-existing    Keep existing container (default: auto-replace)
   --debug            Enable verbose debugging
   --help, -h         Show this help message
 
 Examples:
-  # Basic installation
+  # Basic installation (auto-replaces container 999 if exists)
   $0
 
   # Custom container with debugging
   $0 --ctid 100 --hostname my-ac-server --debug
 
-  # Replace existing container
-  $0 --destroy --debug
+  # Keep existing container (fail if exists)
+  $0 --keep-existing --debug
 
 EOF
 }
@@ -288,6 +288,7 @@ check_existing_container() {
         print_warning "Container $CTID already exists"
         
         if [ "$DESTROY_EXISTING" = true ]; then
+            print_info "Auto-replacing existing container (default behavior)"
             destroy_container
         else
             print_error "Container $CTID exists. Use --destroy to replace it or choose a different --ctid"
