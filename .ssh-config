@@ -20,9 +20,9 @@ Host 192.168.1.70 git-cache
     IdentityFile ~/.ssh/id_ed25519
     IdentityFile ~/.ssh/id_rsa
 
-# Proxmox Host (if needed)
-Host 192.168.1.61 proxmox
-    HostName 192.168.1.61
+# Proxmox Host
+Host 192.168.1.199 proxmox
+    HostName 192.168.1.199
     User root
     StrictHostKeyChecking accept-new
     IdentitiesOnly yes

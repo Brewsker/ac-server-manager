@@ -9,7 +9,8 @@
 ## Current System State
 
 ### Infrastructure
-- **Proxmox Host:** 192.168.1.61 (assumed, not directly accessible)
+
+- **Proxmox Host:** https://192.168.1.199:8006/
 - **Git-Cache Container:** 998 @ 192.168.1.70/24
   - Purpose: Local repository cache for instant downloads
   - Version: 2 (tracked in `/etc/git-cache-version`)
@@ -22,6 +23,7 @@
   - App: AC Server Manager v0.15.1
 
 ### SSH Configuration
+
 - **Status:** ✅ Password-less SSH working
 - **Authentication Methods:**
   - SSH Key (primary): `~/.ssh/id_ed25519`
@@ -32,12 +34,14 @@
   - `SSH-README.md` (recovery documentation)
 
 **Current SSH Test:**
+
 ```powershell
 ssh root@192.168.1.71 "pm2 list"
 # Output: Shows ac-server-manager running, NO password prompt
 ```
 
 **Desired Output:**
+
 ```
 ┌────┬──────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
 │ id │ name                 │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
@@ -51,9 +55,11 @@ ssh root@192.168.1.71 "pm2 list"
 ## Core Components
 
 ### 1. Unified Installer
+
 **Source:** `install-proxmox-unified.sh`
 
 **Features:**
+
 - One-command installation: `curl -fsSL "http://192.168.1.70/ac-server-manager/install-proxmox-unified.sh" | bash`
 - Auto-replace existing containers (`DESTROY_EXISTING=true`)
 - Git-cache version checking and auto-rebuild
@@ -63,6 +69,7 @@ ssh root@192.168.1.71 "pm2 list"
 - Deploys web-based setup wizard
 
 **Key Variables:**
+
 ```bash
 CTID=999
 HOSTNAME="ac-server"
@@ -74,11 +81,13 @@ USE_GIT_CACHE=true
 ```
 
 **Current Execution:**
+
 ```bash
 curl -fsSL "http://192.168.1.70/ac-server-manager/install-proxmox-unified.sh" | bash
 ```
 
 **Desired Output:**
+
 ```
 ═══════════════════════════════════════════════════════════════
   🏎️  AC Server Manager - Unified Installer v1.0.0-dev
@@ -96,9 +105,11 @@ curl -fsSL "http://192.168.1.70/ac-server-manager/install-proxmox-unified.sh" | 
 ```
 
 ### 2. Application Installer
+
 **Source:** `install-server.sh`
 
 **Features:**
+
 - Non-interactive mode support
 - Node.js 20 LTS installation (removes old versions first)
 - PM2 ecosystem configuration
@@ -106,14 +117,17 @@ curl -fsSL "http://192.168.1.70/ac-server-manager/install-proxmox-unified.sh" | 
 - Environment configuration with `NODE_ENV=production`
 
 **Completion Marker:**
+
 ```bash
 echo "=== SETUP_WIZARD_COMPLETE ==="
 ```
 
 ### 3. Setup Wizard
+
 **Source:** `setup-wizard.html`, `setup-server.js`
 
 **Features:**
+
 - 4-step installation wizard UI
 - Network configuration (DHCP/Static IP)
 - Real-time SSE log streaming
@@ -121,12 +135,14 @@ echo "=== SETUP_WIZARD_COMPLETE ==="
 - Auto-exit after installation completes (5 second delay)
 
 **Current Behavior:**
+
 - Wizard accessible at: `http://192.168.1.71:3001`
 - Detects `SETUP_WIZARD_COMPLETE` marker
 - Exits via `process.exit(0)` after completion
 - PM2 app takes over port 3001
 
 **Desired Flow:**
+
 1. User opens wizard
 2. Clicks "Start Installation"
 3. Logs stream in real-time
@@ -136,26 +152,31 @@ echo "=== SETUP_WIZARD_COMPLETE ==="
 7. Browser auto-redirects to app at `http://192.168.1.71:3001`
 
 ### 4. PM2 Configuration
+
 **Source:** `backend/ecosystem.config.cjs`
 
 **Configuration:**
+
 ```javascript
 module.exports = {
-  apps: [{
-    name: 'ac-server-manager',
-    script: './src/server.js',
-    cwd: '/opt/ac-server-manager/backend',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 3001
+  apps: [
+    {
+      name: 'ac-server-manager',
+      script: './src/server.js',
+      cwd: '/opt/ac-server-manager/backend',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3001,
+      },
+      error_file: '/opt/ac-server-manager/backend/logs/error.log',
+      out_file: '/opt/ac-server-manager/backend/logs/out.log',
     },
-    error_file: '/opt/ac-server-manager/backend/logs/error.log',
-    out_file: '/opt/ac-server-manager/backend/logs/out.log'
-  }]
+  ],
 };
 ```
 
 **Start Command:**
+
 ```bash
 cd /opt/ac-server-manager/backend && pm2 start ecosystem.config.cjs && pm2 save
 ```
@@ -163,9 +184,11 @@ cd /opt/ac-server-manager/backend && pm2 start ecosystem.config.cjs && pm2 save
 **Note:** File extension is `.cjs` due to `"type": "module"` in `package.json`
 
 ### 5. SSH Management System
+
 **Source:** `setup-ssh.ps1`, `.ssh-config`, `SSH-README.md`
 
 **Features:**
+
 - Automatic SSH key generation
 - Key injection into containers
 - Configuration backup/restore
@@ -173,6 +196,7 @@ cd /opt/ac-server-manager/backend && pm2 start ecosystem.config.cjs && pm2 save
 - Fallback password support
 
 **Usage:**
+
 ```powershell
 # Verify all hosts
 .\setup-ssh.ps1 verify
@@ -185,6 +209,7 @@ cd /opt/ac-server-manager/backend && pm2 start ecosystem.config.cjs && pm2 save
 ```
 
 **Current State:**
+
 - ✅ 192.168.1.71 - Password-less SSH working
 - ✅ 192.168.1.70 - Password-less SSH working
 - ✅ Configuration version controlled
@@ -197,29 +222,35 @@ cd /opt/ac-server-manager/backend && pm2 start ecosystem.config.cjs && pm2 save
 ### Developer's Preferred Workflow
 
 **Step 1: Run Unified Installer (Proxmox)**
+
 ```bash
 curl -fsSL "http://192.168.1.70/ac-server-manager/install-proxmox-unified.sh" | bash
 ```
 
 **Expected Outcome:**
+
 - Container 999 destroyed (if exists) and recreated
 - SSH keys injected
 - Wizard running at http://192.168.1.71:3001
 
 **Step 2: Access Setup Wizard (Browser)**
+
 ```
 http://192.168.1.71:3001
 ```
 
 **Expected Outcome:**
+
 - 4-step wizard interface loads
 - Network configuration pre-filled (192.168.1.71/24)
 
 **Step 3: Run Installation (Wizard UI)**
+
 - Click "Start Installation" button
 - Monitor real-time logs via SSE stream
 
 **Expected Outcome:**
+
 ```
 ✅ Node.js v20.19.6 installed
 ✅ PM2 installed and configured
@@ -230,22 +261,26 @@ http://192.168.1.71:3001
 ```
 
 **Step 4: Auto-Transition to App**
+
 - Wizard detects completion marker
 - Shows "Installation complete!" message
 - Wizard service exits after 5 seconds
 - PM2 app starts on port 3001
 
 **Expected Outcome:**
+
 - Browser shows AC Server Manager app at http://192.168.1.71:3001
 - Frontend fully loaded with dashboard UI
 - No manual intervention required
 
 **Step 5: Verify with SSH (Windows)**
+
 ```powershell
 ssh root@192.168.1.71 "pm2 list"
 ```
 
 **Expected Outcome:**
+
 ```
 ┌────┬──────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┐
 │ id │ name                 │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │
@@ -253,6 +288,7 @@ ssh root@192.168.1.71 "pm2 list"
 │ 0  │ ac-server-manager    │ default     │ 0.15.1  │ cluster │ 9735     │ 1h     │ 0    │ online    │ 0%       │ 66.0mb   │
 └────┴──────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┘
 ```
+
 - **NO password prompt**
 - App shows as `online`
 
@@ -261,6 +297,7 @@ ssh root@192.168.1.71 "pm2 list"
 ## Known Issues & Fixes
 
 ### Issue 1: PM2 Not Auto-Starting
+
 **Symptom:** Wizard completes but PM2 list shows no processes
 
 **Root Cause:** `ecosystem.config.cjs` file missing from cloned repository (committed after install-server.sh was downloaded)
@@ -270,6 +307,7 @@ ssh root@192.168.1.71 "pm2 list"
 **Status:** ✅ RESOLVED
 
 ### Issue 2: Wizard Doesn't Exit After Completion
+
 **Symptom:** Installation completes but wizard keeps running on port 3001, blocking PM2 app
 
 **Root Cause:** `setup-server.js` detected completion but didn't call `process.exit()`
@@ -277,6 +315,7 @@ ssh root@192.168.1.71 "pm2 list"
 **Fix Applied:** Added auto-exit with 5-second delay after detecting `SETUP_WIZARD_COMPLETE`
 
 **Source:** `setup-server.js` lines 173-180
+
 ```javascript
 // Exit the wizard service after installation completes
 console.log('[Setup] Installation complete - wizard will exit in 5 seconds');
@@ -289,14 +328,17 @@ setTimeout(() => {
 **Status:** ✅ RESOLVED
 
 ### Issue 3: SSH Requires Password Every Time
+
 **Symptom:** SSH constantly prompts for password despite key injection
 
-**Root Cause:** 
+**Root Cause:**
+
 1. SSH config referencing non-existent keys (`id_ecdsa`)
 2. Windows SSH client not using injected keys
 3. Container SSH password auth disabled by default
 
 **Fix Applied:**
+
 1. Created `.ssh-config` with correct identity files
 2. Added `IdentitiesOnly yes` to prevent fallback
 3. Unified installer enables password auth alongside key auth
@@ -309,6 +351,7 @@ setTimeout(() => {
 ## Critical Files
 
 ### Version Controlled
+
 - `install-proxmox-unified.sh` - Main installer
 - `install-server.sh` - Application installer
 - `setup-wizard.html` - Wizard UI
@@ -319,6 +362,7 @@ setTimeout(() => {
 - `SSH-README.md` - SSH recovery guide
 
 ### Runtime (Not Committed)
+
 - `/var/log/installer.log` - Installation log with completion marker
 - `/root/.pm2/dump.pm2` - PM2 saved process list
 - `/opt/ac-server-manager/backend/.env` - Environment variables
@@ -330,6 +374,7 @@ setTimeout(() => {
 ## Testing & Verification
 
 ### Full End-to-End Test
+
 ```bash
 # On Proxmox
 curl -fsSL "http://192.168.1.70/ac-server-manager/install-proxmox-unified.sh" | bash
@@ -344,6 +389,7 @@ ssh root@192.168.1.71 "pm2 list"
 ```
 
 ### SSH Verification
+
 ```powershell
 # Windows PowerShell
 .\setup-ssh.ps1 verify
@@ -359,6 +405,7 @@ ssh root@192.168.1.71 "pm2 list"
 ```
 
 ### Git-Cache Sync
+
 ```powershell
 ssh root@192.168.1.70 "cd /opt/git-cache/ac-server-manager && git fetch origin develop && git reset --hard origin/develop && git log -1 --oneline"
 
@@ -376,9 +423,10 @@ ssh root@192.168.1.70 "cd /opt/git-cache/ac-server-manager && git fetch origin d
 ✅ **Version-controlled config** - All critical files in git  
 ✅ **Instant updates** - Git-cache eliminates GitHub CDN delays  
 ✅ **Auto-transition** - Wizard → App without manual intervention  
-✅ **Robust recovery** - SSH management tools for quick fixes  
+✅ **Robust recovery** - SSH management tools for quick fixes
 
 **Final Command State:**
+
 ```bash
 # Proxmox: Start fresh install
 curl -fsSL "http://192.168.1.70/ac-server-manager/install-proxmox-unified.sh" | bash
