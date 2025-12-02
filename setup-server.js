@@ -170,6 +170,67 @@ function streamLogs(req, res) {
   });
 }
 
+// Handle wizard update from git-cache
+function handleUpdate(req, res) {
+  console.log('[Setup] Update wizard requested');
+
+  // Check if git-cache is accessible
+  exec('curl -s http://192.168.1.70/ac-server-manager/HEAD', (error, stdout) => {
+    if (error) {
+      console.error('[Setup] Git-cache not accessible:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          success: false,
+          message: 'Git-cache server not accessible at 192.168.1.70',
+        })
+      );
+      return;
+    }
+
+    // Pull latest code from git-cache
+    const updateCmd = `
+      cd /tmp/ac-setup-wizard && 
+      git remote set-url origin http://192.168.1.70/ac-server-manager && 
+      git fetch origin develop && 
+      git reset --hard origin/develop && 
+      cp -f setup-wizard.html /tmp/setup-wizard.html && 
+      cp -f setup-server.js /tmp/setup-server.js
+    `;
+
+    console.log('[Setup] Pulling latest code from git-cache...');
+
+    exec(updateCmd, (error, stdout, stderr) => {
+      if (error) {
+        console.error('[Setup] Update failed:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            success: false,
+            message: 'Failed to pull latest code: ' + stderr,
+          })
+        );
+        return;
+      }
+
+      console.log('[Setup] Update successful, wizard will reload');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          success: true,
+          message: 'Wizard updated successfully',
+        })
+      );
+
+      // Restart the wizard server after a short delay
+      setTimeout(() => {
+        console.log('[Setup] Restarting wizard with updated code...');
+        process.exit(0); // systemd will restart it
+      }, 1000);
+    });
+  });
+}
+
 // Simple router
 const server = http.createServer((req, res) => {
   console.log(`[Setup] ${req.method} ${req.url}`);
@@ -178,6 +239,8 @@ const server = http.createServer((req, res) => {
     serveSetupPage(req, res);
   } else if (req.url === '/setup/install' && req.method === 'POST') {
     handleInstall(req, res);
+  } else if (req.url === '/setup/update' && req.method === 'POST') {
+    handleUpdate(req, res);
   } else if (req.url === '/setup/logs') {
     streamLogs(req, res);
   } else {

@@ -626,6 +626,22 @@ deploy_setup_wizard() {
     pct exec $CTID -- chmod +x ${SETUP_DIR}/install-server.sh
     debug "Made installer executable"
     
+    # Clone full repo for update functionality (if using git-cache)
+    if [ "$USE_GIT_CACHE" = true ]; then
+        print_info "Cloning repository for update functionality..."
+        debug "Removing old clone if exists..."
+        pct exec $CTID -- rm -rf /tmp/ac-setup-wizard >> "$LOG_FILE" 2>&1
+        
+        debug "Cloning from git-cache..."
+        pct exec $CTID -- bash -c "git clone --depth=1 --branch develop http://${GIT_CACHE_IP}/ac-server-manager /tmp/ac-setup-wizard" >> "$LOG_FILE" 2>&1
+        
+        if [ $? -eq 0 ]; then
+            debug "Repository cloned successfully for updates"
+        else
+            debug "Warning: Failed to clone repo for updates (update button will not work)"
+        fi
+    fi
+    
     # Verify files
     debug "Verifying downloaded files..."
     pct exec $CTID -- ls -lh $SETUP_DIR/ >> "$LOG_FILE" 2>&1
