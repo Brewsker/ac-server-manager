@@ -330,18 +330,26 @@ create_git_cache_container() {
     pct exec $GIT_CACHE_CTID -- bash -c "mkdir -p /opt/git-cache && cd /opt/git-cache && git clone https://github.com/${GITHUB_REPO}.git" >> "$LOG_FILE" 2>&1
     pct exec $GIT_CACHE_CTID -- bash -c "cd /opt/git-cache/ac-server-manager && git checkout $GITHUB_BRANCH" >> "$LOG_FILE" 2>&1
     
-    # Configure nginx
+    # Configure nginx to serve git repository files
     print_info "Configuring nginx in cache container..."
     pct exec $GIT_CACHE_CTID -- bash -c 'cat > /etc/nginx/sites-available/git-cache <<EOF
 server {
     listen 80;
     server_name _;
     
-    location / {
-        root /opt/git-cache;
+    location /ac-server-manager {
+        alias /opt/git-cache/ac-server-manager;
         autoindex on;
         autoindex_exact_size off;
         autoindex_localtime on;
+        
+        # Serve files directly
+        try_files \$uri \$uri/ =404;
+    }
+    
+    location / {
+        root /opt/git-cache;
+        autoindex on;
     }
 }
 EOF' >> "$LOG_FILE" 2>&1
