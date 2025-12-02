@@ -484,14 +484,8 @@ setup_pm2_service() {
     # Stop any existing instance
     pm2 delete ac-server-manager 2>/dev/null || true
     
-    # Start application
-    pm2 start src/server.js \
-        --name ac-server-manager \
-        --cwd "$APP_DIR/backend" \
-        --env production \
-        --time \
-        --max-memory-restart 500M \
-        > /dev/null 2>&1
+    # Start application using ecosystem file
+    pm2 start ecosystem.config.js > /dev/null 2>&1
     
     # Save PM2 configuration
     pm2 save > /dev/null 2>&1
