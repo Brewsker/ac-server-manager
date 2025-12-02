@@ -57,52 +57,37 @@ async function handleInstall(req, res) {
       };
 
       // Download installer script first, then execute with inline env vars
+      // Use nohup and redirect to /var/log/installer.log to truly background the process
       const installCmd =
         config.installType === 'app-only'
-          ? `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh -o /tmp/install.sh && NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
+          ? `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh -o /tmp/install.sh && nohup bash -c 'NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
               config.downloadAC ? 'yes' : 'no'
             }" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${
               config.steamPass
-            }" bash /tmp/install.sh --app-only`
-          : `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh -o /tmp/install.sh && NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
+            }" bash /tmp/install.sh --app-only' >> /var/log/installer.log 2>&1 &`
+          : `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh -o /tmp/install.sh && nohup bash -c 'NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
               config.downloadAC ? 'yes' : 'no'
             }" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${
               config.steamPass
-            }" bash /tmp/install.sh`;
+            }" bash /tmp/install.sh' >> /var/log/installer.log 2>&1 &`;
 
       console.log('[Setup] Running installer...');
       
-      // Use spawn with detached to prevent process.exit from killing installer
-      const child = spawn('bash', ['-c', installCmd], {
-        env,
-        detached: true,
-        stdio: ['ignore', 'pipe', 'pipe']
+      // Execute the command and immediately return
+      exec(installCmd, (error) => {
+        if (error) {
+          console.error('[Setup] Failed to start installer:', error);
+        }
       });
-      
-      let stdout = '';
-      let stderr = '';
-      
-      child.stdout.on('data', (data) => {
-        stdout += data.toString();
-        console.log(data.toString());
-      });
-      
-      child.stderr.on('data', (data) => {
-        stderr += data.toString();
-        console.error(data.toString());
-      });
-      
-      // Don't wait for completion - let it run in background
-      child.unref();
 
-      console.log('[Setup] Installation started in background');
+      console.log('[Setup] Installation started in background, check /var/log/installer.log for progress');
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
           success: true,
           message: 'Installation started successfully',
-          output: 'Installation running in background. Check /var/log/ac-setup.log for progress.',
+          output: 'Installation running in background. Check /var/log/installer.log for progress.',
         })
       );
 
