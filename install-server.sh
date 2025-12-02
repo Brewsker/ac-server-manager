@@ -508,8 +508,11 @@ setup_pm2_service() {
     # Save PM2 configuration
     pm2 save > /dev/null 2>&1
     
-    # Start PM2 systemd service to ensure it survives wizard exit
+    # Kill existing PM2 daemon and start via systemd to ensure it survives wizard exit
+    pm2 kill > /dev/null 2>&1
+    sleep 2
     systemctl start pm2-root > /dev/null 2>&1
+    sleep 2
     
     print_success "PM2 service configured"
 }
