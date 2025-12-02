@@ -543,19 +543,62 @@ start_container() {
 }
 
 update_ssh_keys() {
-    print_section "Updating SSH known_hosts"
+    print_section "Setting up SSH access"
     
     local container_ip="$1"
     local ssh_known_hosts="$HOME/.ssh/known_hosts"
     
+    # Remove old SSH keys
     if [ -f "$ssh_known_hosts" ]; then
         debug "Removing old SSH keys for $container_ip"
         ssh-keygen -R "$container_ip" >> "$LOG_FILE" 2>&1
         ssh-keygen -R "192.168.1.71" >> "$LOG_FILE" 2>&1
-        print_success "SSH keys updated"
-    else
-        debug "No existing known_hosts file"
     fi
+    
+    # Inject SSH public key into container for password-less access
+    inject_ssh_key
+    
+    print_success "SSH access configured"
+}
+
+inject_ssh_key() {
+    debug "Injecting SSH public key into container $CTID"
+    
+    # Try to find SSH public key
+    local ssh_key=""
+    local key_locations=(
+        "$HOME/.ssh/id_rsa.pub"
+        "$HOME/.ssh/id_ed25519.pub"
+        "$HOME/.ssh/id_ecdsa.pub"
+    )
+    
+    for key_file in "${key_locations[@]}"; do
+        if [ -f "$key_file" ]; then
+            ssh_key=$(cat "$key_file")
+            debug "Found SSH public key: $key_file"
+            break
+        fi
+    done
+    
+    if [ -z "$ssh_key" ]; then
+        print_warning "No SSH public key found - password authentication will be required"
+        print_info "Generate key with: ssh-keygen -t ed25519"
+        return 0
+    fi
+    
+    # Create .ssh directory in container
+    pct exec "$CTID" -- bash -c "mkdir -p /root/.ssh && chmod 700 /root/.ssh" >> "$LOG_FILE" 2>&1
+    
+    # Add public key to authorized_keys
+    pct exec "$CTID" -- bash -c "echo '$ssh_key' >> /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
+    
+    # Set correct permissions
+    pct exec "$CTID" -- bash -c "chmod 600 /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
+    
+    # Remove duplicates
+    pct exec "$CTID" -- bash -c "sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
+    
+    print_success "SSH key injected - password-less SSH enabled"
 }
 
 get_container_ip() {
