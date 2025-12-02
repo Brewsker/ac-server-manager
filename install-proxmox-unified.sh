@@ -46,7 +46,7 @@ MEMORY=4096
 DISK=60
 STORAGE="local-lvm"
 TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-DESTROY_EXISTING=true  # Auto-replace existing containers by default
+DESTROY_EXISTING=false  # Keep existing containers by default
 DEBUG=false
 
 # Network configuration (static for development)
@@ -435,17 +435,12 @@ check_existing_container() {
     print_section "Checking for existing container"
     
     if pct status $CTID &>/dev/null; then
-        print_warning "Container $CTID already exists"
-        
-        if [ "$DESTROY_EXISTING" = true ]; then
-            print_info "Auto-replacing existing container (default behavior)"
-            destroy_container
-        else
-            print_error "Container $CTID exists. Use --destroy to replace it or choose a different --ctid"
-            exit 1
-        fi
+        print_success "Container $CTID already exists - skipping creation"
+        print_info "The installer will continue with the existing container"
+        print_info "To force replacement, run with: --destroy-existing flag"
+        return 0
     else
-        debug "Container $CTID does not exist: OK"
+        debug "Container $CTID does not exist - will create"
     fi
 }
 
@@ -934,10 +929,26 @@ main() {
     ensure_git_cache
     
     # Container setup
-    check_existing_container
-    create_container
-    start_container
+    local container_exists=false
+    if pct status $CTID &>/dev/null; then
+        container_exists=true
+        print_success "Container $CTID already exists"
+        print_info "Skipping container creation - using existing container"
+    else
+        check_existing_container
+        create_container
+        start_container
+    fi
+    
     container_ip=$(get_container_ip)
+    
+    # Ensure container is running
+    if ! pct status $CTID | grep -q "running"; then
+        print_info "Starting existing container..."
+        pct start $CTID
+        sleep 5
+    fi
+    
     update_ssh_keys "$container_ip"
     
     # Bootstrap
