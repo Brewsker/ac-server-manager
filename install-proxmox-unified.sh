@@ -43,6 +43,12 @@ TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
 DESTROY_EXISTING=true  # Auto-replace existing containers by default
 DEBUG=false
 
+# Network configuration (static for development)
+NETWORK_MODE="static"  # static or dhcp
+STATIC_IP="192.168.1.71/24"
+GATEWAY="192.168.1.1"
+BRIDGE="vmbr0"
+
 # Application settings
 WIZARD_PORT=3001
 SETUP_DIR="/opt/ac-setup"
@@ -443,15 +449,29 @@ create_container() {
     debug "  Disk: ${DISK}GB"
     debug "  Storage: $STORAGE"
     debug "  Template: $TEMPLATE"
+    debug "  Network: $NETWORK_MODE"
+    if [ "$NETWORK_MODE" = "static" ]; then
+        debug "  IP: $STATIC_IP"
+        debug "  Gateway: $GATEWAY"
+    fi
     
     print_info "Creating container..."
+    
+    # Build network configuration
+    local net_config
+    if [ "$NETWORK_MODE" = "static" ]; then
+        net_config="name=eth0,bridge=$BRIDGE,ip=$STATIC_IP,gw=$GATEWAY"
+    else
+        net_config="name=eth0,bridge=$BRIDGE,ip=dhcp"
+    fi
+    
     pct create $CTID $TEMPLATE \
         --hostname $HOSTNAME \
         --password "$PASSWORD" \
         --cores $CORES \
         --memory $MEMORY \
         --rootfs $STORAGE:$DISK \
-        --net0 name=eth0,bridge=vmbr0,ip=dhcp \
+        --net0 "$net_config" \
         --features nesting=1,keyctl=1 \
         --unprivileged 1 \
         --start 0 \
@@ -494,6 +514,16 @@ get_container_ip() {
     local waited=0
     local ip=""
     
+    # If static IP, extract it immediately
+    if [ "$NETWORK_MODE" = "static" ]; then
+        ip="${STATIC_IP%/*}"  # Remove /24 netmask
+        debug "Using static IP: $ip"
+        print_success "Container IP: $ip (static)"
+        echo "$ip"
+        return 0
+    fi
+    
+    # For DHCP, wait for IP assignment
     while [ -z "$ip" ]; do
         if [ $waited -ge $max_wait ]; then
             print_error "Failed to get container IP after ${max_wait}s"
@@ -510,7 +540,7 @@ get_container_ip() {
     done
     
     debug "Container IP: $ip"
-    print_success "Container IP: $ip"
+    print_success "Container IP: $ip (DHCP)"
     echo "$ip"
 }
 
