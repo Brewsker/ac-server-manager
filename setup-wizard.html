@@ -239,6 +239,34 @@
           </div>
 
           <div class="form-group">
+            <label>Network Configuration</label>
+            <select id="networkMode" onchange="toggleNetworkFields()">
+              <option value="dhcp">DHCP (Automatic)</option>
+              <option value="static">Static IP</option>
+            </select>
+            <div class="help-text">Choose how the container gets its IP address</div>
+          </div>
+
+          <div id="networkFields" style="display: none">
+            <div class="form-group">
+              <label>Static IP Address (with CIDR)</label>
+              <input type="text" id="staticIP" value="192.168.1.71/24" placeholder="192.168.1.71/24" />
+              <div class="help-text">Example: 192.168.1.71/24</div>
+            </div>
+
+            <div class="form-group">
+              <label>Gateway</label>
+              <input type="text" id="gateway" value="192.168.1.1" placeholder="192.168.1.1" />
+            </div>
+
+            <div class="form-group">
+              <label>Bridge</label>
+              <input type="text" id="bridge" value="vmbr0" placeholder="vmbr0" />
+              <div class="help-text">Network bridge (usually vmbr0)</div>
+            </div>
+          </div>
+
+          <div class="form-group">
             <div class="checkbox-group">
               <input type="checkbox" id="downloadAC" onchange="toggleACFields()" />
               <label for="downloadAC" style="margin-bottom: 0"
@@ -356,6 +384,12 @@
         document.getElementById('acFields').style.display = checked ? 'block' : 'none';
       }
 
+      function toggleNetworkFields() {
+        const mode = document.getElementById('networkMode').value;
+        const fields = document.getElementById('networkFields');
+        fields.style.display = mode === 'static' ? 'block' : 'none';
+      }
+
       function toggleDetails() {
         const logOutput = document.getElementById('logOutput');
         const icon = document.getElementById('detailsIcon');
@@ -365,11 +399,15 @@
         icon.textContent = isVisible ? '▶' : '▼';
       }
 
-      async function startInstallation() {
+      function startInstallation() {
         showStep(3);
 
         const config = {
           installType: document.getElementById('installType').value,
+          networkMode: document.getElementById('networkMode').value,
+          staticIP: document.getElementById('staticIP').value,
+          gateway: document.getElementById('gateway').value,
+          bridge: document.getElementById('bridge').value,
           downloadAC: document.getElementById('downloadAC').checked,
           acPath: document.getElementById('acPath').value,
           steamUser: document.getElementById('steamUser').value,
