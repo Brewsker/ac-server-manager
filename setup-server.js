@@ -14,6 +14,8 @@ const { promisify } = require('util');
 
 const execAsync = promisify(exec);
 const PORT = 3001;
+const installerLogPath = '/var/log/installer.log';
+let installerRunning = false;
 
 // Serve the setup wizard HTML
 function serveSetupPage(req, res) {
@@ -83,6 +85,8 @@ async function handleInstall(req, res) {
       });
 
       console.log('[Setup] Installation started in background, check /var/log/installer.log for progress');
+      
+      installerRunning = true;
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -93,11 +97,8 @@ async function handleInstall(req, res) {
         })
       );
 
-      // Exit after sending response - installer continues in background
-      setTimeout(() => {
-        console.log('[Setup] Setup wizard exiting, installer continues in background...');
-        process.exit(0);
-      }, 2000);
+      // Don't exit immediately - keep server running for log streaming
+      console.log('[Setup] Keeping wizard alive for log streaming...');
     } catch (error) {
       console.error('[Setup] Installation failed:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -112,6 +113,48 @@ async function handleInstall(req, res) {
   });
 }
 
+// Stream installer logs via Server-Sent Events
+function streamLogs(req, res) {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+
+  // Send initial connection message
+  res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+
+  // Check if installer log exists
+  if (!fs.existsSync(installerLogPath)) {
+    res.write(`data: ${JSON.stringify({ type: 'waiting', message: 'Waiting for installation to start...' })}\n\n`);
+  }
+
+  // Use tail -f to follow the log
+  const tail = spawn('tail', ['-f', '-n', '0', installerLogPath]);
+
+  tail.stdout.on('data', (data) => {
+    const lines = data.toString().split('\n').filter(line => line.trim());
+    lines.forEach(line => {
+      res.write(`data: ${JSON.stringify({ type: 'log', message: line })}\n\n`);
+      
+      // Check for completion markers
+      if (line.includes('Installation complete') || line.includes('Setup complete')) {
+        res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+        installerRunning = false;
+      }
+    });
+  });
+
+  tail.stderr.on('data', (data) => {
+    console.error('[SSE] Tail error:', data.toString());
+  });
+
+  req.on('close', () => {
+    tail.kill();
+    console.log('[SSE] Client disconnected');
+  });
+}
+
 // Simple router
 const server = http.createServer((req, res) => {
   console.log(`[Setup] ${req.method} ${req.url}`);
@@ -120,6 +163,8 @@ const server = http.createServer((req, res) => {
     serveSetupPage(req, res);
   } else if (req.url === '/setup/install' && req.method === 'POST') {
     handleInstall(req, res);
+  } else if (req.url === '/setup/logs') {
+    streamLogs(req, res);
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
