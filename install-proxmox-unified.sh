@@ -555,10 +555,23 @@ update_ssh_keys() {
         ssh-keygen -R "192.168.1.71" >> "$LOG_FILE" 2>&1
     fi
     
+    # Enable password authentication in SSH
+    enable_ssh_password_auth
+    
     # Inject SSH public key into container for password-less access
     inject_ssh_key
     
     print_success "SSH access configured"
+}
+
+enable_ssh_password_auth() {
+    debug "Enabling SSH password authentication"
+    
+    pct exec "$CTID" -- bash -c "sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >> "$LOG_FILE" 2>&1
+    pct exec "$CTID" -- bash -c "sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >> "$LOG_FILE" 2>&1
+    pct exec "$CTID" -- systemctl restart sshd >> "$LOG_FILE" 2>&1
+    
+    debug "SSH password authentication enabled"
 }
 
 inject_ssh_key() {
