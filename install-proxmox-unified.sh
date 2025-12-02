@@ -722,29 +722,17 @@ install_nodejs() {
     set -e
     
     debug "Installing Node.js (this may take a moment)..."
-    # Install in background with completion marker
-    pct exec $CTID -- bash -c "nohup bash -c 'apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1 && touch /tmp/nodejs-install-complete' &" >> "$LOG_FILE" 2>&1
+    # Use timeout command to prevent hang, but allow installation to complete
+    # Install directly in container without nohup/background complexity
+    set +e
+    timeout 180 pct exec $CTID -- bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1 && touch /tmp/nodejs-install-complete" >> "$LOG_FILE" 2>&1
+    local install_result=$?
+    set -e
     
-    # Wait for completion marker (check from host side, not via pct exec to avoid timeouts)
-    local max_wait=120
-    local waited=0
-    debug "Waiting for Node.js installation to complete..."
-    while [ $waited -lt $max_wait ]; do
-        # Check if completion marker exists by checking container filesystem from host
-        if pct exec $CTID -- test -f /tmp/nodejs-install-complete 2>/dev/null; then
-            debug "Installation complete marker found"
-            break
-        fi
-        sleep 3
-        waited=$((waited + 3))
-        if [ $((waited % 15)) -eq 0 ]; then
-            debug "Still waiting for Node.js installation... ${waited}s"
-        fi
-    done
-    
-    if [ $waited -ge $max_wait ]; then
-        print_warning "Node.js installation did not signal completion, but may have succeeded"
-        debug "Check /tmp/nodejs-install.log in container for details"
+    # If timeout occurred (exit code 124), check if Node.js was installed anyway
+    if [ $install_result -eq 124 ]; then
+        debug "Installation command timed out, checking if Node.js is available..."
+        sleep 5  # Give dpkg a moment to finish
     fi
     
     # Verify installation
