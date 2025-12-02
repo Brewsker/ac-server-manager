@@ -600,11 +600,24 @@ update_ssh_keys() {
 enable_ssh_password_auth() {
     debug "Enabling SSH password authentication"
     
-    pct exec "$CTID" -- bash -c "sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >> "$LOG_FILE" 2>&1
-    pct exec "$CTID" -- bash -c "sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >> "$LOG_FILE" 2>&1
-    pct exec "$CTID" -- systemctl restart sshd >> "$LOG_FILE" 2>&1
+    # Use direct filesystem access instead of pct exec (avoid segfaults)
+    # Containers are mounted at /var/lib/lxc/<ctid>/rootfs
+    local rootfs="/var/lib/lxc/$CTID/rootfs"
+    local sshd_config="$rootfs/etc/ssh/sshd_config"
     
-    debug "SSH password authentication enabled"
+    if [ -f "$sshd_config" ]; then
+        sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' "$sshd_config"
+        sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' "$sshd_config"
+        
+        # Restart SSH using pct exec with error handling
+        set +e
+        pct exec "$CTID" -- systemctl restart sshd >> "$LOG_FILE" 2>&1
+        set -e
+        
+        debug "SSH password authentication enabled"
+    else
+        print_warning "Could not find sshd_config, SSH may need manual configuration"
+    fi
 }
 
 inject_ssh_key() {
