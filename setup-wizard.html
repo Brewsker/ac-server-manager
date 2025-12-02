@@ -510,13 +510,33 @@
             document.getElementById('spinner').style.display = 'none';
             document.getElementById('statusMessage').className = 'status success';
             document.getElementById('statusMessage').innerHTML =
-              '<strong>✅ Installation Complete!</strong><br>Redirecting to AC Server Manager in 5 seconds...';
+              '<strong>✅ Installation Complete!</strong><br>Waiting for services to restart...';
             showStep(4);
             
-            // Auto-refresh after 5 seconds to load the main app
-            setTimeout(() => {
-              window.location.reload();
-            }, 5000);
+            // Poll to check if wizard has stopped (returns error when wizard exits)
+            let countdown = 15;
+            const checkAndReload = () => {
+              fetch('/health')
+                .then(res => res.json())
+                .then(data => {
+                  // Wizard still running, wait a bit more
+                  countdown--;
+                  if (countdown > 0) {
+                    document.getElementById('statusMessage').innerHTML =
+                      `<strong>✅ Installation Complete!</strong><br>Redirecting in ${countdown} seconds...`;
+                    setTimeout(checkAndReload, 1000);
+                  } else {
+                    window.location.reload();
+                  }
+                })
+                .catch(() => {
+                  // Wizard stopped (fetch failed), reload now
+                  document.getElementById('statusMessage').innerHTML =
+                    '<strong>✅ Installation Complete!</strong><br>Loading AC Server Manager...';
+                  setTimeout(() => window.location.reload(), 2000);
+                });
+            };
+            setTimeout(checkAndReload, 2000);
           } else if (data.type === 'waiting') {
             logOutput.textContent += data.message + '\n';
           }
