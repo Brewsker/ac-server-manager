@@ -1026,9 +1026,7 @@ main() {
         
         # Make sure it's running
         if ! pct status $CTID | grep -q "running"; then
-            print_info "Starting existing container..."
-            pct start $CTID
-            wait_for_container
+            start_container
         fi
     else
         # Need to create new container
@@ -1037,13 +1035,6 @@ main() {
     fi
     
     container_ip=$(get_container_ip)
-    
-    # Ensure container is running
-    if ! pct status $CTID | grep -q "running"; then
-        print_info "Starting existing container..."
-        pct start $CTID
-        wait_for_container
-    fi
     
     update_ssh_keys "$container_ip"
     
