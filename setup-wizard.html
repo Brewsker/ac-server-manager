@@ -552,6 +552,32 @@
 
       // Set server URL
       document.getElementById('serverUrl').textContent = window.location.origin;
+
+      // Poll health endpoint to check if installation completed
+      function checkInstallationStatus() {
+        fetch('/health')
+          .then(res => res.json())
+          .then(data => {
+            if (data.installationComplete) {
+              console.log('Installation complete - wizard will exit');
+              // Show message and redirect after short delay
+              setTimeout(() => {
+                window.location.reload();
+              }, 3000);
+            } else {
+              // Check again in 10 seconds
+              setTimeout(checkInstallationStatus, 10000);
+            }
+          })
+          .catch(err => {
+            console.error('Health check failed:', err);
+            // Try again after delay
+            setTimeout(checkInstallationStatus, 10000);
+          });
+      }
+
+      // Start polling after 30 seconds to give installation time to start
+      setTimeout(checkInstallationStatus, 30000);
     </script>
   </body>
 </html>

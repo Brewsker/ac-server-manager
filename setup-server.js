@@ -261,6 +261,42 @@ function handleUpdate(req, res) {
   });
 }
 
+// Add health check endpoint
+function handleHealth(req, res) {
+  // Check if installation is complete
+  const fs = require('fs');
+  let installComplete = false;
+  
+  try {
+    if (fs.existsSync(installerLogPath)) {
+      const logContent = fs.readFileSync(installerLogPath, 'utf8');
+      installComplete = logContent.includes('SETUP_WIZARD_COMPLETE');
+    }
+  } catch (err) {
+    console.error('[Health] Error checking installation status:', err);
+  }
+  
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({
+    status: 'ok',
+    installationComplete: installComplete,
+    installerRunning: installerRunning
+  }));
+  
+  // If installation is complete, disable wizard service
+  if (installComplete && !installerRunning) {
+    console.log('[Health] Installation detected as complete - disabling wizard');
+    setTimeout(() => {
+      exec('systemctl disable ac-setup-wizard && systemctl stop ac-setup-wizard', (error) => {
+        if (error) {
+          console.error('[Health] Failed to disable wizard:', error);
+        }
+        process.exit(0);
+      });
+    }, 2000);
+  }
+}
+
 // Simple router
 const server = http.createServer((req, res) => {
   console.log(`[Setup] ${req.method} ${req.url}`);
@@ -273,6 +309,8 @@ const server = http.createServer((req, res) => {
     handleUpdate(req, res);
   } else if (req.url === '/setup/logs') {
     streamLogs(req, res);
+  } else if (req.url === '/health') {
+    handleHealth(req, res);
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
