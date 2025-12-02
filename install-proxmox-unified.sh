@@ -871,8 +871,11 @@ deploy_setup_wizard() {
     fi
     debug "install-server.sh downloaded"
     
-    # Make installer executable
-    pct exec $CTID -- chmod +x ${SETUP_DIR}/install-server.sh
+    # Make installer executable using filesystem access (avoid pct exec segfault)
+    debug "Making installer executable..."
+    pct mount $CTID >> "$LOG_FILE" 2>&1
+    chmod +x /var/lib/lxc/$CTID/rootfs${SETUP_DIR}/install-server.sh 2>/dev/null || true
+    pct unmount $CTID >> "$LOG_FILE" 2>&1
     debug "Made installer executable"
     
     # Copy repo for update functionality (if using git-cache)
