@@ -152,9 +152,10 @@ function streamLogs(req, res) {
       res.write(`data: ${JSON.stringify({ type: 'log', message: line })}\n\n`);
 
       // Check for completion markers
-      if (line.includes('Installation complete') || line.includes('Setup complete')) {
+      if (line.includes('SETUP_WIZARD_COMPLETE') || line.includes('Installation Complete')) {
         res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
         installerRunning = false;
+        setTimeout(() => tail.kill(), 1000);
       }
     });
   });

@@ -424,12 +424,8 @@
           const data = await response.json();
 
           if (data.success) {
-            // Show output in details
-            document.getElementById('logOutput').textContent =
-              data.output || 'Installation completed successfully';
-            document.getElementById('serverUrl').textContent = window.location.origin;
-            document.getElementById('spinner').style.display = 'none';
-            showStep(4);
+            // Installation started, now stream the logs
+            streamInstallationLogs();
           } else {
             // Show error output in details
             document.getElementById('logOutput').textContent = data.output || data.message;
@@ -438,6 +434,39 @@
         } catch (error) {
           showError('Installation failed: ' + error.message);
         }
+      }
+
+      function streamInstallationLogs() {
+        const logOutput = document.getElementById('logOutput');
+        const eventSource = new EventSource('/setup/logs');
+
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+
+          if (data.type === 'log') {
+            // Append log line
+            logOutput.textContent += data.message + '\n';
+            // Auto-scroll to bottom
+            logOutput.scrollTop = logOutput.scrollHeight;
+          } else if (data.type === 'complete') {
+            // Installation complete
+            eventSource.close();
+            document.getElementById('serverUrl').textContent = window.location.origin;
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('statusMessage').className = 'status success';
+            document.getElementById('statusMessage').innerHTML =
+              '<strong>✅ Installation Complete!</strong><br>The AC Server Manager is ready to use.';
+            showStep(4);
+          } else if (data.type === 'waiting') {
+            logOutput.textContent += data.message + '\n';
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          console.error('SSE error:', error);
+          eventSource.close();
+          showError('Lost connection to installer. Check /var/log/installer.log for details.');
+        };
       }
 
       function showError(message) {

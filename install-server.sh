@@ -682,6 +682,9 @@ main() {
     
     # Success!
     show_completion
+    
+    # Signal completion for wizard
+    echo "=== SETUP_WIZARD_COMPLETE ==="
 }
 
 # Run main installation
