@@ -12,10 +12,10 @@ $BACKUP_DIR = ".\ssh-backups"
 $PROJECT_SSH_CONFIG = ".\.ssh-config"
 
 # Colors
-function Write-Success { Write-Host "✅ $args" -ForegroundColor Green }
-function Write-Info { Write-Host "ℹ️  $args" -ForegroundColor Cyan }
-function Write-Warning { Write-Host "⚠️  $args" -ForegroundColor Yellow }
-function Write-Error { Write-Host "❌ $args" -ForegroundColor Red }
+function Write-Success { param([string]$msg) Write-Host "[OK] $msg" -ForegroundColor Green }
+function Write-Info { param([string]$msg) Write-Host "[INFO] $msg" -ForegroundColor Cyan }
+function Write-Warning { param([string]$msg) Write-Host "[WARN] $msg" -ForegroundColor Yellow }
+function Write-Err { param([string]$msg) Write-Host "[ERROR] $msg" -ForegroundColor Red }
 
 ###############################################################################
 # SSH Key Management
@@ -57,7 +57,7 @@ function Restore-SSHConfig {
         Copy-Item $PROJECT_SSH_CONFIG $CONFIG_FILE -Force
         Write-Success "SSH config restored from $PROJECT_SSH_CONFIG"
     } else {
-        Write-Error "Project SSH config not found at $PROJECT_SSH_CONFIG"
+        Write-Err "Project SSH config not found at $PROJECT_SSH_CONFIG"
         exit 1
     }
 }
@@ -73,40 +73,40 @@ function Inject-SSHKey {
     $pubkey = Get-Content "$SSH_DIR\id_ed25519.pub"
     
     # Use password authentication one time to inject the key
-    $command = "mkdir -p ~/.ssh && echo '$pubkey' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys && echo 'Key injected'"
+    $command = 'mkdir -p ~/.ssh; echo "' + $pubkey + '" >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys; sort -u ~/.ssh/authorized_keys -o ~/.ssh/authorized_keys; echo Key_injected'
     
     Write-Info "This will ask for password once (default: admin)"
-    ssh root@$Host $command
+    ssh root@$TargetHost $command
     
-    Write-Success "SSH key injected into $Host"
+    Write-Success "SSH key injected into $TargetHost"
 }
 
 function Test-SSHConnection {
-    param([string]$Host)
+    param([string]$TargetHost)
     
-    Write-Info "Testing SSH connection to $Host..."
+    Write-Info "Testing SSH connection to $TargetHost..."
     
     try {
-        $result = ssh root@$Host "echo 'SSH works'" 2>&1
+        $result = ssh root@$TargetHost "echo 'SSH works'" 2>&1
         if ($result -match "SSH works") {
-            Write-Success "Password-less SSH working for $Host"
+            Write-Success "Password-less SSH working for $TargetHost"
             return $true
         } else {
-            Write-Warning "SSH connection failed for $Host"
+            Write-Warning "SSH connection failed for $TargetHost"
             return $false
         }
     } catch {
-        Write-Warning "SSH connection failed for $Host"
+        Write-Warning "SSH connection failed for $TargetHost"
         return $false
     }
 }
 
 function Clean-KnownHosts {
-    param([string]$Host)
+    param([string]$TargetHost)
     
-    Write-Info "Cleaning known_hosts for $Host..."
-    ssh-keygen -R $Host 2>&1 | Out-Null
-    Write-Success "Removed old host key for $Host"
+    Write-Info "Cleaning known_hosts for $TargetHost..."
+    ssh-keygen -R $TargetHost 2>&1 | Out-Null
+    Write-Success "Removed old host key for $TargetHost"
 }
 
 ###############################################################################
@@ -114,19 +114,19 @@ function Clean-KnownHosts {
 ###############################################################################
 
 function Show-Usage {
-    Write-Host @"
+    @"
 
 SSH Setup and Maintenance Script
 
-Usage: .\setup-ssh.ps1 <command>
+Usage: .\setup-ssh.ps1 [command]
 
 Commands:
   setup              - Full SSH setup (keys + config + injection)
   restore            - Restore SSH config from project file
   backup             - Backup current SSH config
-  inject <host>      - Inject SSH key into host (one-time password)
-  test <host>        - Test password-less SSH to host
-  clean <host>       - Clean known_hosts entry for host
+  inject [host]      - Inject SSH key into host (one-time password)
+  test [host]        - Test password-less SSH to host
+  clean [host]       - Clean known_hosts entry for host
   verify             - Verify all configured hosts
 
 Examples:
@@ -135,11 +135,11 @@ Examples:
   .\setup-ssh.ps1 test 192.168.1.71
   .\setup-ssh.ps1 verify
 
-"@
+"@ | Write-Host
 }
 
 function Setup-All {
-    Write-Info "Starting full SSH setup..."
+    Write-Info 'Starting full SSH setup...'
     
     # Ensure SSH keys exist
     Ensure-SSHKeys
@@ -153,21 +153,21 @@ function Setup-All {
 }
 
 function Verify-All {
-    Write-Info "Verifying SSH access to all hosts..."
+    Write-Info 'Verifying SSH access to all hosts...'
     
-    $hosts = @("192.168.1.71", "192.168.1.70")
+    $targetHosts = @("192.168.1.71", "192.168.1.70")
     $results = @{}
     
-    foreach ($host in $hosts) {
-        $results[$host] = Test-SSHConnection -Host $host
+    foreach ($targetHost in $targetHosts) {
+        $results[$targetHost] = Test-SSHConnection -TargetHost $targetHost
     }
     
     Write-Host "`nResults:"
-    foreach ($host in $results.Keys) {
-        if ($results[$host]) {
-            Write-Success "$host - Working"
+    foreach ($targetHost in $results.Keys) {
+        if ($results[$targetHost]) {
+            Write-Success "$targetHost - Working"
         } else {
-            Write-Warning "$host - Failed (run: .\setup-ssh.ps1 inject $host)"
+            Write-Warning "$targetHost - Failed (run: .\setup-ssh.ps1 inject $targetHost)"
         }
     }
 }
@@ -190,24 +190,24 @@ switch ($command) {
     }
     "inject" {
         if ($args.Count -lt 2) {
-            Write-Error "Usage: .\setup-ssh.ps1 inject <host>"
+            Write-Err "Usage: .\setup-ssh.ps1 inject [host]"
             exit 1
         }
-        Inject-SSHKey -Host $args[1]
+        Inject-SSHKey -TargetHost $args[1]
     }
     "test" {
         if ($args.Count -lt 2) {
-            Write-Error "Usage: .\setup-ssh.ps1 test <host>"
+            Write-Err "Usage: .\setup-ssh.ps1 test [host]"
             exit 1
         }
-        Test-SSHConnection -Host $args[1]
+        Test-SSHConnection -TargetHost $args[1]
     }
     "clean" {
         if ($args.Count -lt 2) {
-            Write-Error "Usage: .\setup-ssh.ps1 clean <host>"
+            Write-Err "Usage: .\setup-ssh.ps1 clean [host]"
             exit 1
         }
-        Clean-KnownHosts -Host $args[1]
+        Clean-KnownHosts -TargetHost $args[1]
     }
     "verify" {
         Verify-All
@@ -217,3 +217,4 @@ switch ($command) {
         exit 1
     }
 }
+
