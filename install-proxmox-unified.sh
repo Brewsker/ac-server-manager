@@ -654,12 +654,17 @@ install_bootstrap_packages() {
     print_section "Installing bootstrap packages"
     
     debug "Updating package lists..."
-    pct exec $CTID -- apt-get update -qq >> "$LOG_FILE" 2>&1
+    pct exec $CTID -- apt-get update -qq >> "$LOG_FILE" 2>&1 || true
     
     debug "Installing curl, wget, and git..."
-    pct exec $CTID -- apt-get install -y curl wget git >> "$LOG_FILE" 2>&1
+    pct exec $CTID -- bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget git" >> "$LOG_FILE" 2>&1 || true
     
-    print_success "Bootstrap packages installed"
+    # Verify installation
+    if pct exec $CTID -- test -x /usr/bin/curl 2>/dev/null; then
+        print_success "Bootstrap packages installed"
+    else
+        print_warning "Bootstrap package installation may have issues, but continuing..."
+    fi
 }
 
 install_nodejs() {
@@ -667,15 +672,32 @@ install_nodejs() {
     
     debug "Removing any existing Node.js..."
     pct exec $CTID -- apt-get remove -y nodejs npm 2>> "$LOG_FILE" || true
-    pct exec $CTID -- apt-get autoremove -y >> "$LOG_FILE" 2>&1
+    pct exec $CTID -- apt-get autoremove -y >> "$LOG_FILE" 2>&1 || true
     
     debug "Adding NodeSource repository..."
-    pct exec $CTID -- bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -" >> "$LOG_FILE" 2>&1
+    pct exec $CTID -- bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -" >> "$LOG_FILE" 2>&1 || true
     
-    debug "Installing Node.js..."
-    pct exec $CTID -- apt-get install -y nodejs >> "$LOG_FILE" 2>&1
+    debug "Installing Node.js (this may take a moment)..."
+    # Run apt-get install in background to avoid timeout
+    pct exec $CTID -- bash -c "nohup apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1 &" >> "$LOG_FILE" 2>&1
     
-    local node_version=$(pct exec $CTID -- node -v)
+    # Wait for installation to complete
+    local max_wait=60
+    local waited=0
+    while ! pct exec $CTID -- test -f /usr/bin/node 2>/dev/null; do
+        if [ $waited -ge $max_wait ]; then
+            print_error "Node.js installation timed out after ${max_wait}s"
+            return 1
+        fi
+        sleep 2
+        waited=$((waited + 2))
+        debug "Waiting for Node.js installation... ${waited}s"
+    done
+    
+    # Give it a moment to finish setting up
+    sleep 3
+    
+    local node_version=$(pct exec $CTID -- node -v 2>/dev/null || echo "unknown")
     debug "Node.js version: $node_version"
     
     print_success "Node.js installed: $node_version"
