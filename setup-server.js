@@ -9,7 +9,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { promisify } = require('util');
 
 const execAsync = promisify(exec);
@@ -59,28 +59,56 @@ async function handleInstall(req, res) {
       // Download installer script first, then execute with inline env vars
       const installCmd =
         config.installType === 'app-only'
-          ? `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh -o /tmp/install.sh && NON_INTERACTIVE=yes INSTALL_AC_SERVER="${config.downloadAC ? 'yes' : 'no'}" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${config.steamPass}" bash /tmp/install.sh --app-only`
-          : `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh -o /tmp/install.sh && NON_INTERACTIVE=yes INSTALL_AC_SERVER="${config.downloadAC ? 'yes' : 'no'}" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${config.steamPass}" bash /tmp/install.sh`;
+          ? `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh -o /tmp/install.sh && NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
+              config.downloadAC ? 'yes' : 'no'
+            }" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${
+              config.steamPass
+            }" bash /tmp/install.sh --app-only`
+          : `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh -o /tmp/install.sh && NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
+              config.downloadAC ? 'yes' : 'no'
+            }" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${
+              config.steamPass
+            }" bash /tmp/install.sh`;
 
       console.log('[Setup] Running installer...');
-      const { stdout, stderr } = await execAsync(installCmd, { env });
+      
+      // Use spawn with detached to prevent process.exit from killing installer
+      const child = spawn('bash', ['-c', installCmd], {
+        env,
+        detached: true,
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+      
+      let stdout = '';
+      let stderr = '';
+      
+      child.stdout.on('data', (data) => {
+        stdout += data.toString();
+        console.log(data.toString());
+      });
+      
+      child.stderr.on('data', (data) => {
+        stderr += data.toString();
+        console.error(data.toString());
+      });
+      
+      // Don't wait for completion - let it run in background
+      child.unref();
 
-      console.log('[Setup] Installation complete!');
-      console.log('STDOUT:', stdout);
-      if (stderr) console.log('STDERR:', stderr);
+      console.log('[Setup] Installation started in background');
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
           success: true,
-          message: 'Installation completed successfully',
-          output: stdout,
+          message: 'Installation started successfully',
+          output: 'Installation running in background. Check /var/log/ac-setup.log for progress.',
         })
       );
 
-      // Exit after sending response - PM2 will restart with the actual app
+      // Exit after sending response - installer continues in background
       setTimeout(() => {
-        console.log('[Setup] Exiting setup server, PM2 will restart with main app...');
+        console.log('[Setup] Setup wizard exiting, installer continues in background...');
         process.exit(0);
       }, 2000);
     } catch (error) {
