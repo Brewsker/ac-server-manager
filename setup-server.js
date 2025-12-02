@@ -176,11 +176,19 @@ function streamLogs(req, res) {
         installerRunning = false;
         setTimeout(() => tail.kill(), 1000);
 
-        // Exit the wizard service after installation completes
-        console.log('[Setup] Installation complete - wizard will exit in 5 seconds');
+        // Disable and stop wizard service after installation completes
+        console.log('[Setup] Installation complete - disabling wizard service');
         setTimeout(() => {
-          console.log('[Setup] Exiting wizard service - PM2 app should now be accessible');
-          process.exit(0);
+          exec('systemctl disable ac-setup-wizard && systemctl stop ac-setup-wizard', (error) => {
+            if (error) {
+              console.error('[Setup] Failed to disable wizard service:', error);
+              // Exit anyway to free port for PM2 app
+              process.exit(0);
+            } else {
+              console.log('[Setup] Wizard service disabled - PM2 app should now be accessible');
+              process.exit(0);
+            }
+          });
         }, 5000);
       }
     });
