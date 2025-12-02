@@ -280,15 +280,15 @@
             Please wait while we set up your server...
           </div>
           <div class="spinner" id="spinner"></div>
-          <button 
-            class="btn btn-secondary" 
-            id="toggleDetailsBtn" 
-            onclick="toggleDetails()" 
-            style="margin: 16px 0; width: auto; display: inline-flex; align-items: center; gap: 8px;"
+          <button
+            class="btn btn-secondary"
+            id="toggleDetailsBtn"
+            onclick="toggleDetails()"
+            style="margin: 16px 0; width: auto; display: inline-flex; align-items: center; gap: 8px"
           >
             <span id="detailsIcon">▶</span> Details
           </button>
-          <div class="log-output" id="logOutput" style="display: none;"></div>
+          <div class="log-output" id="logOutput" style="display: none"></div>
         </div>
 
         <!-- Step 4: Complete -->
@@ -360,7 +360,7 @@
         const logOutput = document.getElementById('logOutput');
         const icon = document.getElementById('detailsIcon');
         const isVisible = logOutput.style.display !== 'none';
-        
+
         logOutput.style.display = isVisible ? 'none' : 'block';
         icon.textContent = isVisible ? '▶' : '▼';
       }
@@ -387,7 +387,8 @@
 
           if (data.success) {
             // Show output in details
-            document.getElementById('logOutput').textContent = data.output || 'Installation completed successfully';
+            document.getElementById('logOutput').textContent =
+              data.output || 'Installation completed successfully';
             document.getElementById('serverUrl').textContent = window.location.origin;
             document.getElementById('spinner').style.display = 'none';
             showStep(4);
