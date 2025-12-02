@@ -27,6 +27,9 @@
 set -e  # Exit on error
 set -o pipefail  # Pipe failures propagate
 
+# Ignore SIGHUP and SIGPIPE to prevent premature exits
+trap '' HUP PIPE
+
 # Script version
 VERSION="1.0.0-dev"
 
