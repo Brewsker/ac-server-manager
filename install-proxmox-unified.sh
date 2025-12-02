@@ -55,6 +55,12 @@ GITHUB_BRANCH="develop"
 CACHE_BUST="?t=$(date +%s)"
 GITHUB_RAW="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}"
 
+# Git cache server settings
+GIT_CACHE_IP="192.168.1.70"
+GIT_CACHE_CTID=998
+GIT_CACHE_URL="http://${GIT_CACHE_IP}/ac-server-manager"
+USE_GIT_CACHE=true  # Auto-detect and use git-cache if available
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -237,6 +243,39 @@ EOF
 ###############################################################################
 # Prerequisites Check
 ###############################################################################
+
+check_git_cache() {
+    print_section "Checking git-cache server"
+    
+    # Check if git-cache container exists and is running
+    if pct status $GIT_CACHE_CTID &>/dev/null; then
+        if pct status $GIT_CACHE_CTID | grep -q "running"; then
+            debug "Git-cache container is running"
+            
+            # Test if nginx is serving files
+            if curl -sf --connect-timeout 2 "${GIT_CACHE_URL}/README.md" &>/dev/null; then
+                print_success "Git-cache server available at $GIT_CACHE_IP"
+                USE_GIT_CACHE=true
+                
+                # Sync git-cache with GitHub
+                print_info "Syncing git-cache from GitHub..."
+                pct exec $GIT_CACHE_CTID -- bash -c "cd /opt/git-cache/ac-server-manager && git fetch --all --prune && git checkout $GITHUB_BRANCH && git pull" >> "$LOG_FILE" 2>&1
+                print_success "Git-cache synced to latest $GITHUB_BRANCH"
+                
+                return 0
+            else
+                debug "Git-cache container exists but nginx not responding"
+            fi
+        else
+            debug "Git-cache container exists but not running"
+        fi
+    else
+        debug "Git-cache container not found (ID: $GIT_CACHE_CTID)"
+    fi
+    
+    print_warning "Git-cache not available, will download from GitHub"
+    USE_GIT_CACHE=false
+}
 
 check_prerequisites() {
     print_section "Checking prerequisites"
@@ -447,21 +486,41 @@ deploy_setup_wizard() {
     debug "Creating setup directory: $SETUP_DIR"
     pct exec $CTID -- mkdir -p $SETUP_DIR
     
-    debug "Downloading setup wizard files from GitHub (cache-busting enabled)..."
+    # Determine download source
+    local download_source
+    if [ "$USE_GIT_CACHE" = true ]; then
+        download_source="$GIT_CACHE_URL"
+        debug "Downloading setup wizard files from git-cache ($GIT_CACHE_IP)..."
+    else
+        download_source="${GITHUB_RAW}"
+        debug "Downloading setup wizard files from GitHub (cache-busting enabled)..."
+    fi
     
     # Download setup wizard HTML
     print_info "Downloading setup-wizard.html..."
-    pct exec $CTID -- bash -c "curl -fsSL '${GITHUB_RAW}/setup-wizard.html${CACHE_BUST}' -o ${SETUP_DIR}/setup-wizard.html" >> "$LOG_FILE" 2>&1
+    if [ "$USE_GIT_CACHE" = true ]; then
+        pct exec $CTID -- bash -c "curl -fsSL '${download_source}/setup-wizard.html' -o ${SETUP_DIR}/setup-wizard.html" >> "$LOG_FILE" 2>&1
+    else
+        pct exec $CTID -- bash -c "curl -fsSL '${download_source}/setup-wizard.html${CACHE_BUST}' -o ${SETUP_DIR}/setup-wizard.html" >> "$LOG_FILE" 2>&1
+    fi
     debug "setup-wizard.html downloaded"
     
     # Download setup server script
     print_info "Downloading setup-server.js..."
-    pct exec $CTID -- bash -c "curl -fsSL '${GITHUB_RAW}/setup-server.js${CACHE_BUST}' -o ${SETUP_DIR}/setup-server.js" >> "$LOG_FILE" 2>&1
+    if [ "$USE_GIT_CACHE" = true ]; then
+        pct exec $CTID -- bash -c "curl -fsSL '${download_source}/setup-server.js' -o ${SETUP_DIR}/setup-server.js" >> "$LOG_FILE" 2>&1
+    else
+        pct exec $CTID -- bash -c "curl -fsSL '${download_source}/setup-server.js${CACHE_BUST}' -o ${SETUP_DIR}/setup-server.js" >> "$LOG_FILE" 2>&1
+    fi
     debug "setup-server.js downloaded"
     
     # Download installer script
     print_info "Downloading install-server.sh..."
-    pct exec $CTID -- bash -c "curl -fsSL '${GITHUB_RAW}/install-server.sh${CACHE_BUST}' -o ${SETUP_DIR}/install-server.sh" >> "$LOG_FILE" 2>&1
+    if [ "$USE_GIT_CACHE" = true ]; then
+        pct exec $CTID -- bash -c "curl -fsSL '${download_source}/install-server.sh' -o ${SETUP_DIR}/install-server.sh" >> "$LOG_FILE" 2>&1
+    else
+        pct exec $CTID -- bash -c "curl -fsSL '${download_source}/install-server.sh${CACHE_BUST}' -o ${SETUP_DIR}/install-server.sh" >> "$LOG_FILE" 2>&1
+    fi
     debug "install-server.sh downloaded"
     
     # Make installer executable
@@ -479,7 +538,11 @@ create_wizard_service() {
     print_section "Creating setup wizard systemd service"
     
     debug "Downloading service file..."
-    pct exec $CTID -- bash -c "curl -fsSL '${GITHUB_RAW}/ac-setup-wizard.service${CACHE_BUST}' -o /etc/systemd/system/ac-setup-wizard.service" >> "$LOG_FILE" 2>&1
+    if [ "$USE_GIT_CACHE" = true ]; then
+        pct exec $CTID -- bash -c "curl -fsSL '${GIT_CACHE_URL}/ac-setup-wizard.service' -o /etc/systemd/system/ac-setup-wizard.service" >> "$LOG_FILE" 2>&1
+    else
+        pct exec $CTID -- bash -c "curl -fsSL '${GITHUB_RAW}/ac-setup-wizard.service${CACHE_BUST}' -o /etc/systemd/system/ac-setup-wizard.service" >> "$LOG_FILE" 2>&1
+    fi
     
     debug "Reloading systemd..."
     pct exec $CTID -- systemctl daemon-reload >> "$LOG_FILE" 2>&1
@@ -639,6 +702,9 @@ main() {
     
     # Check prerequisites
     check_prerequisites
+    
+    # Check and sync git-cache
+    check_git_cache
     
     # Container setup
     check_existing_container
