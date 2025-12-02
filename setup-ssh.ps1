@@ -64,11 +64,11 @@ function Restore-SSHConfig {
 
 function Inject-SSHKey {
     param(
-        [string]$Host,
+        [string]$TargetHost,
         [string]$Password = "admin"
     )
     
-    Write-Info "Injecting SSH key into $Host..."
+    Write-Info "Injecting SSH key into $TargetHost..."
     
     $pubkey = Get-Content "$SSH_DIR\id_ed25519.pub"
     
