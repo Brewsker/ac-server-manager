@@ -336,8 +336,9 @@ const server = http.createServer((req, res) => {
   } else if (req.url === '/health') {
     handleHealth(req, res);
   } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found');
+    // Redirect any other path to root (catches /config, etc.)
+    res.writeHead(302, { 'Location': '/' });
+    res.end();
   }
 });
 
