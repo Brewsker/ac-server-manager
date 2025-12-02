@@ -102,7 +102,9 @@ ensure_wget_or_curl() {
 ###############################################################################
 
 show_welcome() {
-    clear
+    if [[ "$NON_INTERACTIVE" != "yes" ]]; then
+        clear
+    fi
     print_header "$APP_NAME - One-Click Installer"
     echo -e "${CYAN}"
     cat << "EOF"
