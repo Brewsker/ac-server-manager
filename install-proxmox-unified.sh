@@ -29,6 +29,9 @@ set -o pipefail  # Pipe failures propagate
 
 # Script version
 VERSION="1.0.0-dev"
+
+# Git-cache container version (increment when nginx config or setup changes)
+GIT_CACHE_VERSION="2"
 SCRIPT_NAME="AC Server Manager - Unified Installer"
 
 # Default configuration
@@ -257,7 +260,24 @@ ensure_git_cache() {
     if ! pct status $GIT_CACHE_CTID &>/dev/null; then
         print_info "Git-cache container not found, creating it..."
         create_git_cache_container
+        return
     fi
+    
+    # Check container version
+    local current_version=$(pct exec $GIT_CACHE_CTID -- cat /etc/git-cache-version 2>/dev/null || echo "0")
+    debug "Current git-cache version: $current_version"
+    debug "Required git-cache version: $GIT_CACHE_VERSION"
+    
+    if [ "$current_version" != "$GIT_CACHE_VERSION" ]; then
+        print_warning "Git-cache container outdated (v$current_version, need v$GIT_CACHE_VERSION)"
+        print_info "Rebuilding git-cache container..."
+        pct stop $GIT_CACHE_CTID &>/dev/null || true
+        pct destroy $GIT_CACHE_CTID &>/dev/null || true
+        create_git_cache_container
+        return
+    fi
+    
+    debug "Git-cache container is up to date (v$GIT_CACHE_VERSION)"
     
     # Check if container is running
     if ! pct status $GIT_CACHE_CTID | grep -q "running"; then
@@ -357,7 +377,11 @@ EOF' >> "$LOG_FILE" 2>&1
     pct exec $GIT_CACHE_CTID -- bash -c "ln -sf /etc/nginx/sites-available/git-cache /etc/nginx/sites-enabled/default" >> "$LOG_FILE" 2>&1
     pct exec $GIT_CACHE_CTID -- systemctl restart nginx >> "$LOG_FILE" 2>&1
     
-    print_success "Git-cache container created and configured"
+    # Write version file
+    pct exec $GIT_CACHE_CTID -- bash -c "echo '$GIT_CACHE_VERSION' > /etc/git-cache-version" >> "$LOG_FILE" 2>&1
+    debug "Git-cache version file created: v$GIT_CACHE_VERSION"
+    
+    print_success "Git-cache container created and configured (v$GIT_CACHE_VERSION)"
 }
 
 check_prerequisites() {
