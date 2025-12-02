@@ -510,8 +510,13 @@
             document.getElementById('spinner').style.display = 'none';
             document.getElementById('statusMessage').className = 'status success';
             document.getElementById('statusMessage').innerHTML =
-              '<strong>✅ Installation Complete!</strong><br>The AC Server Manager is ready to use.';
+              '<strong>✅ Installation Complete!</strong><br>Redirecting to AC Server Manager in 5 seconds...';
             showStep(4);
+            
+            // Auto-refresh after 5 seconds to load the main app
+            setTimeout(() => {
+              window.location.reload();
+            }, 5000);
           } else if (data.type === 'waiting') {
             logOutput.textContent += data.message + '\n';
           }

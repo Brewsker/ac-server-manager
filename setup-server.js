@@ -337,7 +337,7 @@ const server = http.createServer((req, res) => {
     handleHealth(req, res);
   } else {
     // Redirect any other path to root (catches /config, etc.)
-    res.writeHead(302, { 'Location': '/' });
+    res.writeHead(302, { Location: '/' });
     res.end();
   }
 });
