@@ -554,6 +554,13 @@ create_container() {
 start_container() {
     print_section "Starting container $CTID"
     
+    # Check if already running
+    if pct status $CTID 2>/dev/null | grep -q "running"; then
+        debug "Container already running, skipping start"
+        print_success "Container $CTID is running"
+        return 0
+    fi
+    
     pct start $CTID
     debug "Start command issued"
     
