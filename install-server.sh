@@ -481,11 +481,29 @@ setup_pm2_service() {
     
     cd "$APP_DIR/backend"
     
+    # Check if ecosystem config exists
+    if [ ! -f "ecosystem.config.cjs" ]; then
+        print_error "ecosystem.config.cjs not found in $APP_DIR/backend"
+        print_info "This file should have been cloned from the repository"
+        print_info "Attempting to download from git-cache..."
+        
+        if curl -fsSL "http://192.168.1.70/ac-server-manager/backend/ecosystem.config.cjs" -o ecosystem.config.cjs 2>/dev/null; then
+            print_success "Downloaded ecosystem.config.cjs from git-cache"
+        else
+            print_error "Failed to download ecosystem.config.cjs"
+            return 1
+        fi
+    fi
+    
     # Stop any existing instance
     pm2 delete ac-server-manager 2>/dev/null || true
     
-    # Start application using ecosystem file
-    pm2 start ecosystem.config.cjs > /dev/null 2>&1
+    # Start application using ecosystem file (show errors)
+    if ! pm2 start ecosystem.config.cjs 2>&1 | tee -a /var/log/installer.log; then
+        print_error "Failed to start PM2 service"
+        print_info "Check logs: pm2 logs ac-server-manager"
+        return 1
+    fi
     
     # Save PM2 configuration
     pm2 save > /dev/null 2>&1
