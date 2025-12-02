@@ -193,7 +193,7 @@ function handleUpdate(req, res) {
   console.log('[Setup] Update wizard requested');
 
   // Check if git-cache is accessible
-  exec('curl -s http://192.168.1.70/ac-server-manager/HEAD', (error, stdout) => {
+  exec('curl -s http://192.168.1.70/ac-server-manager/setup-wizard.html -o /dev/null', (error) => {
     if (error) {
       console.error('[Setup] Git-cache not accessible:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -206,17 +206,13 @@ function handleUpdate(req, res) {
       return;
     }
 
-    // Pull latest code from git-cache
+    // Download latest files from git-cache
     const updateCmd = `
-      cd /tmp/ac-setup-wizard && 
-      git remote set-url origin http://192.168.1.70/ac-server-manager && 
-      git fetch origin develop && 
-      git reset --hard origin/develop && 
-      cp -f setup-wizard.html /tmp/setup-wizard.html && 
-      cp -f setup-server.js /tmp/setup-server.js
+      curl -fsSL http://192.168.1.70/ac-server-manager/setup-wizard.html -o /tmp/setup-wizard.html && 
+      curl -fsSL http://192.168.1.70/ac-server-manager/setup-server.js -o /tmp/setup-server.js
     `;
 
-    console.log('[Setup] Pulling latest code from git-cache...');
+    console.log('[Setup] Downloading latest code from git-cache...');
 
     exec(updateCmd, (error, stdout, stderr) => {
       if (error) {
@@ -225,7 +221,7 @@ function handleUpdate(req, res) {
         res.end(
           JSON.stringify({
             success: false,
-            message: 'Failed to pull latest code: ' + stderr,
+            message: 'Failed to download latest code: ' + stderr,
           })
         );
         return;
