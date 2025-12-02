@@ -6,7 +6,7 @@
 # and handles the complete installation process.
 #
 # Usage (on Proxmox host):
-#   curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-proxmox-unified.sh | bash
+#   curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-proxmox-unified.sh?$(date +%s)" | bash
 #   OR
 #   ./install-proxmox-unified.sh [options]
 #
@@ -52,6 +52,7 @@ AC_SERVER_DIR="/opt/assetto-corsa-server"
 # GitHub settings
 GITHUB_REPO="Brewsker/ac-server-manager"
 GITHUB_BRANCH="develop"
+CACHE_BUST="?t=$(date +%s)"
 GITHUB_RAW="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}"
 
 # Colors for output
@@ -446,21 +447,21 @@ deploy_setup_wizard() {
     debug "Creating setup directory: $SETUP_DIR"
     pct exec $CTID -- mkdir -p $SETUP_DIR
     
-    debug "Downloading setup wizard files from GitHub..."
+    debug "Downloading setup wizard files from GitHub (cache-busting enabled)..."
     
     # Download setup wizard HTML
     print_info "Downloading setup-wizard.html..."
-    pct exec $CTID -- bash -c "curl -fsSL ${GITHUB_RAW}/setup-wizard.html -o ${SETUP_DIR}/setup-wizard.html" >> "$LOG_FILE" 2>&1
+    pct exec $CTID -- bash -c "curl -fsSL '${GITHUB_RAW}/setup-wizard.html${CACHE_BUST}' -o ${SETUP_DIR}/setup-wizard.html" >> "$LOG_FILE" 2>&1
     debug "setup-wizard.html downloaded"
     
     # Download setup server script
     print_info "Downloading setup-server.js..."
-    pct exec $CTID -- bash -c "curl -fsSL ${GITHUB_RAW}/setup-server.js -o ${SETUP_DIR}/setup-server.js" >> "$LOG_FILE" 2>&1
+    pct exec $CTID -- bash -c "curl -fsSL '${GITHUB_RAW}/setup-server.js${CACHE_BUST}' -o ${SETUP_DIR}/setup-server.js" >> "$LOG_FILE" 2>&1
     debug "setup-server.js downloaded"
     
     # Download installer script
     print_info "Downloading install-server.sh..."
-    pct exec $CTID -- bash -c "curl -fsSL ${GITHUB_RAW}/install-server.sh -o ${SETUP_DIR}/install-server.sh" >> "$LOG_FILE" 2>&1
+    pct exec $CTID -- bash -c "curl -fsSL '${GITHUB_RAW}/install-server.sh${CACHE_BUST}' -o ${SETUP_DIR}/install-server.sh" >> "$LOG_FILE" 2>&1
     debug "install-server.sh downloaded"
     
     # Make installer executable
@@ -478,7 +479,7 @@ create_wizard_service() {
     print_section "Creating setup wizard systemd service"
     
     debug "Downloading service file..."
-    pct exec $CTID -- bash -c "curl -fsSL ${GITHUB_RAW}/ac-setup-wizard.service -o /etc/systemd/system/ac-setup-wizard.service" >> "$LOG_FILE" 2>&1
+    pct exec $CTID -- bash -c "curl -fsSL '${GITHUB_RAW}/ac-setup-wizard.service${CACHE_BUST}' -o /etc/systemd/system/ac-setup-wizard.service" >> "$LOG_FILE" 2>&1
     
     debug "Reloading systemd..."
     pct exec $CTID -- systemctl daemon-reload >> "$LOG_FILE" 2>&1
