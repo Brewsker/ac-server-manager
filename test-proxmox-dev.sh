@@ -13,7 +13,7 @@ CTID=999
 HOSTNAME="ac-test"
 STORAGE="local-lvm"
 TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-PASSWORD="TestPass123"
+PASSWORD="admin"
 BRIDGE="vmbr0"
 STATIC_IP="192.168.1.71/24"
 GATEWAY="192.168.1.1"
@@ -107,9 +107,14 @@ create_container() {
     sleep 5
     
     # Install bootstrap packages
-    print_info "Installing bootstrap packages (curl, Node.js)..."
-    pct exec $CTID -- bash -c "apt-get update && apt-get install -y curl && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs"
+    print_info "Installing bootstrap packages (curl, Node.js, SSH)..."
+    pct exec $CTID -- bash -c "apt-get update && apt-get install -y curl openssh-server && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs"
     print_success "Bootstrap packages installed"
+    
+    # Setup SSH with password authentication enabled
+    print_info "Configuring SSH for password authentication..."
+    pct exec $CTID -- bash -c "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && systemctl restart ssh"
+    print_success "SSH password authentication enabled (user: root, password: $PASSWORD)"
     
     # Get container IP
     CONTAINER_IP="${STATIC_IP%/*}"  # Remove /24 netmask
