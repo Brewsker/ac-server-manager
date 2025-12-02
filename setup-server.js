@@ -146,7 +146,7 @@ function streamLogs(req, res) {
       lines.forEach((line) => {
         res.write(`data: ${JSON.stringify({ type: 'log', message: line })}\n\n`);
       });
-      
+
       // Check if already complete
       if (existingLog.includes('SETUP_WIZARD_COMPLETE')) {
         res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
@@ -174,6 +174,13 @@ function streamLogs(req, res) {
         res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
         installerRunning = false;
         setTimeout(() => tail.kill(), 1000);
+        
+        // Exit the wizard service after installation completes
+        console.log('[Setup] Installation complete - wizard will exit in 5 seconds');
+        setTimeout(() => {
+          console.log('[Setup] Exiting wizard service - PM2 app should now be accessible');
+          process.exit(0);
+        }, 5000);
       }
     });
   });
