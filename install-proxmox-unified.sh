@@ -37,6 +37,17 @@ GIT_CACHE_VERSION="2"
 SCRIPT_DATE="2025-12-01-1954"
 SCRIPT_NAME="AC Server Manager - Unified Installer"
 
+# Development vs Production mode
+# In dev mode: Always destroy existing containers for clean testing
+# In production: Ask user what to do with existing containers
+if [[ "$VERSION" == *"-dev"* ]]; then
+    DEV_MODE=true
+    DESTROY_EXISTING=true  # Always clean slate in dev mode
+else
+    DEV_MODE=false
+    DESTROY_EXISTING=false  # Ask user in production
+fi
+
 # Default configuration
 CTID=999
 HOSTNAME="ac-server"
@@ -46,7 +57,6 @@ MEMORY=4096
 DISK=60
 STORAGE="local-lvm"
 TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-DESTROY_EXISTING=false  # Keep existing containers by default
 DEBUG=false
 
 # Network configuration (static for development)
@@ -432,16 +442,46 @@ check_prerequisites() {
 ###############################################################################
 
 check_existing_container() {
-    print_section "Checking for existing container"
-    
-    if pct status $CTID &>/dev/null; then
-        print_success "Container $CTID already exists - skipping creation"
-        print_info "The installer will continue with the existing container"
-        print_info "To force replacement, run with: --destroy-existing flag"
-        return 0
-    else
+    if ! pct status $CTID &>/dev/null; then
         debug "Container $CTID does not exist - will create"
+        return 1
     fi
+    
+    # Container exists - handle based on mode
+    if [ "$DEV_MODE" = true ]; then
+        print_warning "Container $CTID exists - destroying for clean dev testing"
+        destroy_container
+        return 1
+    fi
+    
+    # Production mode - ask user
+    print_warning "Container $CTID already exists"
+    echo ""
+    echo "Options:"
+    echo "  1) Keep existing container and update it (faster)"
+    echo "  2) Destroy and recreate container (clean slate)"
+    echo "  3) Cancel installation"
+    echo ""
+    read -p "Choose option [1-3]: " choice
+    
+    case $choice in
+        1)
+            print_success "Keeping existing container - will update in place"
+            return 0
+            ;;
+        2)
+            destroy_container
+            return 1
+            ;;
+        3)
+            print_info "Installation cancelled by user"
+            exit 0
+            ;;
+        *)
+            print_error "Invalid choice"
+            exit 1
+            ;;
+    esac
 }
 
 destroy_container() {
@@ -723,6 +763,27 @@ install_nodejs() {
 # Setup Wizard Deployment
 ###############################################################################
 
+cleanup_existing_installation() {
+    print_section "Cleaning up existing installation"
+    
+    debug "Stopping PM2 processes..."
+    pct exec $CTID -- bash -c "command -v pm2 >/dev/null 2>&1 && pm2 delete all || true" >> "$LOG_FILE" 2>&1
+    
+    debug "Stopping wizard service..."
+    pct exec $CTID -- systemctl stop ac-setup-wizard 2>/dev/null || true
+    pct exec $CTID -- systemctl disable ac-setup-wizard 2>/dev/null || true
+    
+    debug "Removing old files..."
+    pct exec $CTID -- rm -rf /opt/ac-setup >> "$LOG_FILE" 2>&1 || true
+    pct exec $CTID -- rm -rf /opt/ac-server-manager >> "$LOG_FILE" 2>&1 || true
+    pct exec $CTID -- rm -f /etc/systemd/system/ac-setup-wizard.service >> "$LOG_FILE" 2>&1 || true
+    
+    debug "Reloading systemd..."
+    pct exec $CTID -- systemctl daemon-reload >> "$LOG_FILE" 2>&1 || true
+    
+    print_success "Existing installation cleaned up"
+}
+
 deploy_setup_wizard() {
     print_section "Deploying web-based setup wizard"
     
@@ -960,20 +1021,29 @@ main() {
     log "Script date: $SCRIPT_DATE (Git-cache v$GIT_CACHE_VERSION required)"
     log "Log file: $LOG_FILE"
     
+    if [ "$DEV_MODE" = true ]; then
+        print_warning "Development mode - will destroy existing containers"
+    fi
+    
     # Check prerequisites
     check_prerequisites
     
     # Ensure git-cache is available and synced
     ensure_git_cache
     
-    # Container setup
-    local container_exists=false
-    if pct status $CTID &>/dev/null; then
-        container_exists=true
-        print_success "Container $CTID already exists"
-        print_info "Skipping container creation - using existing container"
+    # Container setup - check_existing_container returns 0 if keeping, 1 if need to create
+    if check_existing_container; then
+        # Keeping existing container
+        print_info "Using existing container $CTID"
+        
+        # Make sure it's running
+        if ! pct status $CTID | grep -q "running"; then
+            print_info "Starting existing container..."
+            pct start $CTID
+            wait_for_container
+        fi
     else
-        check_existing_container
+        # Need to create new container
         create_container
         start_container
     fi
@@ -984,10 +1054,13 @@ main() {
     if ! pct status $CTID | grep -q "running"; then
         print_info "Starting existing container..."
         pct start $CTID
-        sleep 5
+        wait_for_container
     fi
     
     update_ssh_keys "$container_ip"
+    
+    # Clean up any existing installation
+    cleanup_existing_installation
     
     # Bootstrap
     install_bootstrap_packages
