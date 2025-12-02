@@ -485,7 +485,7 @@ setup_pm2_service() {
     pm2 delete ac-server-manager 2>/dev/null || true
     
     # Start application using ecosystem file
-    pm2 start ecosystem.config.js > /dev/null 2>&1
+    pm2 start ecosystem.config.cjs > /dev/null 2>&1
     
     # Save PM2 configuration
     pm2 save > /dev/null 2>&1
