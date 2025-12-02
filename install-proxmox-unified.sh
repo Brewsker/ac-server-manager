@@ -1,0 +1,667 @@
+#!/bin/bash
+###############################################################################
+# AC Server Manager - Unified Proxmox Installer (Development/Testing Version)
+# 
+# This script creates a Proxmox LXC container, deploys a web-based setup wizard,
+# and handles the complete installation process.
+#
+# Usage (on Proxmox host):
+#   curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-proxmox-unified.sh | bash
+#   OR
+#   ./install-proxmox-unified.sh [options]
+#
+# Options:
+#   --ctid <id>        Container ID (default: 999)
+#   --hostname <name>  Container hostname (default: ac-server)
+#   --memory <MB>      Memory in MB (default: 4096)
+#   --disk <GB>        Disk size in GB (default: 60)
+#   --cores <n>        CPU cores (default: 2)
+#   --storage <name>   Storage pool (default: local-lvm)
+#   --template <path>  LXC template (default: ubuntu-22.04)
+#   --password <pwd>   Root password (default: auto-generated)
+#   --destroy          Destroy existing container before creating
+#   --debug            Enable verbose debugging
+#
+###############################################################################
+
+set -e  # Exit on error
+set -o pipefail  # Pipe failures propagate
+
+# Script version
+VERSION="1.0.0-dev"
+SCRIPT_NAME="AC Server Manager - Unified Installer"
+
+# Default configuration
+CTID=999
+HOSTNAME="ac-server"
+PASSWORD=""
+CORES=2
+MEMORY=4096
+DISK=60
+STORAGE="local-lvm"
+TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+DESTROY_EXISTING=false
+DEBUG=false
+
+# Application settings
+WIZARD_PORT=3001
+SETUP_DIR="/opt/ac-setup"
+APP_DIR="/opt/ac-server-manager"
+AC_SERVER_DIR="/opt/assetto-corsa-server"
+
+# GitHub settings
+GITHUB_REPO="Brewsker/ac-server-manager"
+GITHUB_BRANCH="develop"
+GITHUB_RAW="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+NC='\033[0m' # No Color
+
+# Log file
+LOG_FILE="/tmp/ac-installer-$(date +%Y%m%d-%H%M%S).log"
+
+###############################################################################
+# Logging and Output Functions
+###############################################################################
+
+log() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
+}
+
+debug() {
+    if [ "$DEBUG" = true ]; then
+        echo -e "${MAGENTA}[DEBUG]${NC} $*" | tee -a "$LOG_FILE"
+    fi
+}
+
+print_header() {
+    echo -e "${CYAN}" | tee -a "$LOG_FILE"
+    echo "═══════════════════════════════════════════════════════════════" | tee -a "$LOG_FILE"
+    echo "  🏎️  $1" | tee -a "$LOG_FILE"
+    echo "═══════════════════════════════════════════════════════════════" | tee -a "$LOG_FILE"
+    echo -e "${NC}" | tee -a "$LOG_FILE"
+}
+
+print_section() {
+    echo -e "\n${BLUE}▶ $1${NC}" | tee -a "$LOG_FILE"
+    debug "Starting section: $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}" | tee -a "$LOG_FILE"
+}
+
+print_error() {
+    echo -e "${RED}❌ $1${NC}" | tee -a "$LOG_FILE"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}" | tee -a "$LOG_FILE"
+}
+
+print_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}" | tee -a "$LOG_FILE"
+}
+
+###############################################################################
+# Error Handling
+###############################################################################
+
+cleanup_on_error() {
+    local exit_code=$?
+    print_error "Installation failed with exit code: $exit_code"
+    print_info "Log file saved to: $LOG_FILE"
+    
+    if [ "$DEBUG" = true ]; then
+        print_warning "Debug mode: Container left running for inspection"
+        print_info "To enter container: pct enter $CTID"
+        print_info "To destroy container: pct destroy $CTID"
+    fi
+    
+    exit $exit_code
+}
+
+trap cleanup_on_error ERR
+
+###############################################################################
+# Argument Parsing
+###############################################################################
+
+parse_args() {
+    debug "Parsing command line arguments: $*"
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --ctid)
+                CTID="$2"
+                debug "Container ID set to: $CTID"
+                shift 2
+                ;;
+            --hostname)
+                HOSTNAME="$2"
+                debug "Hostname set to: $HOSTNAME"
+                shift 2
+                ;;
+            --memory)
+                MEMORY="$2"
+                debug "Memory set to: ${MEMORY}MB"
+                shift 2
+                ;;
+            --disk)
+                DISK="$2"
+                debug "Disk size set to: ${DISK}GB"
+                shift 2
+                ;;
+            --cores)
+                CORES="$2"
+                debug "CPU cores set to: $CORES"
+                shift 2
+                ;;
+            --storage)
+                STORAGE="$2"
+                debug "Storage pool set to: $STORAGE"
+                shift 2
+                ;;
+            --template)
+                TEMPLATE="$2"
+                debug "Template set to: $TEMPLATE"
+                shift 2
+                ;;
+            --password)
+                PASSWORD="$2"
+                debug "Password set (hidden)"
+                shift 2
+                ;;
+            --destroy)
+                DESTROY_EXISTING=true
+                debug "Will destroy existing container"
+                shift
+                ;;
+            --debug)
+                DEBUG=true
+                debug "Debug mode enabled"
+                shift
+                ;;
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
+
+show_help() {
+    cat << EOF
+$SCRIPT_NAME v$VERSION
+
+Usage: $0 [options]
+
+Options:
+  --ctid <id>        Container ID (default: $CTID)
+  --hostname <name>  Container hostname (default: $HOSTNAME)
+  --memory <MB>      Memory in MB (default: $MEMORY)
+  --disk <GB>        Disk size in GB (default: $DISK)
+  --cores <n>        CPU cores (default: $CORES)
+  --storage <name>   Storage pool (default: $STORAGE)
+  --template <path>  LXC template (default: ubuntu-22.04)
+  --password <pwd>   Root password (default: auto-generated)
+  --destroy          Destroy existing container before creating
+  --debug            Enable verbose debugging
+  --help, -h         Show this help message
+
+Examples:
+  # Basic installation
+  $0
+
+  # Custom container with debugging
+  $0 --ctid 100 --hostname my-ac-server --debug
+
+  # Replace existing container
+  $0 --destroy --debug
+
+EOF
+}
+
+###############################################################################
+# Prerequisites Check
+###############################################################################
+
+check_prerequisites() {
+    print_section "Checking prerequisites"
+    
+    # Check if running as root
+    if [ "$EUID" -ne 0 ]; then 
+        print_error "This script must be run as root (use sudo)"
+        exit 1
+    fi
+    debug "Running as root: OK"
+    
+    # Check if Proxmox commands are available
+    if ! command -v pct &> /dev/null; then
+        print_error "This script must be run on a Proxmox host (pct command not found)"
+        exit 1
+    fi
+    debug "Proxmox commands available: OK"
+    
+    # Check if template exists
+    if ! pvesm list local | grep -q "$(basename $TEMPLATE)"; then
+        print_warning "Template not found in local storage: $(basename $TEMPLATE)"
+        print_info "Available templates:"
+        pvesm list local | grep vztmpl || print_warning "No templates found"
+        print_info "Attempting to download template..."
+        pveam update
+        pveam download local ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+    fi
+    debug "Template check: OK"
+    
+    # Check storage pool
+    if ! pvesm status | grep -q "^$STORAGE "; then
+        print_error "Storage pool not found: $STORAGE"
+        print_info "Available storage pools:"
+        pvesm status
+        exit 1
+    fi
+    debug "Storage pool '$STORAGE': OK"
+    
+    print_success "All prerequisites met"
+}
+
+###############################################################################
+# Container Management
+###############################################################################
+
+check_existing_container() {
+    print_section "Checking for existing container"
+    
+    if pct status $CTID &>/dev/null; then
+        print_warning "Container $CTID already exists"
+        
+        if [ "$DESTROY_EXISTING" = true ]; then
+            destroy_container
+        else
+            print_error "Container $CTID exists. Use --destroy to replace it or choose a different --ctid"
+            exit 1
+        fi
+    else
+        debug "Container $CTID does not exist: OK"
+    fi
+}
+
+destroy_container() {
+    print_section "Destroying existing container $CTID"
+    debug "Checking container status..."
+    
+    if pct status $CTID | grep -q "running"; then
+        print_info "Stopping container..."
+        pct stop $CTID
+        sleep 2
+        debug "Container stopped"
+    fi
+    
+    print_info "Destroying container..."
+    pct destroy $CTID
+    debug "Container destroyed"
+    
+    print_success "Container $CTID destroyed"
+}
+
+create_container() {
+    print_section "Creating container $CTID"
+    
+    # Generate password if not provided
+    if [ -z "$PASSWORD" ]; then
+        PASSWORD=$(openssl rand -base64 12)
+        debug "Generated random password"
+    fi
+    
+    debug "Container configuration:"
+    debug "  ID: $CTID"
+    debug "  Hostname: $HOSTNAME"
+    debug "  Cores: $CORES"
+    debug "  Memory: ${MEMORY}MB"
+    debug "  Disk: ${DISK}GB"
+    debug "  Storage: $STORAGE"
+    debug "  Template: $TEMPLATE"
+    
+    print_info "Creating container..."
+    pct create $CTID $TEMPLATE \
+        --hostname $HOSTNAME \
+        --password "$PASSWORD" \
+        --cores $CORES \
+        --memory $MEMORY \
+        --rootfs $STORAGE:$DISK \
+        --net0 name=eth0,bridge=vmbr0,ip=dhcp \
+        --features nesting=1,keyctl=1 \
+        --unprivileged 1 \
+        --start 0 \
+        >> "$LOG_FILE" 2>&1
+    
+    debug "Container created successfully"
+    print_success "Container $CTID created"
+}
+
+start_container() {
+    print_section "Starting container $CTID"
+    
+    pct start $CTID
+    debug "Start command issued"
+    
+    print_info "Waiting for container to boot..."
+    sleep 5
+    
+    # Wait for container to be responsive
+    local max_wait=30
+    local waited=0
+    while ! pct exec $CTID -- test -d /tmp &>/dev/null; do
+        if [ $waited -ge $max_wait ]; then
+            print_error "Container failed to become responsive after ${max_wait}s"
+            exit 1
+        fi
+        sleep 1
+        waited=$((waited + 1))
+        debug "Waiting for container... ${waited}s"
+    done
+    
+    debug "Container is responsive"
+    print_success "Container started and responsive"
+}
+
+get_container_ip() {
+    print_section "Getting container IP address"
+    
+    local max_wait=30
+    local waited=0
+    local ip=""
+    
+    while [ -z "$ip" ]; do
+        if [ $waited -ge $max_wait ]; then
+            print_error "Failed to get container IP after ${max_wait}s"
+            exit 1
+        fi
+        
+        ip=$(pct exec $CTID -- hostname -I 2>/dev/null | awk '{print $1}' || true)
+        
+        if [ -z "$ip" ]; then
+            sleep 1
+            waited=$((waited + 1))
+            debug "Waiting for IP assignment... ${waited}s"
+        fi
+    done
+    
+    debug "Container IP: $ip"
+    print_success "Container IP: $ip"
+    echo "$ip"
+}
+
+###############################################################################
+# Bootstrap Installation
+###############################################################################
+
+install_bootstrap_packages() {
+    print_section "Installing bootstrap packages"
+    
+    debug "Updating package lists..."
+    pct exec $CTID -- apt-get update -qq >> "$LOG_FILE" 2>&1
+    
+    debug "Installing curl..."
+    pct exec $CTID -- apt-get install -y curl wget >> "$LOG_FILE" 2>&1
+    
+    print_success "Bootstrap packages installed"
+}
+
+install_nodejs() {
+    print_section "Installing Node.js 20"
+    
+    debug "Adding NodeSource repository..."
+    pct exec $CTID -- bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -" >> "$LOG_FILE" 2>&1
+    
+    debug "Installing Node.js..."
+    pct exec $CTID -- apt-get install -y nodejs >> "$LOG_FILE" 2>&1
+    
+    local node_version=$(pct exec $CTID -- node -v)
+    debug "Node.js version: $node_version"
+    
+    print_success "Node.js installed: $node_version"
+}
+
+###############################################################################
+# Setup Wizard Deployment
+###############################################################################
+
+deploy_setup_wizard() {
+    print_section "Deploying web-based setup wizard"
+    
+    debug "Creating setup directory: $SETUP_DIR"
+    pct exec $CTID -- mkdir -p $SETUP_DIR
+    
+    debug "Downloading setup wizard files from GitHub..."
+    
+    # Download setup wizard HTML
+    print_info "Downloading setup-wizard.html..."
+    pct exec $CTID -- bash -c "curl -fsSL ${GITHUB_RAW}/setup-wizard.html -o ${SETUP_DIR}/setup-wizard.html" >> "$LOG_FILE" 2>&1
+    debug "setup-wizard.html downloaded"
+    
+    # Download setup server script
+    print_info "Downloading setup-server.js..."
+    pct exec $CTID -- bash -c "curl -fsSL ${GITHUB_RAW}/setup-server.js -o ${SETUP_DIR}/setup-server.js" >> "$LOG_FILE" 2>&1
+    debug "setup-server.js downloaded"
+    
+    # Download installer script
+    print_info "Downloading install-server.sh..."
+    pct exec $CTID -- bash -c "curl -fsSL ${GITHUB_RAW}/install-server.sh -o ${SETUP_DIR}/install-server.sh" >> "$LOG_FILE" 2>&1
+    debug "install-server.sh downloaded"
+    
+    # Make installer executable
+    pct exec $CTID -- chmod +x ${SETUP_DIR}/install-server.sh
+    debug "Made installer executable"
+    
+    # Verify files
+    debug "Verifying downloaded files..."
+    pct exec $CTID -- ls -lh $SETUP_DIR/ >> "$LOG_FILE" 2>&1
+    
+    print_success "Setup wizard files deployed"
+}
+
+create_wizard_service() {
+    print_section "Creating setup wizard systemd service"
+    
+    debug "Downloading service file..."
+    pct exec $CTID -- bash -c "curl -fsSL ${GITHUB_RAW}/ac-setup-wizard.service -o /etc/systemd/system/ac-setup-wizard.service" >> "$LOG_FILE" 2>&1
+    
+    debug "Reloading systemd..."
+    pct exec $CTID -- systemctl daemon-reload >> "$LOG_FILE" 2>&1
+    
+    debug "Enabling service..."
+    pct exec $CTID -- systemctl enable ac-setup-wizard.service >> "$LOG_FILE" 2>&1
+    
+    debug "Starting service..."
+    pct exec $CTID -- systemctl start ac-setup-wizard.service >> "$LOG_FILE" 2>&1
+    
+    sleep 2
+    
+    # Verify service is running
+    if pct exec $CTID -- systemctl is-active ac-setup-wizard.service | grep -q "active"; then
+        debug "Setup wizard service is active"
+        print_success "Setup wizard service started"
+    else
+        print_error "Setup wizard service failed to start"
+        debug "Checking service status..."
+        pct exec $CTID -- systemctl status ac-setup-wizard.service >> "$LOG_FILE" 2>&1
+        exit 1
+    fi
+}
+
+test_wizard_accessibility() {
+    print_section "Testing wizard accessibility"
+    
+    debug "Waiting for wizard to be ready..."
+    sleep 3
+    
+    local max_wait=30
+    local waited=0
+    
+    while ! pct exec $CTID -- curl -sf http://localhost:$WIZARD_PORT/setup &>/dev/null; do
+        if [ $waited -ge $max_wait ]; then
+            print_error "Setup wizard not accessible after ${max_wait}s"
+            debug "Checking service logs..."
+            pct exec $CTID -- journalctl -u ac-setup-wizard.service -n 50 >> "$LOG_FILE" 2>&1
+            exit 1
+        fi
+        sleep 1
+        waited=$((waited + 1))
+        debug "Waiting for wizard... ${waited}s"
+    done
+    
+    debug "Setup wizard is accessible"
+    print_success "Setup wizard is accessible"
+}
+
+###############################################################################
+# Firewall Configuration
+###############################################################################
+
+configure_firewall() {
+    print_section "Configuring firewall"
+    
+    if pct exec $CTID -- command -v ufw &>/dev/null; then
+        debug "UFW detected, configuring rules..."
+        
+        pct exec $CTID -- ufw allow $WIZARD_PORT/tcp >> "$LOG_FILE" 2>&1
+        debug "Allowed port $WIZARD_PORT/tcp for wizard"
+        
+        pct exec $CTID -- ufw allow 9600/tcp >> "$LOG_FILE" 2>&1
+        pct exec $CTID -- ufw allow 9600/udp >> "$LOG_FILE" 2>&1
+        pct exec $CTID -- ufw allow 8081/tcp >> "$LOG_FILE" 2>&1
+        debug "Allowed AC server ports"
+        
+        print_success "Firewall rules configured"
+    else
+        debug "UFW not installed, skipping firewall configuration"
+        print_warning "UFW not installed, manually open ports if needed"
+    fi
+}
+
+###############################################################################
+# Completion and Output
+###############################################################################
+
+show_completion() {
+    local container_ip="$1"
+    
+    print_header "Installation Complete! 🎉"
+    
+    echo -e "${GREEN}"
+    cat << EOF
+
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   Setup wizard is ready!                                 ║
+║   Open the web interface to complete installation        ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+EOF
+    echo -e "${NC}"
+    
+    echo "📍 Container Information:"
+    echo "   Container ID:    $CTID"
+    echo "   Hostname:        $HOSTNAME"
+    echo "   IP Address:      $container_ip"
+    echo "   Root Password:   $PASSWORD"
+    echo ""
+    
+    echo "🌐 Web Interface:"
+    echo "   Setup Wizard:    http://$container_ip:$WIZARD_PORT"
+    echo "   Local Access:    http://localhost:$WIZARD_PORT (from container)"
+    echo ""
+    
+    echo "📂 Installation Locations:"
+    echo "   Setup Files:     $SETUP_DIR"
+    echo "   App (future):    $APP_DIR"
+    echo "   AC Server:       $AC_SERVER_DIR"
+    echo ""
+    
+    echo "🔧 Container Commands:"
+    echo "   Enter:           pct enter $CTID"
+    echo "   Stop:            pct stop $CTID"
+    echo "   Start:           pct start $CTID"
+    echo "   Destroy:         pct destroy $CTID"
+    echo ""
+    
+    echo "📝 Next Steps:"
+    echo "   1. Open http://$container_ip:$WIZARD_PORT in your browser"
+    echo "   2. Follow the setup wizard to configure installation"
+    echo "   3. The wizard will automatically install AC Server Manager"
+    echo "   4. After installation, access the app at http://$container_ip:3001"
+    echo ""
+    
+    echo "🐛 Debug Information:"
+    echo "   Log File:        $LOG_FILE"
+    echo "   Service Status:  pct exec $CTID -- systemctl status ac-setup-wizard"
+    echo "   Service Logs:    pct exec $CTID -- journalctl -u ac-setup-wizard -f"
+    echo ""
+    
+    print_info "Installation log saved to: $LOG_FILE"
+    
+    if [ "$DEBUG" = true ]; then
+        echo ""
+        print_warning "Debug mode enabled - additional logging active"
+    fi
+}
+
+###############################################################################
+# Main Installation Flow
+###############################################################################
+
+main() {
+    # Parse arguments
+    parse_args "$@"
+    
+    # Show header
+    clear
+    print_header "$SCRIPT_NAME v$VERSION"
+    
+    log "Starting unified installation"
+    log "Log file: $LOG_FILE"
+    
+    # Check prerequisites
+    check_prerequisites
+    
+    # Container setup
+    check_existing_container
+    create_container
+    start_container
+    container_ip=$(get_container_ip)
+    
+    # Bootstrap
+    install_bootstrap_packages
+    install_nodejs
+    
+    # Deploy wizard
+    deploy_setup_wizard
+    create_wizard_service
+    test_wizard_accessibility
+    
+    # Finalize
+    configure_firewall
+    
+    # Success!
+    show_completion "$container_ip"
+}
+
+###############################################################################
+# Execute Main
+###############################################################################
+
+main "$@"
