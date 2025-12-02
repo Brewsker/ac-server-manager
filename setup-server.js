@@ -76,7 +76,7 @@ async function handleInstall(req, res) {
             }" bash /tmp/install.sh' >> /var/log/installer.log 2>&1 &`;
 
       console.log('[Setup] Running installer...');
-      
+
       // Execute the command and immediately return
       exec(installCmd, (error) => {
         if (error) {
@@ -84,8 +84,10 @@ async function handleInstall(req, res) {
         }
       });
 
-      console.log('[Setup] Installation started in background, check /var/log/installer.log for progress');
-      
+      console.log(
+        '[Setup] Installation started in background, check /var/log/installer.log for progress'
+      );
+
       installerRunning = true;
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -118,7 +120,7 @@ function streamLogs(req, res) {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
+    Connection: 'keep-alive',
   });
 
   // Send initial connection message
@@ -126,17 +128,25 @@ function streamLogs(req, res) {
 
   // Check if installer log exists
   if (!fs.existsSync(installerLogPath)) {
-    res.write(`data: ${JSON.stringify({ type: 'waiting', message: 'Waiting for installation to start...' })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({
+        type: 'waiting',
+        message: 'Waiting for installation to start...',
+      })}\n\n`
+    );
   }
 
   // Use tail -f to follow the log
   const tail = spawn('tail', ['-f', '-n', '0', installerLogPath]);
 
   tail.stdout.on('data', (data) => {
-    const lines = data.toString().split('\n').filter(line => line.trim());
-    lines.forEach(line => {
+    const lines = data
+      .toString()
+      .split('\n')
+      .filter((line) => line.trim());
+    lines.forEach((line) => {
       res.write(`data: ${JSON.stringify({ type: 'log', message: line })}\n\n`);
-      
+
       // Check for completion markers
       if (line.includes('Installation complete') || line.includes('Setup complete')) {
         res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
