@@ -724,6 +724,8 @@ install_bootstrap_packages() {
 install_nodejs() {
     print_section "Installing Node.js 20"
     
+    local container_ip="$1"  # Get IP from parameter
+    
     debug "Removing any existing Node.js..."
     set +e  # Temporarily allow errors
     pct exec $CTID -- apt-get remove -y nodejs npm >> "$LOG_FILE" 2>&1
@@ -739,7 +741,7 @@ install_nodejs() {
     # Use SSH to run installation in container to avoid pct exec timeout issues
     # SSH should be configured and key injected at this point
     set +e
-    ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@$CONTAINER_IP "DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1 && touch /tmp/nodejs-install-complete" >> "$LOG_FILE" 2>&1 &
+    ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@$container_ip "DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1 && touch /tmp/nodejs-install-complete" >> "$LOG_FILE" 2>&1 &
     local install_pid=$!
     
     # Wait for installation to complete (max 120 seconds)
@@ -1077,7 +1079,7 @@ main() {
     
     # Bootstrap
     install_bootstrap_packages
-    install_nodejs
+    install_nodejs "$container_ip"
     
     # Deploy wizard
     deploy_setup_wizard
