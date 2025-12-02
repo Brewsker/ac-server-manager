@@ -244,37 +244,106 @@ EOF
 # Prerequisites Check
 ###############################################################################
 
-check_git_cache() {
-    print_section "Checking git-cache server"
+ensure_git_cache() {
+    print_section "Setting up git-cache server"
     
-    # Check if git-cache container exists and is running
-    if pct status $GIT_CACHE_CTID &>/dev/null; then
-        if pct status $GIT_CACHE_CTID | grep -q "running"; then
-            debug "Git-cache container is running"
-            
-            # Test if nginx is serving files
-            if curl -sf --connect-timeout 2 "${GIT_CACHE_URL}/README.md" &>/dev/null; then
-                print_success "Git-cache server available at $GIT_CACHE_IP"
-                USE_GIT_CACHE=true
-                
-                # Sync git-cache with GitHub
-                print_info "Syncing git-cache from GitHub..."
-                pct exec $GIT_CACHE_CTID -- bash -c "cd /opt/git-cache/ac-server-manager && git fetch --all --prune && git checkout $GITHUB_BRANCH && git pull" >> "$LOG_FILE" 2>&1
-                print_success "Git-cache synced to latest $GITHUB_BRANCH"
-                
-                return 0
-            else
-                debug "Git-cache container exists but nginx not responding"
-            fi
-        else
-            debug "Git-cache container exists but not running"
-        fi
-    else
-        debug "Git-cache container not found (ID: $GIT_CACHE_CTID)"
+    # Check if git-cache container exists
+    if ! pct status $GIT_CACHE_CTID &>/dev/null; then
+        print_info "Git-cache container not found, creating it..."
+        create_git_cache_container
     fi
     
-    print_warning "Git-cache not available, will download from GitHub"
-    USE_GIT_CACHE=false
+    # Check if container is running
+    if ! pct status $GIT_CACHE_CTID | grep -q "running"; then
+        print_info "Starting git-cache container..."
+        pct start $GIT_CACHE_CTID
+        sleep 3
+        debug "Git-cache container started"
+    fi
+    
+    # Verify nginx is accessible
+    local max_wait=10
+    local waited=0
+    while ! curl -sf --connect-timeout 2 "${GIT_CACHE_URL}/README.md" &>/dev/null; do
+        if [ $waited -ge $max_wait ]; then
+            print_warning "Git-cache not responding after ${max_wait}s, falling back to GitHub"
+            USE_GIT_CACHE=false
+            return 1
+        fi
+        sleep 1
+        waited=$((waited + 1))
+        debug "Waiting for git-cache to respond... ${waited}s"
+    done
+    
+    print_success "Git-cache server available at $GIT_CACHE_IP"
+    USE_GIT_CACHE=true
+    
+    # Sync git-cache with GitHub
+    print_info "Syncing git-cache from GitHub..."
+    pct exec $GIT_CACHE_CTID -- bash -c "cd /opt/git-cache/ac-server-manager && git fetch --all --prune && git checkout $GITHUB_BRANCH && git pull origin $GITHUB_BRANCH" >> "$LOG_FILE" 2>&1
+    
+    # Show latest commit
+    local latest_commit=$(pct exec $GIT_CACHE_CTID -- bash -c "cd /opt/git-cache/ac-server-manager && git log -1 --oneline" 2>/dev/null)
+    debug "Latest commit: $latest_commit"
+    print_success "Git-cache synced to latest $GITHUB_BRANCH"
+}
+
+create_git_cache_container() {
+    debug "Creating git-cache container..."
+    
+    local git_cache_storage="local-lvm"
+    local git_cache_template="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+    local git_cache_password="GitCache123"
+    local git_cache_ip="192.168.1.70/24"
+    local git_cache_gateway="192.168.1.1"
+    
+    # Create container
+    pct create $GIT_CACHE_CTID $git_cache_template \
+        --hostname git-cache \
+        --password "$git_cache_password" \
+        --storage $git_cache_storage \
+        --rootfs $git_cache_storage:10 \
+        --memory 512 \
+        --swap 256 \
+        --net0 name=eth0,bridge=vmbr0,ip=$git_cache_ip,gw=$git_cache_gateway \
+        --features nesting=1 \
+        --unprivileged 1 \
+        --onboot 1 \
+        --start 1 \
+        >> "$LOG_FILE" 2>&1
+    
+    debug "Git-cache container created"
+    sleep 5
+    
+    # Install git and nginx
+    print_info "Installing git and nginx in cache container..."
+    pct exec $GIT_CACHE_CTID -- bash -c "apt-get update -qq && apt-get install -y git nginx-light" >> "$LOG_FILE" 2>&1
+    
+    # Clone repository
+    print_info "Cloning repository to cache..."
+    pct exec $GIT_CACHE_CTID -- bash -c "mkdir -p /opt/git-cache && cd /opt/git-cache && git clone https://github.com/${GITHUB_REPO}.git" >> "$LOG_FILE" 2>&1
+    pct exec $GIT_CACHE_CTID -- bash -c "cd /opt/git-cache/ac-server-manager && git checkout $GITHUB_BRANCH" >> "$LOG_FILE" 2>&1
+    
+    # Configure nginx
+    print_info "Configuring nginx in cache container..."
+    pct exec $GIT_CACHE_CTID -- bash -c 'cat > /etc/nginx/sites-available/git-cache <<EOF
+server {
+    listen 80;
+    server_name _;
+    
+    location / {
+        root /opt/git-cache;
+        autoindex on;
+        autoindex_exact_size off;
+        autoindex_localtime on;
+    }
+}
+EOF' >> "$LOG_FILE" 2>&1
+    
+    pct exec $GIT_CACHE_CTID -- bash -c "ln -sf /etc/nginx/sites-available/git-cache /etc/nginx/sites-enabled/default" >> "$LOG_FILE" 2>&1
+    pct exec $GIT_CACHE_CTID -- systemctl restart nginx >> "$LOG_FILE" 2>&1
+    
+    print_success "Git-cache container created and configured"
 }
 
 check_prerequisites() {
@@ -703,8 +772,8 @@ main() {
     # Check prerequisites
     check_prerequisites
     
-    # Check and sync git-cache
-    check_git_cache
+    # Ensure git-cache is available and synced
+    ensure_git_cache
     
     # Container setup
     check_existing_container
