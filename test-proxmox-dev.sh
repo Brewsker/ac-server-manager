@@ -113,7 +113,7 @@ create_container() {
     
     # Setup SSH with password authentication enabled
     print_info "Configuring SSH for password authentication..."
-    pct exec $CTID -- bash -c "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && systemctl restart ssh"
+    pct exec $CTID -- bash -c "echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config && echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config && systemctl restart ssh"
     print_success "SSH password authentication enabled (user: root, password: $PASSWORD)"
     
     # Get container IP
