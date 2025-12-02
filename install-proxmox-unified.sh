@@ -435,10 +435,10 @@ destroy_container() {
 create_container() {
     print_section "Creating container $CTID"
     
-    # Generate password if not provided
+    # Use default password if not provided
     if [ -z "$PASSWORD" ]; then
-        PASSWORD=$(openssl rand -base64 12)
-        debug "Generated random password"
+        PASSWORD="admin"
+        debug "Using default password: admin"
     fi
     
     debug "Container configuration:"
@@ -505,6 +505,22 @@ start_container() {
     
     debug "Container is responsive"
     print_success "Container started and responsive"
+}
+
+update_ssh_keys() {
+    print_section "Updating SSH known_hosts"
+    
+    local container_ip="$1"
+    local ssh_known_hosts="$HOME/.ssh/known_hosts"
+    
+    if [ -f "$ssh_known_hosts" ]; then
+        debug "Removing old SSH keys for $container_ip"
+        ssh-keygen -R "$container_ip" >> "$LOG_FILE" 2>&1
+        ssh-keygen -R "192.168.1.71" >> "$LOG_FILE" 2>&1
+        print_success "SSH keys updated"
+    else
+        debug "No existing known_hosts file"
+    fi
 }
 
 get_container_ip() {
@@ -826,6 +842,7 @@ main() {
     create_container
     start_container
     container_ip=$(get_container_ip)
+    update_ssh_keys "$container_ip"
     
     # Bootstrap
     install_bootstrap_packages
