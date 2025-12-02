@@ -157,6 +157,11 @@ prompt_installation_type() {
 }
 
 prompt_ac_server() {
+    if [[ "$NON_INTERACTIVE" == "yes" ]]; then
+        print_info "Non-interactive mode: AC Server download = $INSTALL_AC_SERVER"
+        return
+    fi
+    
     print_step "Assetto Corsa Dedicated Server"
     echo ""
     read -p "Do you want to download AC Dedicated Server via Steam? (y/n): " download_ac
