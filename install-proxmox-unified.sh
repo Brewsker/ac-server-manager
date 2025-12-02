@@ -722,18 +722,37 @@ install_nodejs() {
     set -e
     
     debug "Installing Node.js (this may take a moment)..."
-    # Use timeout command to prevent hang, but allow installation to complete
-    # Install directly in container without nohup/background complexity
+    # Use SSH to run installation in container to avoid pct exec timeout issues
+    # SSH should be configured and key injected at this point
     set +e
-    timeout 180 pct exec $CTID -- bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1 && touch /tmp/nodejs-install-complete" >> "$LOG_FILE" 2>&1
-    local install_result=$?
-    set -e
+    ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@$CONTAINER_IP "DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1 && touch /tmp/nodejs-install-complete" >> "$LOG_FILE" 2>&1 &
+    local install_pid=$!
     
-    # If timeout occurred (exit code 124), check if Node.js was installed anyway
-    if [ $install_result -eq 124 ]; then
-        debug "Installation command timed out, checking if Node.js is available..."
-        sleep 5  # Give dpkg a moment to finish
-    fi
+    # Wait for installation to complete (max 120 seconds)
+    local max_wait=120
+    local waited=0
+    debug "Waiting for Node.js installation to complete..."
+    while [ $waited -lt $max_wait ]; do
+        # Check if completion marker exists
+        if pct exec $CTID -- test -f /tmp/nodejs-install-complete 2>/dev/null; then
+            debug "Installation complete marker found"
+            break
+        fi
+        # Check if ssh process is still running
+        if ! kill -0 $install_pid 2>/dev/null; then
+            debug "Installation process completed"
+            break
+        fi
+        sleep 3
+        waited=$((waited + 3))
+        if [ $((waited % 15)) -eq 0 ]; then
+            debug "Still waiting for Node.js installation... ${waited}s"
+        fi
+    done
+    
+    # Kill the background ssh if still running
+    kill $install_pid 2>/dev/null || true
+    set -e
     
     # Verify installation
     sleep 2
@@ -1035,6 +1054,7 @@ main() {
     fi
     
     container_ip=$(get_container_ip)
+    export CONTAINER_IP="$container_ip"  # Make available to subfunctions
     
     update_ssh_keys "$container_ip"
     
