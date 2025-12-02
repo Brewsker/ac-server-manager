@@ -10,7 +10,7 @@
 ## 🎯 Current Session Objectives
 
 1. **Test Setup Wizard Flow** - First-time user experience
-2. **Test Configuration Validation** - Path checking and error handling  
+2. **Test Configuration Validation** - Path checking and error handling
 3. **Test Wizard-to-App Transition** - Seamless experience without page refresh
 4. **Test Service Persistence** - Configuration survives restarts
 5. **Document Issues** - Track bugs and improvements needed
@@ -20,11 +20,13 @@
 ## ✅ Completed Steps
 
 ### 1. Installation via Script
+
 ```bash
 pct exec 999 -- bash -c "NON_INTERACTIVE=yes bash /tmp/install.sh 2>&1 | tee /var/log/installer-manual.log"
 ```
 
 **Result:** ✅ SUCCESS
+
 - All dependencies installed
 - PM2 service running
 - Application accessible at http://192.168.1.71:3001
@@ -37,17 +39,20 @@ pct exec 999 -- bash -c "NON_INTERACTIVE=yes bash /tmp/install.sh 2>&1 | tee /va
 ### Test 1: Initial Wizard Access
 
 **Steps:**
+
 1. Open http://192.168.1.71:3001 in browser
 2. Verify Setup Wizard appears (not main dashboard)
 3. Check wizard displays correct initial state
 
 **Expected Behavior:**
+
 - Wizard should display welcome screen
 - Auto-detect should run automatically in background
 - Should show "configure" step since no AC installed
 - No error messages on initial load
 
 **Actual Results:**
+
 - [ ] Document what you see when accessing the URL
 
 ---
@@ -55,17 +60,20 @@ pct exec 999 -- bash -c "NON_INTERACTIVE=yes bash /tmp/install.sh 2>&1 | tee /va
 ### Test 2: Auto-Detection (Expected Failure)
 
 **Steps:**
+
 1. Click "🔍 Auto-Detect" button
 2. Wait for response
 3. Observe error handling
 
 **Expected Behavior:**
+
 - Should attempt to detect AC installation
 - Should fail gracefully (no AC installed)
 - Should show friendly message: "Could not auto-detect AC installation. Please specify path manually."
 - No browser console errors
 
 **Actual Results:**
+
 - [ ] Document auto-detect behavior
 - [ ] Check browser console (F12) for errors
 
@@ -74,21 +82,25 @@ pct exec 999 -- bash -c "NON_INTERACTIVE=yes bash /tmp/install.sh 2>&1 | tee /va
 ### Test 3: Manual Path Entry (Invalid Path)
 
 **Steps:**
+
 1. Enter an invalid path: `/invalid/path`
 2. Click "Validate & Continue →"
 3. Observe validation error
 
 **Expected Behavior:**
+
 - Should send POST to `/api/setup/validate`
 - Should return validation errors
 - Should show error message in UI
 - Should stay on configure step
 
 **Actual Results:**
+
 - [ ] Document validation error display
 - [ ] Check if all expected errors shown
 
 **Browser Console Check:**
+
 ```javascript
 // Open browser console and check network tab
 // Should see:
@@ -103,6 +115,7 @@ pct exec 999 -- bash -c "NON_INTERACTIVE=yes bash /tmp/install.sh 2>&1 | tee /va
 Since no AC server is installed, we need to either:
 
 **Option A: Install via SteamCMD** (if you have Steam credentials)
+
 ```bash
 pct enter 999
 
@@ -119,6 +132,7 @@ apt-get install -y steamcmd
 ```
 
 **Option B: Use Mock/Test AC Server**
+
 ```bash
 pct enter 999
 
@@ -152,17 +166,20 @@ echo "Mock AC Server created for testing"
 ### Test 5: Valid Path Entry
 
 **Steps:**
+
 1. Enter the AC server path in wizard: `/opt/assetto-corsa-server`
 2. Click "Validate & Continue →"
 3. Wait for validation
 
 **Expected Behavior:**
+
 - Should validate all required paths
 - Should transition to "validating" step
 - Should show validation success with all paths listed
 - Should show "Save Configuration" button
 
 **Actual Results:**
+
 - [ ] Document validation success display
 - [ ] Verify all 4 paths shown correctly:
   - AC_SERVER_PATH
@@ -175,11 +192,13 @@ echo "Mock AC Server created for testing"
 ### Test 6: Save Configuration
 
 **Steps:**
+
 1. Click "Save Configuration" button
 2. Wait for response
 3. Observe UI changes
 
 **Expected Behavior:**
+
 - Should send POST to `/api/setup/configure`
 - Should update `.env` file in backend
 - Should transition from wizard to main dashboard
@@ -187,18 +206,21 @@ echo "Mock AC Server created for testing"
 - Main dashboard should load
 
 **Actual Results:**
+
 - [ ] Document save process
 - [ ] Check if wizard disappears
 - [ ] Check if dashboard loads
 - [ ] Time the transition (should be < 1 second)
 
 **Backend Verification:**
+
 ```bash
 # On Proxmox host, check .env file was updated
 pct exec 999 -- cat /opt/ac-server-manager/backend/.env | grep AC_SERVER
 ```
 
 Expected output:
+
 ```
 AC_SERVER_PATH=/opt/assetto-corsa-server/server/acServer.exe
 AC_SERVER_CONFIG_PATH=/opt/assetto-corsa-server/server/cfg/server_cfg.ini
@@ -211,17 +233,20 @@ AC_CONTENT_PATH=/opt/assetto-corsa-server/content
 ### Test 7: Verify Main App Access
 
 **Steps:**
+
 1. After wizard completes, verify dashboard displays
 2. Navigate to different pages
 3. Check all UI elements load correctly
 
 **Expected Behavior:**
+
 - Dashboard shows server status
 - Navigation menu works
 - Server controls visible
 - No wizard reappears
 
 **Actual Results:**
+
 - [ ] Document main app state
 - [ ] Check if server controls work
 - [ ] Try navigating to /config, /active-drivers, etc.
@@ -231,6 +256,7 @@ AC_CONTENT_PATH=/opt/assetto-corsa-server/content
 ### Test 8: Service Restart (Configuration Persistence)
 
 **Steps:**
+
 1. From Proxmox host, restart PM2 service:
    ```bash
    pct exec 999 -- pm2 restart ac-server-manager
@@ -240,12 +266,14 @@ AC_CONTENT_PATH=/opt/assetto-corsa-server/content
 4. Observe behavior
 
 **Expected Behavior:**
+
 - After restart, browser refresh should load main dashboard
 - Should NOT show wizard again
 - Configuration should persist
 - `/api/setup/status` should return `configured: true`
 
 **Actual Results:**
+
 - [ ] Document what loads after restart
 - [ ] Check PM2 logs if issues: `pct exec 999 -- pm2 logs ac-server-manager`
 
@@ -254,6 +282,7 @@ AC_CONTENT_PATH=/opt/assetto-corsa-server/content
 ### Test 9: Force Wizard Re-Appearance (Reset Test)
 
 **Steps:**
+
 1. Clear `.env` configuration:
    ```bash
    pct exec 999 -- bash -c "cd /opt/ac-server-manager/backend && cp .env.example .env"
@@ -266,11 +295,13 @@ AC_CONTENT_PATH=/opt/assetto-corsa-server/content
 4. Verify wizard appears again
 
 **Expected Behavior:**
+
 - Wizard should re-appear
 - Should start from configure step
 - Previous paths should not be pre-filled
 
 **Actual Results:**
+
 - [ ] Document reset behavior
 - [ ] Verify wizard appears correctly
 
@@ -279,22 +310,26 @@ AC_CONTENT_PATH=/opt/assetto-corsa-server/content
 ## 🐛 Known Issues to Check
 
 ### Browser Console Errors
+
 - [ ] Any React errors or warnings?
 - [ ] Any network request failures?
 - [ ] Any CORS issues?
 
 ### UI/UX Issues
+
 - [ ] Buttons responsive and properly styled?
 - [ ] Loading states show correctly?
 - [ ] Error messages clear and helpful?
 - [ ] Success messages encouraging?
 
 ### Backend Issues
+
 - [ ] PM2 logs show any errors?
 - [ ] API endpoints return correct status codes?
 - [ ] .env file updates correctly?
 
 ### Edge Cases
+
 - [ ] What happens if you enter path with spaces?
 - [ ] What happens if you enter Windows-style path (C:\...)?
 - [ ] What happens if path exists but files are missing?
@@ -305,6 +340,7 @@ AC_CONTENT_PATH=/opt/assetto-corsa-server/content
 ## 📝 Testing Commands Reference
 
 ### Proxmox Host Commands
+
 ```bash
 # Enter container
 pct enter 999
@@ -329,18 +365,19 @@ pct exec 999 -- pm2 logs ac-server-manager
 ```
 
 ### Browser Testing
+
 ```javascript
 // Check API directly in browser console
 fetch('/api/setup/status')
-  .then(r => r.json())
+  .then((r) => r.json())
   .then(console.log);
 
 fetch('/api/setup/validate', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ path: '/opt/assetto-corsa-server' })
+  body: JSON.stringify({ path: '/opt/assetto-corsa-server' }),
 })
-  .then(r => r.json())
+  .then((r) => r.json())
   .then(console.log);
 ```
 
@@ -349,6 +386,7 @@ fetch('/api/setup/validate', {
 ## 📊 Test Results Summary
 
 ### Test Status
+
 - [ ] Test 1: Initial Wizard Access
 - [ ] Test 2: Auto-Detection
 - [ ] Test 3: Invalid Path Validation
@@ -360,6 +398,7 @@ fetch('/api/setup/validate', {
 - [ ] Test 9: Reset Test
 
 ### Issues Found
+
 ```
 Issue #1: [Description]
 Severity: Critical/High/Medium/Low
@@ -369,10 +408,11 @@ Actual behavior:
 ```
 
 ### Performance Metrics
-- Wizard load time: ___ms
-- Validation response time: ___ms
-- Configuration save time: ___ms
-- Wizard-to-app transition time: ___ms
+
+- Wizard load time: \_\_\_ms
+- Validation response time: \_\_\_ms
+- Configuration save time: \_\_\_ms
+- Wizard-to-app transition time: \_\_\_ms
 
 ---
 

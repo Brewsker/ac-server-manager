@@ -284,9 +284,9 @@ ensure_git_cache() {
     print_success "Git-cache server available at $GIT_CACHE_IP"
     USE_GIT_CACHE=true
     
-    # Sync git-cache with GitHub
+    # Sync git-cache with GitHub (force update to latest)
     print_info "Syncing git-cache from GitHub..."
-    pct exec $GIT_CACHE_CTID -- bash -c "cd /opt/git-cache/ac-server-manager && git fetch --all --prune && git checkout $GITHUB_BRANCH && git pull origin $GITHUB_BRANCH" >> "$LOG_FILE" 2>&1
+    pct exec $GIT_CACHE_CTID -- bash -c "cd /opt/git-cache/ac-server-manager && git fetch origin $GITHUB_BRANCH && git reset --hard origin/$GITHUB_BRANCH" >> "$LOG_FILE" 2>&1
     
     # Show latest commit
     local latest_commit=$(pct exec $GIT_CACHE_CTID -- bash -c "cd /opt/git-cache/ac-server-manager && git log -1 --oneline" 2>/dev/null)
