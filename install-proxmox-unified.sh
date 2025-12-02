@@ -32,6 +32,9 @@ VERSION="1.0.0-dev"
 
 # Git-cache container version (increment when nginx config or setup changes)
 GIT_CACHE_VERSION="2"
+
+# Script checksum for verification (updated: 2025-12-01 19:54)
+SCRIPT_DATE="2025-12-01-1954"
 SCRIPT_NAME="AC Server Manager - Unified Installer"
 
 # Default configuration
@@ -860,6 +863,7 @@ main() {
     print_header "$SCRIPT_NAME v$VERSION"
     
     log "Starting unified installation"
+    log "Script date: $SCRIPT_DATE (Git-cache v$GIT_CACHE_VERSION required)"
     log "Log file: $LOG_FILE"
     
     # Check prerequisites
