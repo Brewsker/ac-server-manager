@@ -570,8 +570,8 @@ install_bootstrap_packages() {
     debug "Updating package lists..."
     pct exec $CTID -- apt-get update -qq >> "$LOG_FILE" 2>&1
     
-    debug "Installing curl..."
-    pct exec $CTID -- apt-get install -y curl wget >> "$LOG_FILE" 2>&1
+    debug "Installing curl, wget, and git..."
+    pct exec $CTID -- apt-get install -y curl wget git >> "$LOG_FILE" 2>&1
     
     print_success "Bootstrap packages installed"
 }
@@ -649,12 +649,11 @@ deploy_setup_wizard() {
         pct exec $CTID -- rm -rf /tmp/ac-setup-wizard >> "$LOG_FILE" 2>&1
         
         debug "Cloning from git-cache..."
-        pct exec $CTID -- bash -c "git clone --depth=1 --branch develop http://${GIT_CACHE_IP}/ac-server-manager /tmp/ac-setup-wizard" >> "$LOG_FILE" 2>&1
-        
-        if [ $? -eq 0 ]; then
+        if pct exec $CTID -- bash -c "git clone --depth=1 --branch develop http://${GIT_CACHE_IP}/ac-server-manager /tmp/ac-setup-wizard" >> "$LOG_FILE" 2>&1; then
             debug "Repository cloned successfully for updates"
         else
-            debug "Warning: Failed to clone repo for updates (update button will not work)"
+            print_warning "Failed to clone repo for updates (update button will not work)"
+            debug "Git clone failed, check log for details"
         fi
     fi
     
