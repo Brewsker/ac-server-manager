@@ -1,0 +1,30 @@
+# SSH Configuration for AC Server Manager
+# Last updated: 2025-12-01
+# This file maintains password-less SSH access to containers
+
+# AC Server Manager Container
+Host 192.168.1.71 ac-server
+    HostName 192.168.1.71
+    User root
+    StrictHostKeyChecking accept-new
+    IdentitiesOnly yes
+    IdentityFile ~/.ssh/id_ed25519
+    IdentityFile ~/.ssh/id_rsa
+
+# Git Cache Server
+Host 192.168.1.70 git-cache
+    HostName 192.168.1.70
+    User root
+    StrictHostKeyChecking accept-new
+    IdentitiesOnly yes
+    IdentityFile ~/.ssh/id_ed25519
+    IdentityFile ~/.ssh/id_rsa
+
+# Proxmox Host (if needed)
+Host 192.168.1.61 proxmox
+    HostName 192.168.1.61
+    User root
+    StrictHostKeyChecking accept-new
+    IdentitiesOnly yes
+    IdentityFile ~/.ssh/id_ed25519
+    IdentityFile ~/.ssh/id_rsa
