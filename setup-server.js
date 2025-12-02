@@ -130,7 +130,7 @@ function streamLogs(req, res) {
   // Send initial connection message
   res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
-  // Check if installer log exists
+  // Check if installer log exists and send existing content
   if (!fs.existsSync(installerLogPath)) {
     res.write(
       `data: ${JSON.stringify({
@@ -138,9 +138,27 @@ function streamLogs(req, res) {
         message: 'Waiting for installation to start...',
       })}\n\n`
     );
+  } else {
+    // Send existing log content first
+    try {
+      const existingLog = fs.readFileSync(installerLogPath, 'utf8');
+      const lines = existingLog.split('\n').filter((line) => line.trim());
+      lines.forEach((line) => {
+        res.write(`data: ${JSON.stringify({ type: 'log', message: line })}\n\n`);
+      });
+      
+      // Check if already complete
+      if (existingLog.includes('SETUP_WIZARD_COMPLETE')) {
+        res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+        installerRunning = false;
+        return; // Don't start tail if already complete
+      }
+    } catch (err) {
+      console.error('[SSE] Error reading existing log:', err);
+    }
   }
 
-  // Use tail -f to follow the log
+  // Use tail -f to follow the log for new lines
   const tail = spawn('tail', ['-f', '-n', '0', installerLogPath]);
 
   tail.stdout.on('data', (data) => {
