@@ -305,19 +305,17 @@ function handleHealth(req, res) {
     })
   );
 
-  // If installation is complete, disable wizard service
+  // If installation is complete, disable and stop wizard service
+  // The wizard service ExecStopPost will restart PM2 after wizard fully stops
   if (installComplete && !installerRunning) {
     console.log('[Health] Installation detected as complete - disabling wizard');
     setTimeout(() => {
       exec('systemctl disable ac-setup-wizard && systemctl stop ac-setup-wizard', (error) => {
         if (error) {
-          console.error('[Health] Failed to disable wizard:', error);
+          console.error('[Health] Failed to disable/stop wizard:', error);
         }
-        // After wizard stops, trigger PM2 restart via systemd service restart
-        console.log('[Health] Wizard stopped - restarting PM2 service to bind port');
-        exec('sleep 2 && systemctl restart pm2-root', () => {
-          process.exit(0);
-        });
+        console.log('[Health] Wizard stopping - ExecStopPost will restart PM2');
+        process.exit(0);
       });
     }, 2000);
   }
