@@ -721,14 +721,6 @@ install_bootstrap_packages() {
 install_nodejs() {
     print_section "Installing Node.js 20"
     
-    local container_ip="$1"  # Get IP from parameter
-    debug "Container IP for Node.js installation: $container_ip"
-    
-    if [ -z "$container_ip" ]; then
-        print_error "Container IP not provided to install_nodejs function"
-        return 1
-    fi
-    
     debug "Removing any existing Node.js..."
     set +e  # Temporarily allow errors
     pct exec $CTID -- apt-get remove -y nodejs npm >> "$LOG_FILE" 2>&1
@@ -740,11 +732,20 @@ install_nodejs() {
     pct exec $CTID -- bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -" >> "$LOG_FILE" 2>&1
     set -e
     
-    debug "Installing Node.js (this may take a moment)..."
-    # Use SSH to run installation in container to avoid pct exec timeout issues
-    # SSH should be configured and key injected at this point
+    debug "Installing Node.js via filesystem write (this may take a moment)..."
+    # Create installation script in container filesystem to avoid pct exec timeouts
+    local rootfs="/var/lib/lxc/$CTID/rootfs"
+    cat > "$rootfs/tmp/install-nodejs.sh" <<'EOFSCRIPT'
+#!/bin/bash
+export DEBIAN_FRONTEND=noninteractive
+apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1
+echo $? > /tmp/nodejs-install-exitcode
+EOFSCRIPT
+    chmod +x "$rootfs/tmp/install-nodejs.sh"
+    
+    # Run installation script in background via pct exec
     set +e
-    ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@$container_ip "DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1 && touch /tmp/nodejs-install-complete" >> "$LOG_FILE" 2>&1 &
+    pct exec $CTID -- bash /tmp/install-nodejs.sh &
     local install_pid=$!
     
     # Wait for installation to complete (max 120 seconds)
@@ -752,14 +753,16 @@ install_nodejs() {
     local waited=0
     debug "Waiting for Node.js installation to complete..."
     while [ $waited -lt $max_wait ]; do
-        # Check if completion marker exists
-        if pct exec $CTID -- test -f /tmp/nodejs-install-complete 2>/dev/null; then
-            debug "Installation complete marker found"
+        # Check if exit code file exists
+        if [ -f "$rootfs/tmp/nodejs-install-exitcode" ]; then
+            local exitcode=$(cat "$rootfs/tmp/nodejs-install-exitcode")
+            debug "Installation completed with exit code: $exitcode"
             break
         fi
-        # Check if ssh process is still running
+        # Check if install process is still running
         if ! kill -0 $install_pid 2>/dev/null; then
-            debug "Installation process completed"
+            debug "Installation process finished"
+            sleep 2  # Give it a moment to write exitcode file
             break
         fi
         sleep 3
@@ -1082,7 +1085,7 @@ main() {
     
     # Bootstrap
     install_bootstrap_packages
-    install_nodejs "$container_ip"
+    install_nodejs
     
     # Deploy wizard
     deploy_setup_wizard
