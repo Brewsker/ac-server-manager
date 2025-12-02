@@ -749,12 +749,13 @@ EOFSCRIPT
     # Unmount after creating script
     pct unmount $CTID >> "$LOG_FILE" 2>&1
     
-    # Run installation script in background via pct exec
+    # Run installation script via pct exec (runs in background within container)
+    debug "Starting Node.js installation in background..."
     set +e
-    pct exec $CTID -- bash /tmp/install-nodejs.sh &
-    local install_pid=$!
+    pct exec $CTID -- bash /tmp/install-nodejs.sh >> "$LOG_FILE" 2>&1 &
+    set -e
     
-    # Wait for installation to complete (max 120 seconds)
+    # Wait for installation to complete by polling for exit code file (max 120 seconds)
     local max_wait=120
     local waited=0
     debug "Waiting for Node.js installation to complete..."
@@ -765,12 +766,6 @@ EOFSCRIPT
             debug "Installation completed with exit code: $exitcode"
             break
         fi
-        # Check if install process is still running
-        if ! kill -0 $install_pid 2>/dev/null; then
-            debug "Installation process finished"
-            sleep 2  # Give it a moment to write exitcode file
-            break
-        fi
         sleep 3
         waited=$((waited + 3))
         if [ $((waited % 15)) -eq 0 ]; then
@@ -778,8 +773,6 @@ EOFSCRIPT
         fi
     done
     
-    # Kill the background ssh if still running
-    kill $install_pid 2>/dev/null || true
     set -e
     
     # Verify installation
