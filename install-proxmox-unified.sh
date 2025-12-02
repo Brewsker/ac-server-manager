@@ -671,11 +671,15 @@ install_nodejs() {
     print_section "Installing Node.js 20"
     
     debug "Removing any existing Node.js..."
-    pct exec $CTID -- apt-get remove -y nodejs npm 2>> "$LOG_FILE" || true
-    pct exec $CTID -- apt-get autoremove -y >> "$LOG_FILE" 2>&1 || true
+    set +e  # Temporarily allow errors
+    pct exec $CTID -- apt-get remove -y nodejs npm >> "$LOG_FILE" 2>&1
+    pct exec $CTID -- apt-get autoremove -y >> "$LOG_FILE" 2>&1
+    set -e  # Re-enable exit on error
     
     debug "Adding NodeSource repository..."
-    pct exec $CTID -- bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -" >> "$LOG_FILE" 2>&1 || true
+    set +e
+    pct exec $CTID -- bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -" >> "$LOG_FILE" 2>&1
+    set -e
     
     debug "Installing Node.js (this may take a moment)..."
     # Install in background with completion marker
