@@ -749,11 +749,14 @@ EOFSCRIPT
     # Unmount after creating script
     pct unmount $CTID >> "$LOG_FILE" 2>&1
     
-    # Run installation script via pct exec (runs in background within container)
+    # Run installation script via pct exec in true background (don't redirect to log yet)
     debug "Starting Node.js installation in background..."
     set +e
-    pct exec $CTID -- bash /tmp/install-nodejs.sh >> "$LOG_FILE" 2>&1 &
+    ( pct exec $CTID -- bash /tmp/install-nodejs.sh & )
     set -e
+    
+    # Give it a moment to start
+    sleep 3
     
     # Wait for installation to complete by polling for exit code file (max 120 seconds)
     local max_wait=120
@@ -764,6 +767,8 @@ EOFSCRIPT
         if pct exec $CTID -- test -f /tmp/nodejs-install-exitcode 2>/dev/null; then
             local exitcode=$(pct exec $CTID -- cat /tmp/nodejs-install-exitcode 2>/dev/null || echo "1")
             debug "Installation completed with exit code: $exitcode"
+            # Copy installation log to our log file
+            pct exec $CTID -- cat /tmp/nodejs-install.log >> "$LOG_FILE" 2>&1 || true
             break
         fi
         sleep 3
@@ -773,16 +778,27 @@ EOFSCRIPT
         fi
     done
     
+    # Check if we timed out
+    if [ $waited -ge $max_wait ]; then
+        print_warning "Node.js installation timed out after ${max_wait}s, checking if it completed anyway..."
+    fi
+    
     set -e
     
     # Verify installation
     sleep 2
-    if pct exec $CTID -- command -v node &>/dev/null; then
-        local node_version=$(pct exec $CTID -- node -v 2>/dev/null || echo "unknown")
+    debug "Verifying Node.js installation..."
+    set +e
+    # Try multiple ways to verify Node.js
+    if pct exec $CTID -- test -f /bin/node 2>/dev/null || pct exec $CTID -- test -f /usr/bin/node 2>/dev/null; then
+        local node_version=$(pct exec $CTID -- node -v 2>/dev/null || pct exec $CTID -- /bin/node -v 2>/dev/null || echo "unknown")
+        set -e
         print_success "Node.js installed: $node_version"
     else
+        set -e
         print_error "Node.js installation verification failed"
-        debug "Installation log: $(pct exec $CTID -- cat /tmp/nodejs-install.log 2>/dev/null | tail -10)"
+        debug "Checking installation log..."
+        pct exec $CTID -- test -f /tmp/nodejs-install.log && pct exec $CTID -- tail -20 /tmp/nodejs-install.log >> "$LOG_FILE" 2>&1 || true
         return 1
     fi
 }
