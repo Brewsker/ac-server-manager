@@ -58,14 +58,16 @@ async function handleInstall(req, res) {
 
       // Download installer script first, then execute with inline env vars
       // Use nohup and redirect to /var/log/installer.log to truly background the process
+      // Add cache-busting parameter to ensure we get the latest version
+      const timestamp = Date.now();
       const installCmd =
         config.installType === 'app-only'
-          ? `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh -o /tmp/install.sh && nohup bash -c 'NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
+          ? `curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh?${timestamp}" -o /tmp/install.sh && nohup bash -c 'NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
               config.downloadAC ? 'yes' : 'no'
             }" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${
               config.steamPass
             }" bash /tmp/install.sh --app-only' >> /var/log/installer.log 2>&1 &`
-          : `curl -fsSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh -o /tmp/install.sh && nohup bash -c 'NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
+          : `curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/install-server.sh?${timestamp}" -o /tmp/install.sh && nohup bash -c 'NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
               config.downloadAC ? 'yes' : 'no'
             }" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${
               config.steamPass
