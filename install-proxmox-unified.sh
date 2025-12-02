@@ -678,29 +678,41 @@ install_nodejs() {
     pct exec $CTID -- bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -" >> "$LOG_FILE" 2>&1 || true
     
     debug "Installing Node.js (this may take a moment)..."
-    # Run apt-get install in background to avoid timeout
-    pct exec $CTID -- bash -c "nohup apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1 &" >> "$LOG_FILE" 2>&1
+    # Install in background with completion marker
+    pct exec $CTID -- bash -c "nohup bash -c 'apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1 && touch /tmp/nodejs-install-complete' &" >> "$LOG_FILE" 2>&1
     
-    # Wait for installation to complete
-    local max_wait=60
+    # Wait for completion marker (check from host side, not via pct exec to avoid timeouts)
+    local max_wait=120
     local waited=0
-    while ! pct exec $CTID -- test -f /usr/bin/node 2>/dev/null; do
-        if [ $waited -ge $max_wait ]; then
-            print_error "Node.js installation timed out after ${max_wait}s"
-            return 1
+    debug "Waiting for Node.js installation to complete..."
+    while [ $waited -lt $max_wait ]; do
+        # Check if completion marker exists by checking container filesystem from host
+        if pct exec $CTID -- test -f /tmp/nodejs-install-complete 2>/dev/null; then
+            debug "Installation complete marker found"
+            break
         fi
-        sleep 2
-        waited=$((waited + 2))
-        debug "Waiting for Node.js installation... ${waited}s"
+        sleep 3
+        waited=$((waited + 3))
+        if [ $((waited % 15)) -eq 0 ]; then
+            debug "Still waiting for Node.js installation... ${waited}s"
+        fi
     done
     
-    # Give it a moment to finish setting up
-    sleep 3
+    if [ $waited -ge $max_wait ]; then
+        print_warning "Node.js installation did not signal completion, but may have succeeded"
+        debug "Check /tmp/nodejs-install.log in container for details"
+    fi
     
-    local node_version=$(pct exec $CTID -- node -v 2>/dev/null || echo "unknown")
-    debug "Node.js version: $node_version"
-    
-    print_success "Node.js installed: $node_version"
+    # Verify installation
+    sleep 2
+    if pct exec $CTID -- command -v node &>/dev/null; then
+        local node_version=$(pct exec $CTID -- node -v 2>/dev/null || echo "unknown")
+        print_success "Node.js installed: $node_version"
+    else
+        print_error "Node.js installation verification failed"
+        debug "Installation log: $(pct exec $CTID -- cat /tmp/nodejs-install.log 2>/dev/null | tail -10)"
+        return 1
+    fi
 }
 
 ###############################################################################
