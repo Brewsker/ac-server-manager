@@ -556,21 +556,19 @@ start_container() {
     
     # Try to start, ignore error if already running
     set +e
-    pct start $CTID >> "$LOG_FILE" 2>&1
+    pct start $CTID 2>&1 | tee -a "$LOG_FILE"
     local start_result=$?
     set -e
     
     if [ $start_result -eq 0 ]; then
-        debug "Start command issued successfully"
+        print_info "Start command issued successfully"
     else
-        debug "Start command failed (container may already be running)"
+        print_warning "Start command returned error (container may already be running)"
     fi
     
     print_info "Waiting for container to boot..."
     sleep 8  # Give it time to initialize
     
-    # Simple verification that container is running
-    debug "Container should be running now"
     print_success "Container started and responsive"
 }
 
