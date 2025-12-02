@@ -15,6 +15,8 @@ STORAGE="local-lvm"
 TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
 PASSWORD="GitCache123"
 BRIDGE="vmbr0"
+STATIC_IP="192.168.1.70/24"
+GATEWAY="192.168.1.1"
 DISK_SIZE="10"
 MEMORY=512
 SWAP=256
@@ -59,7 +61,7 @@ create_container() {
         --rootfs $STORAGE:$DISK_SIZE \
         --memory $MEMORY \
         --swap $SWAP \
-        --net0 name=eth0,bridge=$BRIDGE,ip=dhcp \
+        --net0 name=eth0,bridge=$BRIDGE,ip=$STATIC_IP,gw=$GATEWAY \
         --features nesting=1 \
         --unprivileged 1 \
         --onboot 1 \
@@ -97,7 +99,7 @@ EOF'
     pct exec $CTID -- bash -c "systemctl restart nginx"
     
     # Get IP
-    CONTAINER_IP=$(pct exec $CTID -- hostname -I | awk '{print $1}')
+    CONTAINER_IP="${STATIC_IP%/*}"  # Remove /24 netmask
     
     print_success "Git cache server ready!"
     echo ""

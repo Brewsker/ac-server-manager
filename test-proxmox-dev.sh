@@ -15,6 +15,8 @@ STORAGE="local-lvm"
 TEMPLATE="local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
 PASSWORD="TestPass123"
 BRIDGE="vmbr0"
+STATIC_IP="192.168.1.71/24"
+GATEWAY="192.168.1.1"
 DISK_SIZE="60"
 MEMORY=4096
 SWAP=512
@@ -93,7 +95,7 @@ create_container() {
         --rootfs $STORAGE:$DISK_SIZE \
         --memory $MEMORY \
         --swap $SWAP \
-        --net0 name=eth0,bridge=$BRIDGE,ip=dhcp \
+        --net0 name=eth0,bridge=$BRIDGE,ip=$STATIC_IP,gw=$GATEWAY \
         --features nesting=1 \
         --unprivileged 1 \
         --onboot 0 \
@@ -110,7 +112,7 @@ create_container() {
     print_success "Bootstrap packages installed"
     
     # Get container IP
-    CONTAINER_IP=$(pct exec $CTID -- hostname -I | awk '{print $1}')
+    CONTAINER_IP="${STATIC_IP%/*}"  # Remove /24 netmask
     print_success "Container IP: $CONTAINER_IP"
     
     # Copy wizard files from Git cache container
