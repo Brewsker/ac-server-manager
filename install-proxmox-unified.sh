@@ -734,6 +734,9 @@ install_nodejs() {
     
     debug "Installing Node.js via filesystem write (this may take a moment)..."
     # Create installation script in container filesystem to avoid pct exec timeouts
+    # Mount container to access its filesystem
+    pct mount $CTID >> "$LOG_FILE" 2>&1
+    
     local rootfs="/var/lib/lxc/$CTID/rootfs"
     cat > "$rootfs/tmp/install-nodejs.sh" <<'EOFSCRIPT'
 #!/bin/bash
@@ -742,6 +745,9 @@ apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1
 echo $? > /tmp/nodejs-install-exitcode
 EOFSCRIPT
     chmod +x "$rootfs/tmp/install-nodejs.sh"
+    
+    # Unmount after creating script
+    pct unmount $CTID >> "$LOG_FILE" 2>&1
     
     # Run installation script in background via pct exec
     set +e
@@ -753,9 +759,9 @@ EOFSCRIPT
     local waited=0
     debug "Waiting for Node.js installation to complete..."
     while [ $waited -lt $max_wait ]; do
-        # Check if exit code file exists
-        if [ -f "$rootfs/tmp/nodejs-install-exitcode" ]; then
-            local exitcode=$(cat "$rootfs/tmp/nodejs-install-exitcode")
+        # Check if exit code file exists using pct exec
+        if pct exec $CTID -- test -f /tmp/nodejs-install-exitcode 2>/dev/null; then
+            local exitcode=$(pct exec $CTID -- cat /tmp/nodejs-install-exitcode 2>/dev/null || echo "1")
             debug "Installation completed with exit code: $exitcode"
             break
         fi
