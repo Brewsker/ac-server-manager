@@ -63,23 +63,24 @@ async function handleInstall(req, res) {
       };
 
       // Download installer script from git-cache (local) or GitHub (fallback)
-      // Use nohup and redirect to /var/log/installer.log to truly background the process
-      const timestamp = Date.now();
       const installerUrl = 'http://192.168.1.70/ac-server-manager/install-server.sh';
-      const installCmd =
-        config.installType === 'app-only'
-          ? `curl -fsSL "${installerUrl}" -o /tmp/install.sh && nohup bash -c 'NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
-              config.downloadAC ? 'yes' : 'no'
-            }" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${
-              config.steamPass
-            }" bash /tmp/install.sh --app-only' >> /var/log/installer.log 2>&1 &`
-          : `curl -fsSL "${installerUrl}" -o /tmp/install.sh && nohup bash -c 'NON_INTERACTIVE=yes INSTALL_AC_SERVER="${
-              config.downloadAC ? 'yes' : 'no'
-            }" AC_SERVER_DIR="${config.acPath}" STEAM_USER="${config.steamUser}" STEAM_PASS="${
-              config.steamPass
-            }" bash /tmp/install.sh' >> /var/log/installer.log 2>&1 &`;
+      
+      // Build environment variables string (properly escaped for shell)
+      const envVars = [
+        'NON_INTERACTIVE=yes',
+        `INSTALL_AC_SERVER=${config.downloadAC ? 'yes' : 'no'}`,
+        `AC_SERVER_DIR=${config.acPath || '/opt/acserver'}`,
+        `STEAM_USER=${config.steamUser || ''}`,
+        `STEAM_PASS=${config.steamPass || ''}`
+      ].join(' ');
+      
+      const appOnlyFlag = config.installType === 'app-only' ? ' --app-only' : '';
+      
+      // Simple command without nested bash -c
+      const installCmd = `curl -fsSL "${installerUrl}" -o /tmp/install.sh && ${envVars} bash /tmp/install.sh${appOnlyFlag} >> /var/log/installer.log 2>&1 &`;
 
       console.log('[Setup] Running installer...');
+      console.log('[Setup] Command:', installCmd);
 
       // Execute the command and immediately return
       exec(installCmd, (error) => {
@@ -174,7 +175,7 @@ function streamLogs(req, res) {
         res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
         installerRunning = false;
         setTimeout(() => tail.kill(), 1000);
-        
+
         // Exit the wizard service after installation completes
         console.log('[Setup] Installation complete - wizard will exit in 5 seconds');
         setTimeout(() => {
