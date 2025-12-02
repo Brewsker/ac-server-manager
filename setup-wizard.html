@@ -266,14 +266,22 @@
 
           <div class="form-group">
             <label>Network Configuration</label>
-            <select id="networkMode" onchange="toggleNetworkFields()" disabled style="opacity: 0.6; cursor: not-allowed;">
+            <select
+              id="networkMode"
+              onchange="toggleNetworkFields()"
+              disabled
+              style="opacity: 0.6; cursor: not-allowed"
+            >
               <option value="dhcp">DHCP (Automatic)</option>
               <option value="static">Static IP</option>
             </select>
-            <div class="help-text" style="color: #999;">Network is configured during container creation (not applicable for standalone installs)</div>
+            <div class="help-text" style="color: #999">
+              Network is configured during container creation (not applicable for standalone
+              installs)
+            </div>
           </div>
 
-          <div id="networkFields" style="display: none; opacity: 0.6;">
+          <div id="networkFields" style="display: none; opacity: 0.6">
             <div class="form-group">
               <label>Static IP Address (with CIDR)</label>
               <input
@@ -282,19 +290,33 @@
                 value="192.168.1.71/24"
                 placeholder="192.168.1.71/24"
                 disabled
-                style="cursor: not-allowed;"
+                style="cursor: not-allowed"
               />
               <div class="help-text">Example: 192.168.1.71/24</div>
             </div>
 
             <div class="form-group">
               <label>Gateway</label>
-              <input type="text" id="gateway" value="192.168.1.1" placeholder="192.168.1.1" disabled style="cursor: not-allowed;" />
+              <input
+                type="text"
+                id="gateway"
+                value="192.168.1.1"
+                placeholder="192.168.1.1"
+                disabled
+                style="cursor: not-allowed"
+              />
             </div>
 
             <div class="form-group">
               <label>Bridge</label>
-              <input type="text" id="bridge" value="vmbr0" placeholder="vmbr0" disabled style="cursor: not-allowed;" />
+              <input
+                type="text"
+                id="bridge"
+                value="vmbr0"
+                placeholder="vmbr0"
+                disabled
+                style="cursor: not-allowed"
+              />
               <div class="help-text">Network bridge (usually vmbr0)</div>
             </div>
           </div>
@@ -556,8 +578,8 @@
       // Poll health endpoint to check if installation completed
       function checkInstallationStatus() {
         fetch('/health')
-          .then(res => res.json())
-          .then(data => {
+          .then((res) => res.json())
+          .then((data) => {
             if (data.installationComplete) {
               console.log('Installation complete - wizard will exit');
               // Show message and redirect after short delay
@@ -569,7 +591,7 @@
               setTimeout(checkInstallationStatus, 10000);
             }
           })
-          .catch(err => {
+          .catch((err) => {
             console.error('Health check failed:', err);
             // Try again after delay
             setTimeout(checkInstallationStatus, 10000);

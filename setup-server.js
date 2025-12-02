@@ -64,18 +64,18 @@ async function handleInstall(req, res) {
 
       // Download installer script from git-cache (local) or GitHub (fallback)
       const installerUrl = 'http://192.168.1.70/ac-server-manager/install-server.sh';
-      
+
       // Build environment variables string (properly escaped for shell)
       const envVars = [
         'NON_INTERACTIVE=yes',
         `INSTALL_AC_SERVER=${config.downloadAC ? 'yes' : 'no'}`,
         `AC_SERVER_DIR=${config.acPath || '/opt/acserver'}`,
         `STEAM_USER=${config.steamUser || ''}`,
-        `STEAM_PASS=${config.steamPass || ''}`
+        `STEAM_PASS=${config.steamPass || ''}`,
       ].join(' ');
-      
+
       const appOnlyFlag = config.installType === 'app-only' ? ' --app-only' : '';
-      
+
       // Simple command without nested bash -c
       const installCmd = `curl -fsSL "${installerUrl}" -o /tmp/install.sh && ${envVars} bash /tmp/install.sh${appOnlyFlag} >> /var/log/installer.log 2>&1 &`;
 
@@ -131,15 +131,29 @@ function streamLogs(req, res) {
   // Send initial connection message
   res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
-  // Check if installer log exists and send existing content
-  if (!fs.existsSync(installerLogPath)) {
-    res.write(
-      `data: ${JSON.stringify({
-        type: 'waiting',
-        message: 'Waiting for installation to start...',
-      })}\n\n`
-    );
-  } else {
+  // Wait for log file to exist
+  const waitForLog = () => {
+    if (!fs.existsSync(installerLogPath)) {
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'waiting',
+          message: 'Waiting for installation to start...',
+        })}\n\n`
+      );
+      // Check again in 1 second
+      setTimeout(() => {
+        if (!fs.existsSync(installerLogPath)) {
+          waitForLog();
+        } else {
+          startTailing();
+        }
+      }, 1000);
+      return;
+    }
+    startTailing();
+  };
+
+  const startTailing = () => {
     // Send existing log content first
     try {
       const existingLog = fs.readFileSync(installerLogPath, 'utf8');
@@ -157,51 +171,57 @@ function streamLogs(req, res) {
     } catch (err) {
       console.error('[SSE] Error reading existing log:', err);
     }
-  }
 
-  // Use tail -f to follow the log (show all new content from this point)
-  const tail = spawn('tail', ['-f', '-n', '+1', installerLogPath]);
+    // Now follow only NEW lines (don't re-read what we already sent)
+    startTailFollow();
+  };
 
-  tail.stdout.on('data', (data) => {
-    const lines = data
-      .toString()
-      .split('\n')
-      .filter((line) => line.trim());
-    lines.forEach((line) => {
-      res.write(`data: ${JSON.stringify({ type: 'log', message: line })}\n\n`);
+  const startTailFollow = () => {
+    const tail = spawn('tail', ['-f', '-n', '0', installerLogPath]);
 
-      // Check for completion markers
-      if (line.includes('SETUP_WIZARD_COMPLETE') || line.includes('Installation Complete')) {
-        res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
-        installerRunning = false;
-        setTimeout(() => tail.kill(), 1000);
+    tail.stdout.on('data', (data) => {
+      const lines = data
+        .toString()
+        .split('\n')
+        .filter((line) => line.trim());
+      lines.forEach((line) => {
+        res.write(`data: ${JSON.stringify({ type: 'log', message: line })}\n\n`);
 
-        // Disable and stop wizard service after installation completes
-        console.log('[Setup] Installation complete - disabling wizard service');
-        setTimeout(() => {
-          exec('systemctl disable ac-setup-wizard && systemctl stop ac-setup-wizard', (error) => {
-            if (error) {
-              console.error('[Setup] Failed to disable wizard service:', error);
-              // Exit anyway to free port for PM2 app
-              process.exit(0);
-            } else {
-              console.log('[Setup] Wizard service disabled - PM2 app should now be accessible');
-              process.exit(0);
-            }
-          });
-        }, 5000);
-      }
+        // Check for completion markers
+        if (line.includes('SETUP_WIZARD_COMPLETE') || line.includes('Installation Complete')) {
+          res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
+          installerRunning = false;
+          setTimeout(() => tail.kill(), 1000);
+
+          // Disable and stop wizard service after installation completes
+          console.log('[Setup] Installation complete - disabling wizard service');
+          setTimeout(() => {
+            exec('systemctl disable ac-setup-wizard && systemctl stop ac-setup-wizard', (error) => {
+              if (error) {
+                console.error('[Setup] Failed to disable wizard service:', error);
+                // Exit anyway to free port for PM2 app
+                process.exit(0);
+              } else {
+                console.log('[Setup] Wizard service disabled - PM2 app should now be accessible');
+                process.exit(0);
+              }
+            });
+          }, 5000);
+        }
+      });
     });
-  });
 
-  tail.stderr.on('data', (data) => {
-    console.error('[SSE] Tail error:', data.toString());
-  });
+    tail.stderr.on('data', (data) => {
+      console.error('[SSE] Tail error:', data.toString());
+    });
 
-  req.on('close', () => {
-    tail.kill();
-    console.log('[SSE] Client disconnected');
-  });
+    req.on('close', () => {
+      tail.kill();
+      console.log('[SSE] Client disconnected');
+    });
+  };
+
+  waitForLog();
 }
 
 // Handle wizard update from git-cache
@@ -266,7 +286,7 @@ function handleHealth(req, res) {
   // Check if installation is complete
   const fs = require('fs');
   let installComplete = false;
-  
+
   try {
     if (fs.existsSync(installerLogPath)) {
       const logContent = fs.readFileSync(installerLogPath, 'utf8');
@@ -275,14 +295,16 @@ function handleHealth(req, res) {
   } catch (err) {
     console.error('[Health] Error checking installation status:', err);
   }
-  
+
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
-    status: 'ok',
-    installationComplete: installComplete,
-    installerRunning: installerRunning
-  }));
-  
+  res.end(
+    JSON.stringify({
+      status: 'ok',
+      installationComplete: installComplete,
+      installerRunning: installerRunning,
+    })
+  );
+
   // If installation is complete, disable wizard service
   if (installComplete && !installerRunning) {
     console.log('[Health] Installation detected as complete - disabling wizard');
