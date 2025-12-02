@@ -708,6 +708,12 @@ install_nodejs() {
     print_section "Installing Node.js 20"
     
     local container_ip="$1"  # Get IP from parameter
+    debug "Container IP for Node.js installation: $container_ip"
+    
+    if [ -z "$container_ip" ]; then
+        print_error "Container IP not provided to install_nodejs function"
+        return 1
+    fi
     
     debug "Removing any existing Node.js..."
     set +e  # Temporarily allow errors
