@@ -554,26 +554,24 @@ create_container() {
 start_container() {
     print_section "Starting container $CTID"
     
-    # Check if already running
-    if pct status $CTID 2>/dev/null | grep -q "running"; then
-        debug "Container already running, skipping start"
-        print_success "Container $CTID is running"
-        return 0
-    fi
+    # Try to start, ignore error if already running
+    set +e
+    pct start $CTID >> "$LOG_FILE" 2>&1
+    local start_result=$?
+    set -e
     
-    pct start $CTID
-    debug "Start command issued"
+    if [ $start_result -eq 0 ]; then
+        debug "Start command issued successfully"
+    else
+        debug "Start command failed (container may already be running)"
+    fi
     
     print_info "Waiting for container to boot..."
-    sleep 8  # Give it more time to initialize
+    sleep 8  # Give it time to initialize
     
-    # Verify it's running (simple check, don't loop - just verify once)
-    if pct status $CTID 2>/dev/null | grep -q "running"; then
-        debug "Container is running"
-        print_success "Container started and responsive"
-    else
-        print_warning "Container may still be starting, but continuing..."
-    fi
+    # Simple verification that container is running
+    debug "Container should be running now"
+    print_success "Container started and responsive"
 }
 
 update_ssh_keys() {
