@@ -440,7 +440,7 @@ install_dependencies() {
     npm ci > /dev/null 2>&1
     
     print_info "Building frontend..."
-    npm run build > /dev/null 2>&1
+    npm run build || { print_error "Frontend build failed"; return 1; }
     cd ..
     
     print_success "Dependencies installed and frontend built"

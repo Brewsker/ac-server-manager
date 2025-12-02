@@ -159,8 +159,8 @@ function streamLogs(req, res) {
     }
   }
 
-  // Use tail -f to follow the log for new lines
-  const tail = spawn('tail', ['-f', '-n', '0', installerLogPath]);
+  // Use tail -f to follow the log (show all new content from this point)
+  const tail = spawn('tail', ['-f', '-n', '+1', installerLogPath]);
 
   tail.stdout.on('data', (data) => {
     const lines = data
