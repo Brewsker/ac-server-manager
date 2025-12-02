@@ -560,18 +560,25 @@ start_container() {
     print_info "Waiting for container to boot..."
     sleep 5
     
-    # Wait for container to be responsive
+    # Wait for container to be responsive (check via simple status, not pct exec)
     local max_wait=30
     local waited=0
-    while ! pct exec $CTID -- test -d /tmp &>/dev/null; do
-        if [ $waited -ge $max_wait ]; then
-            print_error "Container failed to become responsive after ${max_wait}s"
-            exit 1
+    while [ $waited -lt $max_wait ]; do
+        if pct status $CTID 2>/dev/null | grep -q "running"; then
+            # Container reports running, give it a moment to fully initialize
+            sleep 3
+            debug "Container is running"
+            break
         fi
         sleep 1
         waited=$((waited + 1))
         debug "Waiting for container... ${waited}s"
     done
+    
+    if [ $waited -ge $max_wait ]; then
+        print_error "Container failed to start after ${max_wait}s"
+        exit 1
+    fi
     
     debug "Container is responsive"
     print_success "Container started and responsive"
