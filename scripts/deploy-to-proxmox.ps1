@@ -49,11 +49,13 @@ Write-Host "   Cleaned" -ForegroundColor Green
 Write-Host "[4/6] Uploading..." -ForegroundColor Yellow
 ssh root@$HostIP "rm -rf /tmp/ac-deploy; mkdir -p /tmp/ac-deploy" | Out-Null
 scp -r frontend/dist/* root@${HostIP}:/tmp/ac-deploy/ 2>&1 | Out-Null
+scp backend/package.json root@${HostIP}:/tmp/ac-deploy/backend-package.json 2>&1 | Out-Null
+scp frontend/package.json root@${HostIP}:/tmp/ac-deploy/frontend-package.json 2>&1 | Out-Null
 Write-Host "   Uploaded" -ForegroundColor Green
 
 # Step 5: Deploy
 Write-Host "[5/6] Deploying..." -ForegroundColor Yellow
-ssh root@$HostIP "cd /tmp/ac-deploy && for f in assets/*; do pct push $ContainerId `"`$f`" /opt/ac-server-manager/frontend/`"`$f`"; done && pct push $ContainerId index.html /opt/ac-server-manager/frontend/index.html && rm -rf /tmp/ac-deploy" 2>&1 | Out-Null
+ssh root@$HostIP "cd /tmp/ac-deploy && for f in assets/*; do pct push $ContainerId `"`$f`" /opt/ac-server-manager/frontend/`"`$f`"; done && pct push $ContainerId index.html /opt/ac-server-manager/frontend/index.html && pct push $ContainerId backend-package.json /opt/ac-server-manager/backend/package.json && pct push $ContainerId frontend-package.json /opt/ac-server-manager/frontend/package.json && rm -rf /tmp/ac-deploy" 2>&1 | Out-Null
 Write-Host "   Deployed" -ForegroundColor Green
 
 # Step 6: Restart
