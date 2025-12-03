@@ -42,14 +42,6 @@ export async function downloadACServer(installPath, steamUser = 'anonymous', ste
 
     console.log(`[SteamService] Using steamcmd at: ${steamcmdPath}`);
 
-    // First, run steamcmd to ensure it's updated (fixes steamconsole.so errors)
-    console.log('[SteamService] Initializing SteamCMD (first-time setup)...');
-    try {
-      await execAsync(`${steamcmdPath} +quit`, { timeout: 60000 });
-    } catch (error) {
-      console.warn('[SteamService] SteamCMD initialization warning (may be normal):', error.message);
-    }
-
     // Create install directory
     await fs.mkdir(installPath, { recursive: true });
 
@@ -69,6 +61,7 @@ quit
     console.log('[SteamService] Starting AC server download...');
     const { stdout, stderr } = await execAsync(`${steamcmdPath} +runscript ${scriptPath}`, {
       maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large output
+      timeout: 600000, // 10 minute timeout for large downloads
     });
 
     // Clean up script
@@ -103,6 +96,25 @@ quit
     }
   } catch (error) {
     console.error('[SteamService] Failed to download AC server:', error);
+    
+    // Check for common error patterns
+    const errorOutput = error.stdout || error.message || '';
+    if (errorOutput.includes('No subscription')) {
+      throw new Error(
+        'Steam account does not own Assetto Corsa. You must own the game to download the dedicated server.'
+      );
+    }
+    if (errorOutput.includes('steamconsole.so')) {
+      throw new Error(
+        'SteamCMD initialization failed. Please try again or contact support.'
+      );
+    }
+    if (errorOutput.includes('Login Failure')) {
+      throw new Error(
+        'Steam login failed. Please check your username and password.'
+      );
+    }
+    
     throw error;
   }
 }
