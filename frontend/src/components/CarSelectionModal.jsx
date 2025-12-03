@@ -17,15 +17,13 @@ function CarSelectionModal({ cars, selectedCars, onConfirm, onClose }) {
   );
 
   const toggleCar = (carId) => {
-    setLocalSelection(prev =>
-      prev.includes(carId)
-        ? prev.filter(id => id !== carId)
-        : [...prev, carId]
+    setLocalSelection((prev) =>
+      prev.includes(carId) ? prev.filter((id) => id !== carId) : [...prev, carId]
     );
   };
 
   const selectAll = () => {
-    setLocalSelection(filteredCars.map(car => car.id));
+    setLocalSelection(filteredCars.map((car) => car.id));
   };
 
   const clearAll = () => {
@@ -36,7 +34,7 @@ function CarSelectionModal({ cars, selectedCars, onConfirm, onClose }) {
     onConfirm(localSelection);
   };
 
-  const filteredCars = cars.filter(car =>
+  const filteredCars = cars.filter((car) =>
     car.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -50,7 +48,7 @@ function CarSelectionModal({ cars, selectedCars, onConfirm, onClose }) {
         {/* Header */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Select Cars</h2>
-          
+
           {/* Search and Actions */}
           <div className="flex gap-3 mb-4">
             <input
@@ -76,58 +74,94 @@ function CarSelectionModal({ cars, selectedCars, onConfirm, onClose }) {
           </div>
 
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Selected: <span className="font-medium text-blue-600 dark:text-blue-400">{localSelection.length}</span> of {cars.length} cars
+            Selected:{' '}
+            <span className="font-medium text-blue-600 dark:text-blue-400">
+              {localSelection.length}
+            </span>{' '}
+            of {cars.length} cars
           </p>
         </div>
 
         {/* Car List */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredCars.map((car) => (
-              <div
-                key={car.id}
-                onClick={() => toggleCar(car.id)}
-                className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                  localSelection.includes(car.id)
-                    ? 'border-blue-500 ring-2 ring-blue-300 dark:ring-blue-700'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
-                }`}
-              >
-                <div className="aspect-video bg-gray-100 dark:bg-gray-900 relative overflow-hidden">
-                  <img
-                    src={getCarPreviewUrl(car.id)}
-                    alt={car.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      // Fallback to placeholder if image fails to load
-                      e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="225"%3E%3Crect fill="%23334155" width="400" height="225"/%3E%3Ctext fill="%239CA3AF" font-family="sans-serif" font-size="18" text-anchor="middle" x="200" y="120"%3E🏎️%3C/text%3E%3C/svg%3E';
-                    }}
-                  />
-                  {localSelection.includes(car.id) && (
-                    <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold">
-                      ✓
+          {cars.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <div className="mb-6 text-6xl">🏎️</div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                No Cars Available
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md">
+                You need to install car content before you can configure your server.
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md">
+                <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-2">
+                  📦 How to install content:
+                </p>
+                <ol className="text-sm text-blue-700 dark:text-blue-300 text-left space-y-1">
+                  <li>
+                    1. Go to <strong>Settings/Setup</strong> in the navigation menu
+                  </li>
+                  <li>2. Use the content upload feature to add cars</li>
+                  <li>3. Return here to select your cars</li>
+                </ol>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredCars.map((car) => (
+                  <div
+                    key={car.id}
+                    onClick={() => toggleCar(car.id)}
+                    className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                      localSelection.includes(car.id)
+                        ? 'border-blue-500 ring-2 ring-blue-300 dark:ring-blue-700'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                    }`}
+                  >
+                    <div className="aspect-video bg-gray-100 dark:bg-gray-900 relative overflow-hidden">
+                      <img
+                        src={getCarPreviewUrl(car.id)}
+                        alt={car.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to placeholder if image fails to load
+                          e.target.src =
+                            'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="225"%3E%3Crect fill="%23334155" width="400" height="225"/%3E%3Ctext fill="%239CA3AF" font-family="sans-serif" font-size="18" text-anchor="middle" x="200" y="120"%3E🏎️%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                      {localSelection.includes(car.id) && (
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold">
+                          ✓
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="p-3 bg-white dark:bg-gray-800 flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 text-blue-600 rounded pointer-events-none"
-                    checked={localSelection.includes(car.id)}
-                    onChange={() => {}}
-                  />
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1" title={car.name}>
-                    {car.name}
+                    <div className="p-3 bg-white dark:bg-gray-800 flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 rounded pointer-events-none"
+                        checked={localSelection.includes(car.id)}
+                        onChange={() => {}}
+                      />
+                      <p
+                        className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1"
+                        title={car.name}
+                      >
+                        {car.name}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {filteredCars.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    No cars found matching "{searchQuery}"
                   </p>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {filteredCars.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">No cars found matching "{searchQuery}"</p>
-            </div>
+              )}
+            </>
           )}
         </div>
 
@@ -138,7 +172,7 @@ function CarSelectionModal({ cars, selectedCars, onConfirm, onClose }) {
               ⚠️ Warning: At least one car must be selected for the server to start
             </p>
           )}
-          
+
           <div className="flex gap-3 justify-end">
             <button
               ref={(el) => (buttonRefs.current[1] = el)}

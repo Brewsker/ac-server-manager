@@ -51,8 +51,16 @@ export default function MainTab({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      Select Track
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                      <div className="text-4xl mb-2">🏁</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        No track selected
+                      </div>
+                      <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        {cars.length === 0
+                          ? 'Install content in Settings/Setup'
+                          : 'Click to select'}
+                      </div>
                     </div>
                   )}
                 </button>
@@ -104,8 +112,16 @@ export default function MainTab({
                       )}
                     </div>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      Select Cars
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                      <div className="text-4xl mb-2">🏎️</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        No cars selected
+                      </div>
+                      <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        {cars.length === 0
+                          ? 'Install content in Settings/Setup'
+                          : 'Click to manage cars'}
+                      </div>
                     </div>
                   )}
                 </button>

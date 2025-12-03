@@ -998,8 +998,8 @@ show_completion() {
 
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   Setup wizard is ready!                                 ║
-║   Open the web interface to complete installation        ║
+║   AC Server Manager is ready!                            ║
+║   Open the web interface to complete setup              ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
 
@@ -1014,20 +1014,43 @@ EOF
     echo ""
     
     echo "🌐 Web Interface:"
-    echo "   Setup Wizard:    http://$container_ip:$WIZARD_PORT"
-    echo "   Local Access:    http://localhost:$WIZARD_PORT (from container)"
+    echo "   Application:     http://$container_ip:$WIZARD_PORT"
+    echo "   Health Check:    http://$container_ip:$WIZARD_PORT/health"
     echo ""
     
     echo "📂 Installation Locations:"
-    echo "   Setup Files:     $SETUP_DIR"
-    echo "   App (future):    $APP_DIR"
-    echo "   AC Server:       $AC_SERVER_DIR"
+    echo "   Application:     $APP_DIR"
+    echo "   AC Server:       $AC_SERVER_DIR (configure via UI)"
     echo ""
     
     echo "🔧 Container Commands:"
     echo "   Enter:           pct enter $CTID"
     echo "   Stop:            pct stop $CTID"
     echo "   Start:           pct start $CTID"
+    echo "   PM2 Status:      pct exec $CTID -- pm2 status"
+    echo "   PM2 Logs:        pct exec $CTID -- pm2 logs ac-server-manager"
+    echo ""
+    
+    echo "📝 Next Steps:"
+    echo "   1. Open http://$container_ip:$WIZARD_PORT in your browser"
+    echo "   2. Complete first-run setup wizard"
+    echo "   3. Download SteamCMD and AC Dedicated Server via Settings/Setup tab"
+    echo "   4. Configure your server and start racing!"
+    echo ""
+    
+    echo "🐛 Debug Information:"
+    echo "   Log File:        $LOG_FILE"
+    echo "   PM2 Status:      pct exec $CTID -- pm2 status"
+    echo "   PM2 Logs:        pct exec $CTID -- pm2 logs ac-server-manager"
+    echo ""
+    
+    print_info "Installation log saved to: $LOG_FILE"
+    
+    if [ "$DEBUG" = true ]; then
+        echo ""
+        print_warning "Debug mode enabled - additional logging active"
+    fi
+}
     echo "   Destroy:         pct destroy $CTID"
     echo ""
     
@@ -1053,7 +1076,138 @@ EOF
 }
 
 ###############################################################################
+# Main App Deployment (Replaces Wizard)
+###############################################################################
+
+deploy_main_app() {
+    print_section "Deploying AC Server Manager application"
+    
+    debug "Creating app directory: $APP_DIR"
+    pct exec $CTID -- mkdir -p $APP_DIR/backend/data/presets
+    pct exec $CTID -- mkdir -p $APP_DIR/frontend/dist
+    
+    # Determine download source
+    local download_source
+    if [ "$USE_GIT_CACHE" = true ]; then
+        download_source="$GIT_CACHE_URL"
+        debug "Deploying from git-cache ($GIT_CACHE_IP)..."
+    else
+        download_source="${GITHUB_RAW}"
+        debug "Deploying from GitHub..."
+    fi
+    
+    # Clone or copy entire repository
+    if [ "$USE_GIT_CACHE" = true ]; then
+        print_info "Copying repository from git-cache..."
+        if pct push $GIT_CACHE_CTID /opt/git-cache/ac-server-manager $CTID:$APP_DIR >> "$LOG_FILE" 2>&1; then
+            debug "Repository copied successfully"
+            
+            # Install backend dependencies
+            print_info "Installing backend dependencies..."
+            pct exec $CTID -- bash -c "cd $APP_DIR/backend && npm install --production" >> "$LOG_FILE" 2>&1
+            debug "Backend dependencies installed"
+            
+            # Build frontend
+            print_info "Building frontend..."
+            pct exec $CTID -- bash -c "cd $APP_DIR/frontend && npm install && npm run build" >> "$LOG_FILE" 2>&1
+            debug "Frontend built"
+        else
+            print_error "Failed to copy repository from git-cache"
+            exit 1
+        fi
+    else
+        # Fallback: Download individual files (not ideal for full app)
+        print_warning "Git-cache not available - using git clone from GitHub"
+        pct exec $CTID -- bash -c "git clone -b ${GITHUB_BRANCH} https://github.com/${GITHUB_REPO}.git $APP_DIR" >> "$LOG_FILE" 2>&1
+        
+        # Install dependencies and build
+        print_info "Installing dependencies..."
+        pct exec $CTID -- bash -c "cd $APP_DIR/backend && npm install --production" >> "$LOG_FILE" 2>&1
+        pct exec $CTID -- bash -c "cd $APP_DIR/frontend && npm install && npm run build" >> "$LOG_FILE" 2>&1
+    fi
+    
+    # Create .env file with defaults
+    print_info "Creating default configuration..."
+    pct exec $CTID -- bash -c "cat > $APP_DIR/backend/.env << 'ENVEOF'
+NODE_ENV=production
+PORT=3001
+AC_SERVER_PATH=
+AC_SERVER_CONFIG_PATH=
+AC_ENTRY_LIST_PATH=
+AC_CONTENT_PATH=
+ENVEOF" >> "$LOG_FILE" 2>&1
+    debug ".env file created with empty paths (will be configured via UI)"
+    
+    print_success "Application deployed"
+}
+
+start_main_app() {
+    print_section "Starting AC Server Manager with PM2"
+    
+    # Install PM2 globally
+    print_info "Installing PM2..."
+    pct exec $CTID -- npm install -g pm2 >> "$LOG_FILE" 2>&1
+    debug "PM2 installed"
+    
+    # Start app with PM2
+    print_info "Starting application..."
+    pct exec $CTID -- bash -c "cd $APP_DIR/backend && pm2 start src/server.js --name ac-server-manager --node-args=\"--experimental-modules\"" >> "$LOG_FILE" 2>&1
+    debug "App started with PM2"
+    
+    # Save PM2 process list
+    pct exec $CTID -- pm2 save >> "$LOG_FILE" 2>&1
+    debug "PM2 process list saved"
+    
+    # Setup PM2 startup script
+    pct exec $CTID -- pm2 startup systemd -u root --hp /root >> "$LOG_FILE" 2>&1
+    debug "PM2 startup configured"
+    
+    sleep 3
+    
+    # Verify app is running
+    if pct exec $CTID -- pm2 list | grep -q "ac-server-manager.*online"; then
+        debug "Application is running"
+        print_success "Application started successfully"
+    else
+        print_error "Application failed to start"
+        debug "Checking PM2 logs..."
+        pct exec $CTID -- pm2 logs ac-server-manager --lines 50 >> "$LOG_FILE" 2>&1
+        exit 1
+    fi
+}
+
+test_app_accessibility() {
+    print_section "Testing application accessibility"
+    
+    debug "Waiting for app to be ready..."
+    sleep 5
+    
+    local max_wait=30
+    local waited=0
+    
+    while ! pct exec $CTID -- curl -sf http://localhost:$WIZARD_PORT/health &>/dev/null; do
+        if [ $waited -ge $max_wait ]; then
+            print_error "Application not accessible after ${max_wait}s"
+            debug "Checking PM2 logs..."
+            pct exec $CTID -- pm2 logs ac-server-manager --lines 50 >> "$LOG_FILE" 2>&1
+            exit 1
+        fi
+        sleep 1
+        waited=$((waited + 1))
+        debug "Waiting for app... ${waited}s"
+    done
+    
+    debug "Application is accessible"
+    print_success "Application is accessible"
+}
+
+###############################################################################
 # Main Installation Flow
+###############################################################################
+# REFACTOR NOTE: Changed from separate setup wizard to integrated first-run
+# Old flow: Container → Node → Wizard Service (port 8080) → User clicks install → Main app (port 3001)
+# New flow: Container → Node + PM2 → Main app (port 3001) → Shows SetupWizard on first visit
+# Benefits: Simpler (one service vs two), no port switching, no service management
 ###############################################################################
 
 main() {
@@ -1105,10 +1259,10 @@ main() {
     install_bootstrap_packages
     install_nodejs
     
-    # Deploy wizard
-    deploy_setup_wizard
-    create_wizard_service
-    test_wizard_accessibility
+    # NEW: Deploy main app directly instead of setup wizard
+    deploy_main_app
+    start_main_app
+    test_app_accessibility
     
     # Finalize
     configure_firewall

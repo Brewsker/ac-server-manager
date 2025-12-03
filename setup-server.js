@@ -63,7 +63,8 @@ async function handleInstall(req, res) {
       };
 
       // Download installer script from git-cache (local) or GitHub (fallback)
-      const installerUrl = 'http://192.168.1.70/ac-server-manager/scripts/install/install-server.sh';
+      const installerUrl =
+        'http://192.168.1.70/ac-server-manager/scripts/install/install-server.sh';
 
       // Build environment variables string (properly escaped for shell)
       const envVars = [

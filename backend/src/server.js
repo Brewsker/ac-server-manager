@@ -50,7 +50,7 @@ app.get('/health', (req, res) => {
 
 // Serve static frontend files in production
 if (process.env.NODE_ENV === 'production') {
-  const frontendDistPath = path.join(__dirname, '..', '..', 'frontend');
+  const frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
 
   // Serve static files with no-cache for HTML, cache for assets
   app.use(
@@ -71,6 +71,8 @@ if (process.env.NODE_ENV === 'production') {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+    // Add timestamp to force cache bust
+    res.setHeader('X-Version', Date.now().toString());
     res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }

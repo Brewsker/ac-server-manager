@@ -622,7 +622,9 @@ function ServerConfig() {
 
   const getSelectedTrackName = () => {
     const trackId = data.config?.SERVER?.TRACK;
-    if (!trackId) return 'No track selected';
+    if (!trackId) {
+      return data.tracks.length === 0 ? 'No content available' : 'No track selected';
+    }
     const track = data.tracks.find((t) => t.id === trackId);
     return track ? track.name : trackId;
   };

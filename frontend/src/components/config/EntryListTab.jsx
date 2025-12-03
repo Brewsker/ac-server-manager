@@ -80,7 +80,15 @@ export default function EntryListTab({
               </div>
               <button
                 type="button"
-                onClick={() => setShowCarModal(true)}
+                onClick={() => {
+                  if (cars.length === 0) {
+                    alert(
+                      'No cars available. Please install car content in Settings/Setup before adding entries.'
+                    );
+                    return;
+                  }
+                  setShowCarModal(true);
+                }}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
               >
                 + Add Entry
@@ -120,8 +128,16 @@ export default function EntryListTab({
             {/* Entry List - 2-Row Card Layout */}
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {entries.length === 0 ? (
-                <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                  No entries configured. Click "+ Add Entry" to add vehicles to the entry list.
+                <div className="px-4 py-12 text-center">
+                  <div className="mb-3 text-5xl">🏎️</div>
+                  <div className="text-gray-500 dark:text-gray-400 mb-2">
+                    {cars.length === 0 ? 'No cars available' : 'No entries configured'}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-500">
+                    {cars.length === 0
+                      ? 'Install car content in Settings/Setup to add entries'
+                      : 'Click "+ Add Entry" to add vehicles to the entry list'}
+                  </div>
                 </div>
               ) : (
                 entries.map((entry, index) => (

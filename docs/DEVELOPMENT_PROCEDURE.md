@@ -122,21 +122,25 @@ curl http://192.168.1.71:3001
 **These files must stay synchronized:**
 
 1. `scripts/install/install-proxmox-unified.sh` (1125 lines)
+
    - Container orchestration
    - Wizard deployment
    - Service configuration
 
 2. `setup-wizard.html` (537 lines)
+
    - Web interface
    - Form validation
    - Log streaming UI
 
 3. `setup-server.js` (317 lines)
+
    - HTTP server for wizard
    - Installation trigger
    - Auto-exit logic
 
 4. `ac-setup-wizard.service`
+
    - systemd unit file
    - ExecStopPost for PM2 restart
 
@@ -152,21 +156,23 @@ curl http://192.168.1.71:3001
 **CRITICAL REQUIREMENT**: Before considering ANY system update complete, you MUST:
 
 1. **Verify Installer Compatibility**
+
    - Check if changes affect installation process (dependencies, build steps, configuration, directory structure, etc.)
    - Review `scripts/install/install-server.sh` for necessary updates
    - Update installer scripts if system changes impact fresh installations
 
 2. **Test Complete Installation Flow**
+
    ```bash
    # Destroy existing test container
    ssh root@192.168.1.199 "pct destroy 999 --purge --force"
-   
+
    # Run unified installer from GitHub (tests actual user experience)
    ssh root@192.168.1.199 'curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/scripts/install/install-proxmox-unified.sh" | bash'
-   
+
    # Access wizard and complete installation
    # Open http://192.168.1.71:3001
-   
+
    # Verify app functionality
    curl http://192.168.1.71:3001/api/update/check
    ssh root@192.168.1.199 "pct exec 999 -- pm2 list"
@@ -183,6 +189,7 @@ curl http://192.168.1.71:3001
    - ✅ No manual intervention required
 
 **Examples of changes requiring installer testing:**
+
 - New dependencies (npm packages, system packages)
 - Build process changes (Vite config, output directories)
 - Configuration file changes (.env, ecosystem.config.cjs)
@@ -723,6 +730,7 @@ read_file('file3.js'); // Wait
 **Solution** (1 minute):
 
 User must hard refresh browser to clear cache:
+
 - **Windows/Linux**: Ctrl + Shift + R or Ctrl + F5
 - **Mac**: Cmd + Shift + R
 - **Alternative**: Clear browser cache or open in incognito/private mode
