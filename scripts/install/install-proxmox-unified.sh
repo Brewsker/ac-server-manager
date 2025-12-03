@@ -865,9 +865,9 @@ deploy_setup_wizard() {
     # Download installer script
     print_info "Downloading install-server.sh..."
     if [ "$USE_GIT_CACHE" = true ]; then
-        pct exec $CTID -- bash -c "curl -fsSL '${download_source}/install-server.sh' -o ${SETUP_DIR}/install-server.sh" >> "$LOG_FILE" 2>&1
+        pct exec $CTID -- bash -c "curl -fsSL '${download_source}/scripts/install/install-server.sh' -o ${SETUP_DIR}/install-server.sh" >> "$LOG_FILE" 2>&1
     else
-        pct exec $CTID -- bash -c "curl -fsSL '${download_source}/install-server.sh${CACHE_BUST}' -o ${SETUP_DIR}/install-server.sh" >> "$LOG_FILE" 2>&1
+        pct exec $CTID -- bash -c "curl -fsSL '${download_source}/scripts/install/install-server.sh${CACHE_BUST}' -o ${SETUP_DIR}/install-server.sh" >> "$LOG_FILE" 2>&1
     fi
     debug "install-server.sh downloaded"
     
