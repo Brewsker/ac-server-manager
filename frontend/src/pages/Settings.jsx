@@ -237,13 +237,21 @@ function Settings() {
       return;
     }
 
+    if (!steamUser.trim() || !steamPass.trim()) {
+      setSteamMessage({
+        type: 'error',
+        text: 'Steam credentials are required to download AC Dedicated Server (you must own Assetto Corsa)',
+      });
+      return;
+    }
+
     setDownloadingACServer(true);
     setSteamMessage(null);
     try {
       const result = await api.downloadACServer(
         acServerPath,
-        steamUser || undefined,
-        steamPass || undefined
+        steamUser,
+        steamPass
       );
       if (result.success) {
         setSteamMessage({
@@ -378,7 +386,7 @@ function Settings() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">Steam Username (Optional)</label>
+                      <label className="label">Steam Username <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         value={steamUser}
@@ -386,11 +394,12 @@ function Settings() {
                         disabled={downloadingACServer}
                         className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="username"
+                        required
                       />
                     </div>
 
                     <div>
-                      <label className="label">Steam Password (Optional)</label>
+                      <label className="label">Steam Password <span className="text-red-500">*</span></label>
                       <input
                         type="password"
                         value={steamPass}
@@ -398,20 +407,23 @@ function Settings() {
                         disabled={downloadingACServer}
                         className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="password"
+                        required
                       />
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3">
-                    <p className="text-sm text-blue-700 dark:text-blue-400">
-                      ℹ️ Steam credentials are only needed if you don't have an anonymous download
-                      license. They are not stored and only used for this download.
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-3">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium mb-2">
+                      🔐 Steam Account Required
+                    </p>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                      You must own Assetto Corsa on Steam to download the dedicated server. Your credentials are used only for this download and are NOT stored. After download completes, the server runs independently without any Steam connection.
                     </p>
                   </div>
 
                   <button
                     onClick={handleDownloadACServer}
-                    disabled={downloadingACServer || !acServerPath.trim()}
+                    disabled={downloadingACServer || !acServerPath.trim() || !steamUser.trim() || !steamPass.trim()}
                     className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {downloadingACServer ? (
