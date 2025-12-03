@@ -1019,7 +1019,10 @@ deploy_main_app() {
     # Clone or copy entire repository
     if [ "$USE_GIT_CACHE" = true ]; then
         print_info "Copying repository from git-cache..."
-        if pct push $GIT_CACHE_CTID /opt/git-cache/ac-server-manager $CTID:$APP_DIR >> "$LOG_FILE" 2>&1; then
+        pct push $GIT_CACHE_CTID /opt/git-cache/ac-server-manager $CTID:$APP_DIR >> "$LOG_FILE" 2>&1
+        
+        # Verify the copy was successful by checking for package.json
+        if pct exec $CTID -- test -f $APP_DIR/backend/package.json; then
             debug "Repository copied successfully from git-cache"
         else
             print_warning "Failed to copy repository from git-cache, falling back to GitHub clone"
