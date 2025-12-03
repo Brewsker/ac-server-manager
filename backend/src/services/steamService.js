@@ -10,9 +10,10 @@ const execAsync = promisify(exec);
  * @param {string} installPath - Where to install AC server
  * @param {string} steamUser - Steam username (can be 'anonymous')
  * @param {string} steamPass - Steam password (empty for anonymous)
+ * @param {string} steamGuardCode - Steam Guard code (if enabled)
  * @returns {Promise<Object>} Download status and info
  */
-export async function downloadACServer(installPath, steamUser = 'anonymous', steamPass = '') {
+export async function downloadACServer(installPath, steamUser = 'anonymous', steamPass = '', steamGuardCode = '') {
   try {
     // Find SteamCMD binary
     let steamcmdPath = '/usr/games/steamcmd';
@@ -20,8 +21,8 @@ export async function downloadACServer(installPath, steamUser = 'anonymous', ste
       const { stdout } = await execAsync('which steamcmd');
       steamcmdPath = stdout.trim();
     } catch (error) {
-      // Check alternate locations
-      const altPaths = ['/usr/lib/games/steam/steamcmd', '/usr/games/steamcmd'];
+      // Check alternate locations - prefer package version
+      const altPaths = ['/usr/games/steamcmd', '/usr/lib/games/steam/steamcmd'];
       let found = false;
       for (const testPath of altPaths) {
         try {
@@ -47,10 +48,17 @@ export async function downloadACServer(installPath, steamUser = 'anonymous', ste
 
     // Create SteamCMD script
     const scriptPath = '/tmp/install_ac.txt';
-    const scriptContent = `@ShutdownOnFailedCommand 1
+    let scriptContent = `@ShutdownOnFailedCommand 1
 @NoPromptForPassword 1
 force_install_dir ${installPath}
-login ${steamUser} ${steamPass}
+login ${steamUser} ${steamPass}`;
+
+    // Add Steam Guard code if provided
+    if (steamGuardCode && steamGuardCode.trim()) {
+      scriptContent += ` ${steamGuardCode.trim()}`;
+    }
+
+    scriptContent += `
 app_update 302550 validate
 quit
 `;
@@ -99,23 +107,32 @@ quit
     
     // Check for common error patterns
     const errorOutput = error.stdout || error.message || '';
-    if (errorOutput.includes('No subscription')) {
+    const errorStderr = error.stderr || '';
+    const fullError = errorOutput + '\n' + errorStderr;
+    
+    if (fullError.includes('No subscription')) {
       throw new Error(
         'Steam account does not own Assetto Corsa. You must own the game to download the dedicated server.'
       );
     }
-    if (errorOutput.includes('steamconsole.so')) {
+    if (fullError.includes('steamconsole.so')) {
       throw new Error(
         'SteamCMD initialization failed. Please try again or contact support.'
       );
     }
-    if (errorOutput.includes('Login Failure')) {
+    if (fullError.includes('Login Failure') || fullError.includes('Invalid Password') || error.code === 5) {
       throw new Error(
-        'Steam login failed. Please check your username and password.'
+        `Steam login failed (code ${error.code || 'unknown'}). Check your credentials or Steam Guard may be required. Output: ${errorOutput.substring(0, 500)}`
+      );
+    }
+    if (fullError.includes('Two-factor') || fullError.includes('Steam Guard')) {
+      throw new Error(
+        'Steam Guard authentication required. Please disable Steam Guard or use an app-specific password.'
       );
     }
     
-    throw error;
+    // Return detailed error for debugging
+    throw new Error(`SteamCMD failed (code ${error.code || 'unknown'}): ${errorOutput.substring(0, 500)}`);
   }
 }
 

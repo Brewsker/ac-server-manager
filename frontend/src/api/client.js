@@ -343,11 +343,12 @@ export const installSteamCMD = async () => {
   return response.data;
 };
 
-export const downloadACServer = async (installPath, steamUser = 'anonymous', steamPass = '') => {
+export const downloadACServer = async (installPath, steamUser = 'anonymous', steamPass = '', steamGuardCode = '') => {
   const response = await client.post('/steam/download-ac-server', {
     installPath,
     steamUser,
     steamPass,
+    steamGuardCode,
   });
   return response.data;
 };

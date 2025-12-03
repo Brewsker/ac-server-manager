@@ -44,7 +44,7 @@ router.post('/install-steamcmd', async (req, res) => {
  */
 router.post('/download-ac-server', async (req, res) => {
   try {
-    const { installPath, steamUser, steamPass } = req.body;
+    const { installPath, steamUser, steamPass, steamGuardCode } = req.body;
 
     if (!installPath) {
       return res.status(400).json({
@@ -53,7 +53,7 @@ router.post('/download-ac-server', async (req, res) => {
       });
     }
 
-    const result = await steamService.downloadACServer(installPath, steamUser, steamPass);
+    const result = await steamService.downloadACServer(installPath, steamUser, steamPass, steamGuardCode);
     res.json(result);
   } catch (error) {
     console.error('[SteamRoutes] Error downloading AC server:', error);

@@ -317,6 +317,17 @@ install_steamcmd() {
         ln -s /usr/games/steamcmd /usr/local/bin/steamcmd 2>/dev/null || true
     fi
     
+    # Create Steam directory structure for proper initialization
+    mkdir -p /root/.steam
+    
+    # Initialize SteamCMD (creates /root/Steam and required files)
+    print_info "Initializing SteamCMD..."
+    /usr/games/steamcmd +quit > /dev/null 2>&1 || true
+    
+    # Create required symlinks
+    ln -sf /root/Steam/linux32 /root/.steam/root 2>/dev/null || true
+    ln -sf /root/Steam/linux32 /root/.steam/steam 2>/dev/null || true
+    
     print_success "SteamCMD installed"
 }
 
@@ -324,6 +335,8 @@ download_ac_server() {
     print_step "Downloading Assetto Corsa Dedicated Server"
     
     mkdir -p "$AC_SERVER_DIR"
+    # Also create common alternate directory
+    mkdir -p "/opt/acserver"
     
     # Create SteamCMD script
     cat > /tmp/install_ac.txt << EOF
