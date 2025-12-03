@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import * as contentService from '../services/contentService.js';
 import contentUploadService from '../services/contentUploadService.js';
 
@@ -168,7 +169,7 @@ router.get('/track-preview/:trackId', (req, res) => {
 
   // Try direct preview paths first
   for (const previewPath of previewPaths.slice(0, 2)) {
-    if (fs.existsSync(previewPath)) {
+    if (fsSync.existsSync(previewPath)) {
       return res.sendFile(previewPath);
     }
   }
@@ -176,20 +177,20 @@ router.get('/track-preview/:trackId', (req, res) => {
   // If no direct preview found, check for track configurations
   try {
     const uiPath = path.join(trackPath, 'ui');
-    if (fs.existsSync(uiPath)) {
-      const uiContents = fs.readdirSync(uiPath);
+    if (fsSync.existsSync(uiPath)) {
+      const uiContents = fsSync.readdirSync(uiPath);
 
       // Look for configuration folders (e.g., "ui/sprint", "ui/gp", etc.)
       for (const item of uiContents) {
         const itemPath = path.join(uiPath, item);
-        if (fs.statSync(itemPath).isDirectory()) {
+        if (fsSync.statSync(itemPath).isDirectory()) {
           const configPreview = path.join(itemPath, 'preview.png');
           const configOutline = path.join(itemPath, 'outline.png');
 
-          if (fs.existsSync(configPreview)) {
+          if (fsSync.existsSync(configPreview)) {
             return res.sendFile(configPreview);
           }
-          if (fs.existsSync(configOutline)) {
+          if (fsSync.existsSync(configOutline)) {
             return res.sendFile(configOutline);
           }
         }
@@ -216,11 +217,11 @@ router.get('/car-preview/:carId', (req, res) => {
   const skinsPath = path.join(carPath, 'skins');
 
   try {
-    if (fs.existsSync(skinsPath)) {
-      const skins = fs.readdirSync(skinsPath);
+    if (fsSync.existsSync(skinsPath)) {
+      const skins = fsSync.readdirSync(skinsPath);
       if (skins.length > 0) {
         const previewPath = path.join(skinsPath, skins[0], 'preview.jpg');
-        if (fs.existsSync(previewPath)) {
+        if (fsSync.existsSync(previewPath)) {
           return res.sendFile(previewPath);
         }
       }
@@ -228,7 +229,7 @@ router.get('/car-preview/:carId', (req, res) => {
 
     // Try ui/badge.png as fallback
     const badgePath = path.join(carPath, 'ui', 'badge.png');
-    if (fs.existsSync(badgePath)) {
+    if (fsSync.existsSync(badgePath)) {
       return res.sendFile(badgePath);
     }
 
@@ -301,7 +302,7 @@ router.get('/country-flag/:countryCode', (req, res) => {
   // AC stores nation flags in content/gui/NationFlags/
   const flagPath = path.join(acContentPath, 'gui', 'NationFlags', `${isoCode}.png`);
 
-  if (fs.existsSync(flagPath)) {
+  if (fsSync.existsSync(flagPath)) {
     return res.sendFile(flagPath);
   }
 

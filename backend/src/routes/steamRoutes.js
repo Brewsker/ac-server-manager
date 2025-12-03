@@ -1,5 +1,5 @@
 import express from 'express';
-import * as steamService from '../services/steamService.js';
+import { SteamService as steamService } from '../services/Platform/index.js';
 
 const router = express.Router();
 

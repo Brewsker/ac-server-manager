@@ -1,5 +1,5 @@
 import express from 'express';
-import updateService from '../services/updateService.js';
+import { UpdateService as updateService } from '../services/Platform/index.js';
 
 const router = express.Router();
 
