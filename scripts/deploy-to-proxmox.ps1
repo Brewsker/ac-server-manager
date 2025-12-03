@@ -55,6 +55,7 @@ Write-Host "   Uploaded" -ForegroundColor Green
 
 # Step 5: Deploy
 Write-Host "[5/6] Deploying..." -ForegroundColor Yellow
+ssh root@$HostIP "pct exec $ContainerId -- mkdir -p /opt/ac-server-manager/frontend/assets" 2>&1 | Out-Null
 ssh root@$HostIP "cd /tmp/ac-deploy && for f in assets/*; do pct push $ContainerId `"`$f`" /opt/ac-server-manager/frontend/`"`$f`"; done && pct push $ContainerId index.html /opt/ac-server-manager/frontend/index.html && pct push $ContainerId backend-package.json /opt/ac-server-manager/backend/package.json && pct push $ContainerId frontend-package.json /opt/ac-server-manager/frontend/package.json && rm -rf /tmp/ac-deploy" 2>&1 | Out-Null
 Write-Host "   Deployed" -ForegroundColor Green
 
