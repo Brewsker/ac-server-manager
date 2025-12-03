@@ -14,14 +14,33 @@ const execAsync = promisify(exec);
  */
 export async function downloadACServer(installPath, steamUser = 'anonymous', steamPass = '') {
   try {
-    // Validate SteamCMD is installed
+    // Find SteamCMD binary
+    let steamcmdPath = '/usr/games/steamcmd';
     try {
-      await execAsync('which steamcmd');
+      const { stdout } = await execAsync('which steamcmd');
+      steamcmdPath = stdout.trim();
     } catch (error) {
-      throw new Error(
-        'SteamCMD not found. Please install it first: sudo apt-get install steamcmd'
-      );
+      // Check alternate locations
+      const altPaths = ['/usr/lib/games/steam/steamcmd', '/usr/games/steamcmd'];
+      let found = false;
+      for (const testPath of altPaths) {
+        try {
+          await fs.access(testPath);
+          steamcmdPath = testPath;
+          found = true;
+          break;
+        } catch (e) {
+          // Continue checking
+        }
+      }
+      if (!found) {
+        throw new Error(
+          'SteamCMD not found. Please install it first: sudo apt-get install steamcmd'
+        );
+      }
     }
+
+    console.log(`[SteamService] Using steamcmd at: ${steamcmdPath}`);
 
     // Create install directory
     await fs.mkdir(installPath, { recursive: true });
@@ -40,7 +59,7 @@ quit
 
     // Run SteamCMD
     console.log('[SteamService] Starting AC server download...');
-    const { stdout, stderr } = await execAsync(`steamcmd +runscript ${scriptPath}`, {
+    const { stdout, stderr } = await execAsync(`${steamcmdPath} +runscript ${scriptPath}`, {
       maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large output
     });
 
@@ -86,9 +105,20 @@ quit
  */
 export async function isSteamCMDInstalled() {
   try {
+    // Try which command first
     await execAsync('which steamcmd');
     return true;
   } catch (error) {
+    // Check alternate locations
+    const altPaths = ['/usr/lib/games/steam/steamcmd', '/usr/games/steamcmd'];
+    for (const testPath of altPaths) {
+      try {
+        await fs.access(testPath);
+        return true;
+      } catch (e) {
+        // Continue checking
+      }
+    }
     return false;
   }
 }
