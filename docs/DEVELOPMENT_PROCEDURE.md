@@ -5,23 +5,43 @@
 After making changes to the frontend or backend, deploy to production:
 
 ```powershell
-# Full deployment (builds frontend + deploys)
+# Full deployment (builds frontend + deploys + creates backup)
 .\scripts\deploy-to-proxmox.ps1
 
 # Skip build if you already built locally
 .\scripts\deploy-to-proxmox.ps1 -SkipBuild
 
+# Skip backup for faster deployment
+.\scripts\deploy-to-proxmox.ps1 -SkipBackup
+
 # Deploy to different host/container
-.\scripts\deploy-to-proxmox.ps1 -Host 192.168.1.100 -ContainerId 100
+.\scripts\deploy-to-proxmox.ps1 -HostIP 192.168.1.100 -ContainerId 100
 ```
 
 The script:
 
-1. Builds the frontend (unless `-SkipBuild` specified)
-2. Uploads all files to host `/tmp`
-3. Pushes files to container using `pct push`
-4. Verifies all files are present
-5. Restarts PM2 for AI Agents
+1. Builds the frontend (unless `-SkipBuild`)
+2. Creates backup of current deployment (unless `-SkipBackup`)
+3. Cleans old assets to prevent file pollution
+4. Uploads all files to host `/tmp`
+5. Pushes files to container using `pct push`
+6. Verifies deployment
+7. Restarts PM2
+
+## Rollback Deployment
+
+If something goes wrong, rollback to a previous version:
+
+```powershell
+# List available backups
+.\scripts\rollback-deployment.ps1 -ListOnly
+
+# Rollback to most recent backup
+.\scripts\rollback-deployment.ps1
+
+# Rollback to specific backup
+.\scripts\rollback-deployment.ps1 -BackupName "backup-20251203-120000"
+``` for AI Agents
 
 ## Core Principle: Minimize User Interaction
 
