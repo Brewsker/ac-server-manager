@@ -27,12 +27,14 @@
 ### ❌ Issues Identified
 
 #### 1. **Version Display Bug** (CRITICAL)
+
 - **Location**: `frontend/src/components/Layout.jsx:231`
 - **Issue**: Hardcoded `v0.15.1` instead of fetching from API
 - **Impact**: Users see wrong version number
 - **Fix**: Use existing `/api/update/version` endpoint
 
 #### 2. **Deployment File Pollution**
+
 - **Location**: Container `/opt/ac-server-manager/frontend/assets/`
 - **Issue**: Multiple duplicate bundles from different builds
   ```
@@ -47,16 +49,19 @@
 - **Fix**: Clean assets before each deployment
 
 #### 3. **Package Version Mismatch**
+
 - **File**: `backend/package-lock.json:3`
 - **Issue**: Shows `"version": "0.13.6"` (out of sync with package.json)
 - **Fix**: Regenerate package-lock.json
 
 #### 4. **Cursorrules Outdated**
+
 - **File**: `.cursorrules:330`
 - **Issue**: Documents version as `0.14.1`
 - **Fix**: Update to `0.16.0`
 
 #### 5. **Root Directory Clutter**
+
 - Unnecessary files in root:
   - `ac-setup-wizard.service` - Unused service file
   - `setup-wizard.html` - Old setup wizard
@@ -65,6 +70,7 @@
 - Should be moved to `/scripts/` or `/deprecated/`
 
 #### 6. **Backend Temp Directory**
+
 - **Location**: `backend/temp/uploads/`
 - Empty directory, should be in .gitignore
 
@@ -75,6 +81,7 @@
 ### **Phase 1: Critical Fixes** (Deploy Today)
 
 #### 1.1 Fix Version Display ✅ READY TO IMPLEMENT
+
 ```jsx
 // frontend/src/components/Layout.jsx
 // Replace hardcoded version with API call
@@ -94,10 +101,11 @@ useEffect(() => {
 }, []);
 
 // In render:
-<p className="text-gray-400 text-sm mt-1">v{appVersion}</p>
+<p className="text-gray-400 text-sm mt-1">v{appVersion}</p>;
 ```
 
 #### 1.2 Add API Client Method ✅ READY TO IMPLEMENT
+
 ```javascript
 // frontend/src/api/client.js
 export const getAppVersion = async () => {
@@ -113,11 +121,13 @@ export default {
 ```
 
 #### 1.3 Update Cursorrules Version
+
 ```
 - Current version: **0.16.0**
 ```
 
 #### 1.4 Regenerate package-lock.json
+
 ```bash
 cd backend
 rm package-lock.json
@@ -131,7 +141,9 @@ npm install
 ### **Phase 2: Deployment System** (Tomorrow)
 
 #### 2.1 Fix Deployment Script
+
 Create working PowerShell deployment script that:
+
 1. Cleans old assets first
 2. Builds frontend
 3. Deploys all files atomically
@@ -139,19 +151,22 @@ Create working PowerShell deployment script that:
 5. Restarts PM2
 
 #### 2.2 Add Pre-deployment Cleanup
+
 ```bash
 ssh root@host "pct exec CT_ID -- rm -rf /opt/ac-server-manager/frontend/assets/*"
 ssh root@host "pct exec CT_ID -- rm -f /opt/ac-server-manager/frontend/index.html"
 ```
 
 #### 2.3 Create Rollback Capability
+
 Keep last 2 builds in `/opt/ac-server-manager/frontend-backups/`
 
 ---
 
-### **Phase 3: Folder Structure Cleanup** (This Week)
+### **Phase 3: Folder Structure Cleanup** ✅ COMPLETE
 
-#### 3.1 Create Deprecated Directory
+#### 3.1 Create Deprecated Directory ✅
+
 ```
 /deprecated/
   ├── ac-setup-wizard.service
@@ -160,45 +175,63 @@ Keep last 2 builds in `/opt/ac-server-manager/frontend-backups/`
   └── README.md (explaining what these were for)
 ```
 
-#### 3.2 Organize Scripts
+**Status**: Complete - Created with documentation
+
+#### 3.2 Organize Scripts ✅
+
 ```
 /scripts/
-  ├── deploy/
-  │   ├── deploy-to-proxmox.ps1
-  │   └── rollback.ps1
+  ├── deploy-to-proxmox.ps1
+  ├── rollback-deployment.ps1
+  ├── bump-version.ps1
+  ├── commit.ps1
+  ├── fix-pm2-env.sh
+  ├── update-wizard.sh
+  ├── README.md (documentation)
+  ├── install/
+  │   ├── install-proxmox.sh
+  │   ├── install-proxmox-unified.sh
+  │   ├── install-server.sh
+  │   ├── install.ps1
+  │   └── setup-server.js
   ├── testing/
   │   ├── test-proxmox.sh
-  │   └── test-proxmox-dev.sh
-  ├── setup/
-  │   ├── install-server.sh
-  │   ├── install-proxmox.sh
-  │   └── install.ps1
-  └── utils/
-      ├── bump-version.ps1
-      └── commit.ps1
+  │   ├── test-proxmox-dev.sh
+  │   ├── test-fresh-install.sh
+  │   └── test-wizard-flow.sh
+  └── ssh/
+      ├── setup-ssh.ps1
+      ├── ssh-manager.sh
+      ├── SSH-README.md
+      ├── .ssh-config
+      └── ssh-backups/
 ```
 
-#### 3.3 Update .gitignore
+**Status**: Complete - All scripts organized and documented
+
+#### 3.3 Update .gitignore ✅
+
 ```gitignore
 # Temporary files
 backend/temp/
 frontend/dist/
-*.log
 
-# Environment
-.env
-.env.local
+# Deployment backups (stored in container, not repo)
+backups/
 
-# IDE
-.vscode/
-.idea/
+# SSH configuration (sensitive)
+.ssh-config
+ssh-backups/
 ```
+
+**Status**: Complete - Updated to ignore temp dirs and sensitive files
 
 ---
 
 ### **Phase 4: Service Refactoring** (Next Week)
 
 #### 4.1 Current Service Organization
+
 ```
 backend/src/services/
 ├── banManager.js          (Player bans)
@@ -220,6 +253,7 @@ backend/src/services/
 #### 4.2 Proposed Refactoring
 
 **Option A: Domain-Driven**
+
 ```
 services/
 ├── config/
@@ -244,6 +278,7 @@ services/
 ```
 
 **Option B: Feature-Based (RECOMMENDED)**
+
 ```
 services/
 ├── ServerManagement/          (Core server ops)
@@ -271,16 +306,19 @@ services/
 #### 4.3 New Services to Add
 
 1. **MultiInstanceManager.js**
+
    - Handle multiple AC server instances
    - Port allocation
    - Resource management
 
 2. **SessionManager.js**
+
    - Track race sessions
    - Historical data
    - Statistics
 
 3. **BackupManager.js**
+
    - Auto-backup configs before changes
    - Restore capability
    - Backup rotation
@@ -295,18 +333,21 @@ services/
 ## 📋 Immediate Action Items
 
 ### Today (Critical)
+
 - [ ] Fix version display in Layout.jsx
 - [ ] Add getAppVersion to API client
 - [ ] Deploy and verify version shows 0.16.0
 - [ ] Update .cursorrules version
 
 ### Tomorrow
+
 - [ ] Fix deployment script (remove smart quotes)
 - [ ] Add cleanup step to deployment
 - [ ] Test full deployment cycle
 - [ ] Document deployment process
 
 ### This Week
+
 - [ ] Reorganize root directory
 - [ ] Create deprecated/ folder
 - [ ] Reorganize scripts/ folder
@@ -314,6 +355,7 @@ services/
 - [ ] Clean up container assets directory
 
 ### Next Week
+
 - [ ] Plan service refactoring
 - [ ] Decide on refactoring approach (A or B)
 - [ ] Implement MultiInstanceManager skeleton
@@ -335,12 +377,14 @@ services/
 ## 📊 Metrics
 
 ### Before Cleanup
+
 - Root directory files: 13
 - Duplicate bundles in production: 6
 - Hardcoded values: 2+ (version, paths)
 - Package-lock version mismatch: Yes
 
 ### After Cleanup (Target)
+
 - Root directory files: 4 (README, package files, docker-compose)
 - Duplicate bundles: 0 (cleaned on each deploy)
 - Hardcoded values: 0 (all from API/env)
@@ -351,23 +395,27 @@ services/
 ## 🔄 Testing Strategy
 
 ### Phase 1 Testing
+
 1. Deploy version fix
 2. Verify browser shows v0.16.0
 3. Check PM2 shows v0.16.0
 4. Test `/api/update/version` endpoint
 
 ### Phase 2 Testing
+
 1. Test deployment script on clean container
 2. Verify all files deployed
 3. Test rollback capability
 4. Document any issues
 
 ### Phase 3 Testing
+
 1. Verify moved files don't break anything
 2. Check all scripts still work from new locations
 3. Ensure .gitignore works correctly
 
 ### Phase 4 Testing
+
 1. Unit test new service structure
 2. Integration test with existing code
 3. Performance benchmarks

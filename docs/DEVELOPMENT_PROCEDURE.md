@@ -32,7 +32,7 @@ The script:
 
 If something goes wrong, rollback to a previous version:
 
-```powershell
+````powershell
 # List available backups
 .\scripts\rollback-deployment.ps1 -ListOnly
 
@@ -73,7 +73,7 @@ If something goes wrong, rollback to a previous version:
 grep_search("EADDRINUSE", isRegexp=false)  # Find port binding issues
 semantic_search("port configuration")       # Understand port setup
 read_file("/var/log/installer.log")        # Check installation logs
-```
+````
 
 ### 2. Issue Analysis
 

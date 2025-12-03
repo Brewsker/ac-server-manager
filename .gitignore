@@ -45,3 +45,14 @@ entry_list.ini
 # Temp files
 tmp/
 temp/
+backend/temp/
+backend/temp/uploads/
+frontend/dist/
+
+# Deployment backups (stored in container, not repo)
+backups/
+*.backup
+
+# SSH configuration (sensitive)
+.ssh-config
+ssh-backups/

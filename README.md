@@ -62,9 +62,18 @@ Creates Ubuntu 22.04 LXC, installs app, optionally downloads AC via Steam!
 ## Project Status
 
 **Current Phase:** Active Development  
-**Last Updated:** December 1, 2025  
-**Version:** 0.13.6+  
+**Last Updated:** December 3, 2025  
+**Version:** 0.16.0  
 **Developer:** Brook
+
+### Recent Updates (v0.16.0)
+
+- ✅ Dynamic version display from API
+- ✅ Content status detection (cars/tracks)
+- ✅ Reliable deployment system with rollback
+- ✅ Automated backups
+- ✅ Clean folder structure
+- ✅ Comprehensive documentation
 
 ### Development Quick Start
 
@@ -76,6 +85,11 @@ The project includes a VS Code control panel with buttons in the status bar:
 - **🔴 Kill All** - Stop all processes and release ports
 
 Just click the buttons to control your development environment!
+
+For deployment to production:
+```powershell
+.\scripts\deploy-to-proxmox.ps1
+```
 
 ## Tech Stack
 
