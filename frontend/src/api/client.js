@@ -39,6 +39,12 @@ export const getServerLogs = async (lines = 100) => {
   return response.data;
 };
 
+// Content status endpoint
+export const getContentStatus = async () => {
+  const response = await client.get('/content/status');
+  return response.data;
+};
+
 // Config endpoints
 export const getConfig = async () => {
   const response = await client.get('/config');
@@ -343,7 +349,12 @@ export const installSteamCMD = async () => {
   return response.data;
 };
 
-export const downloadACServer = async (installPath, steamUser = 'anonymous', steamPass = '', steamGuardCode = '') => {
+export const downloadACServer = async (
+  installPath,
+  steamUser = 'anonymous',
+  steamPass = '',
+  steamGuardCode = ''
+) => {
   const response = await client.post('/steam/download-ac-server', {
     installPath,
     steamUser,
@@ -367,6 +378,36 @@ export const copyACServerFromCache = async (installPath, cacheHost = '192.168.1.
   const response = await client.post('/steam/copy-from-cache', {
     installPath,
     cacheHost,
+  });
+  return response.data;
+};
+
+export const downloadACBaseGame = async (
+  installPath,
+  steamUser,
+  steamPass,
+  steamGuardCode = ''
+) => {
+  const response = await client.post('/steam/download-base-game', {
+    installPath,
+    steamUser,
+    steamPass,
+    steamGuardCode,
+  });
+  return response.data;
+};
+
+export const extractACContent = async (gameInstallPath, serverContentPath) => {
+  const response = await client.post('/steam/extract-content', {
+    gameInstallPath,
+    serverContentPath,
+  });
+  return response.data;
+};
+
+export const cleanupACBaseGame = async (gameInstallPath) => {
+  const response = await client.post('/steam/cleanup-base-game', {
+    gameInstallPath,
   });
   return response.data;
 };
@@ -440,6 +481,9 @@ export default {
   checkACServer,
   checkACServerCache,
   copyACServerFromCache,
+  downloadACBaseGame,
+  extractACContent,
+  cleanupACBaseGame,
   // Also export the axios instance for direct use
   get: (url, config) => client.get(url, config),
   post: (url, data, config) => client.post(url, data, config),

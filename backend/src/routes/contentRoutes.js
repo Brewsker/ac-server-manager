@@ -1,10 +1,68 @@
 import express from 'express';
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs/promises';
 import * as contentService from '../services/contentService.js';
 import contentUploadService from '../services/contentUploadService.js';
 
 const router = express.Router();
+
+// Check content installation status
+router.get('/status', async (req, res, next) => {
+  try {
+    const contentPath = process.env.AC_CONTENT_PATH || '/opt/acserver/content';
+    const carsPath = path.join(contentPath, 'cars');
+    const tracksPath = path.join(contentPath, 'tracks');
+
+    let carCount = 0;
+    let trackCount = 0;
+    let hasContent = false;
+
+    try {
+      // Check if directories exist
+      await fs.access(carsPath);
+      await fs.access(tracksPath);
+
+      // Count directories (each car/track is a folder)
+      const carFolders = await fs.readdir(carsPath);
+      const trackFolders = await fs.readdir(tracksPath);
+
+      // Filter out non-directories
+      const carStats = await Promise.all(
+        carFolders.map(async (folder) => {
+          const stat = await fs.stat(path.join(carsPath, folder));
+          return stat.isDirectory();
+        })
+      );
+      const trackStats = await Promise.all(
+        trackFolders.map(async (folder) => {
+          const stat = await fs.stat(path.join(tracksPath, folder));
+          return stat.isDirectory();
+        })
+      );
+
+      carCount = carStats.filter(Boolean).length;
+      trackCount = trackStats.filter(Boolean).length;
+      hasContent = carCount > 0 || trackCount > 0;
+
+      res.json({
+        installed: hasContent,
+        carCount,
+        trackCount,
+        contentPath,
+      });
+    } catch (error) {
+      // Content directories don't exist
+      res.json({
+        installed: false,
+        carCount: 0,
+        trackCount: 0,
+        contentPath,
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Get available tracks
 router.get('/tracks', async (req, res, next) => {
@@ -130,7 +188,8 @@ router.get('/track-preview/:trackId', (req, res) => {
     console.error('Error reading track configurations:', error);
   }
 
-  res.status(404).send('Preview not found');
+  // Return 204 No Content instead of 404 so UI doesn't show broken image
+  res.status(204).send();
 });
 
 // Serve car preview image
@@ -162,7 +221,8 @@ router.get('/car-preview/:carId', (req, res) => {
       return res.sendFile(badgePath);
     }
 
-    res.status(404).send('Preview not found');
+    // Return 204 No Content instead of 404 so UI doesn't show broken image
+    res.status(204).send();
   } catch (error) {
     res.status(500).send('Error reading car preview');
   }

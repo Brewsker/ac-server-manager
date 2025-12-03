@@ -53,7 +53,12 @@ router.post('/download-ac-server', async (req, res) => {
       });
     }
 
-    const result = await steamService.downloadACServer(installPath, steamUser, steamPass, steamGuardCode);
+    const result = await steamService.downloadACServer(
+      installPath,
+      steamUser,
+      steamPass,
+      steamGuardCode
+    );
     res.json(result);
   } catch (error) {
     console.error('[SteamRoutes] Error downloading AC server:', error);
@@ -133,6 +138,92 @@ router.post('/copy-from-cache', async (req, res) => {
     res.status(500).json({
       error: true,
       message: error.message || 'Failed to copy AC server from cache',
+    });
+  }
+});
+
+/**
+ * POST /api/steam/download-base-game
+ * Download AC base game for content extraction
+ * Body: { installPath, steamUser, steamPass, steamGuardCode? }
+ */
+router.post('/download-base-game', async (req, res) => {
+  try {
+    const { installPath, steamUser, steamPass, steamGuardCode } = req.body;
+
+    if (!installPath || !steamUser || !steamPass) {
+      return res.status(400).json({
+        error: true,
+        message: 'installPath, steamUser, and steamPass are required',
+      });
+    }
+
+    const result = await steamService.downloadACBaseGame(
+      installPath,
+      steamUser,
+      steamPass,
+      steamGuardCode
+    );
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error downloading AC base game:', error);
+    res.status(500).json({
+      error: true,
+      message: error.message || 'Failed to download AC base game',
+    });
+  }
+});
+
+/**
+ * POST /api/steam/extract-content
+ * Extract content from AC base game to server
+ * Body: { gameInstallPath, serverContentPath }
+ */
+router.post('/extract-content', async (req, res) => {
+  try {
+    const { gameInstallPath, serverContentPath } = req.body;
+
+    if (!gameInstallPath || !serverContentPath) {
+      return res.status(400).json({
+        error: true,
+        message: 'gameInstallPath and serverContentPath are required',
+      });
+    }
+
+    const result = await steamService.extractACContent(gameInstallPath, serverContentPath);
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error extracting content:', error);
+    res.status(500).json({
+      error: true,
+      message: error.message || 'Failed to extract content',
+    });
+  }
+});
+
+/**
+ * POST /api/steam/cleanup-base-game
+ * Remove AC base game files after extraction
+ * Body: { gameInstallPath }
+ */
+router.post('/cleanup-base-game', async (req, res) => {
+  try {
+    const { gameInstallPath } = req.body;
+
+    if (!gameInstallPath) {
+      return res.status(400).json({
+        error: true,
+        message: 'gameInstallPath is required',
+      });
+    }
+
+    const result = await steamService.cleanupACBaseGame(gameInstallPath);
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error cleaning up base game:', error);
+    res.status(500).json({
+      error: true,
+      message: error.message || 'Failed to cleanup base game',
     });
   }
 });
