@@ -188,3 +188,108 @@ export async function checkACServerInstalled(installPath) {
     };
   }
 }
+
+/**
+ * Check if AC server cache exists on git-cache server
+ * @param {string} cacheHost - IP address of git-cache server (default: 192.168.1.70)
+ * @returns {Promise<Object>} Cache status with size and file count
+ */
+export async function checkACServerCache(cacheHost = '192.168.1.70') {
+  try {
+    const cachePath = '/opt/steam-cache/ac-dedicated-server';
+    
+    // Check if cache directory exists and has acServer binary
+    const { stdout: checkOutput } = await execAsync(
+      `ssh -o ConnectTimeout=5 root@${cacheHost} "test -f ${cachePath}/acServer && echo exists || echo missing"`
+    );
+
+    if (checkOutput.trim() !== 'exists') {
+      return {
+        exists: false,
+        path: cachePath,
+        host: cacheHost,
+      };
+    }
+
+    // Get cache size and file count
+    const { stdout: sizeOutput } = await execAsync(
+      `ssh root@${cacheHost} "du -sh ${cachePath} && find ${cachePath} -type f | wc -l"`
+    );
+
+    const lines = sizeOutput.trim().split('\n');
+    const size = lines[0].split('\t')[0];
+    const fileCount = parseInt(lines[1]);
+
+    return {
+      exists: true,
+      path: cachePath,
+      host: cacheHost,
+      size,
+      fileCount,
+    };
+  } catch (error) {
+    console.error('[SteamService] Failed to check AC server cache:', error);
+    return {
+      exists: false,
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * Copy AC server from git-cache to local install path
+ * @param {string} installPath - Where to install AC server locally
+ * @param {string} cacheHost - IP address of git-cache server (default: 192.168.1.70)
+ * @returns {Promise<Object>} Copy status and info
+ */
+export async function copyACServerFromCache(installPath, cacheHost = '192.168.1.70') {
+  try {
+    console.log(`[SteamService] Copying AC server from cache ${cacheHost} to ${installPath}...`);
+
+    // Create install directory
+    await fs.mkdir(installPath, { recursive: true });
+
+    const cachePath = '/opt/steam-cache/ac-dedicated-server/';
+    
+    // Use rsync to copy from cache
+    const { stdout, stderr } = await execAsync(
+      `rsync -avz --progress root@${cacheHost}:${cachePath} ${installPath}/`,
+      {
+        maxBuffer: 10 * 1024 * 1024, // 10MB buffer for output
+      }
+    );
+
+    console.log('[SteamService] Rsync output:', stdout);
+
+    // Verify installation
+    const acServerPath = path.join(installPath, 'acServer');
+    try {
+      await fs.access(acServerPath);
+      await fs.chmod(acServerPath, 0o755); // Make executable
+
+      // Try to get version
+      let version = 'Unknown';
+      try {
+        const { stdout: versionOutput } = await execAsync(`${acServerPath} -v 2>&1 | head -n1`);
+        version = versionOutput.trim();
+      } catch (error) {
+        console.warn('[SteamService] Could not get AC server version:', error.message);
+      }
+
+      return {
+        success: true,
+        message: 'AC Dedicated Server copied from cache successfully',
+        path: installPath,
+        version,
+        output: stdout,
+      };
+    } catch (error) {
+      throw new Error(
+        `AC server copy completed but acServer executable not found at ${acServerPath}`
+      );
+    }
+  } catch (error) {
+    console.error('[SteamService] Failed to copy AC server from cache:', error);
+    throw error;
+  }
+}

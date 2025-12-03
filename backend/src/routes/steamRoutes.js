@@ -91,4 +91,50 @@ router.get('/check-ac-server', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/steam/check-cache
+ * Check if AC server cache exists on git-cache server
+ * Query: ?host=192.168.1.70 (optional, defaults to 192.168.1.70)
+ */
+router.get('/check-cache', async (req, res) => {
+  try {
+    const { host } = req.query;
+    const result = await steamService.checkACServerCache(host);
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error checking AC server cache:', error);
+    res.status(500).json({
+      error: true,
+      message: 'Failed to check AC server cache',
+    });
+  }
+});
+
+/**
+ * POST /api/steam/copy-from-cache
+ * Copy AC server from git-cache to local install path
+ * Body: { installPath, cacheHost? }
+ */
+router.post('/copy-from-cache', async (req, res) => {
+  try {
+    const { installPath, cacheHost } = req.body;
+
+    if (!installPath) {
+      return res.status(400).json({
+        error: true,
+        message: 'installPath is required',
+      });
+    }
+
+    const result = await steamService.copyACServerFromCache(installPath, cacheHost);
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error copying AC server from cache:', error);
+    res.status(500).json({
+      error: true,
+      message: error.message || 'Failed to copy AC server from cache',
+    });
+  }
+});
+
 export default router;

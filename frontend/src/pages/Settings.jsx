@@ -25,12 +25,17 @@ function Settings() {
   const [steamUser, setSteamUser] = useState('');
   const [steamPass, setSteamPass] = useState('');
   const [steamMessage, setSteamMessage] = useState(null);
+  const [cacheStatus, setCacheStatus] = useState(null);
+  const [checkingCache, setCheckingCache] = useState(false);
+  const [copyingFromCache, setCopyingFromCache] = useState(false);
 
   useEffect(() => {
     // Load current version on mount
     loadCurrentVersion();
     // Check SteamCMD status on mount
     checkSteamCMDStatus();
+    // Check cache status on mount
+    checkCacheStatus();
   }, []);
 
   const loadCurrentVersion = async () => {
@@ -200,6 +205,19 @@ function Settings() {
     }
   };
 
+  const checkCacheStatus = async () => {
+    setCheckingCache(true);
+    try {
+      const result = await api.checkACServerCache();
+      setCacheStatus(result);
+    } catch (error) {
+      console.error('Failed to check cache status:', error);
+      setCacheStatus({ exists: false, error: error.message });
+    } finally {
+      setCheckingCache(false);
+    }
+  };
+
   const handleInstallSteamCMD = async () => {
     setInstallingSteamCmd(true);
     setSteamMessage(null);
@@ -258,6 +276,8 @@ function Settings() {
           type: 'success',
           text: `AC Server installed successfully! Version: ${result.version || 'Unknown'}`,
         });
+        // Refresh cache status after successful download
+        await checkCacheStatus();
       } else {
         setSteamMessage({
           type: 'error',
@@ -272,6 +292,41 @@ function Settings() {
       });
     } finally {
       setDownloadingACServer(false);
+    }
+  };
+
+  const handleCopyFromCache = async () => {
+    if (!acServerPath.trim()) {
+      setSteamMessage({
+        type: 'error',
+        text: 'Please enter an installation path',
+      });
+      return;
+    }
+
+    setCopyingFromCache(true);
+    setSteamMessage(null);
+    try {
+      const result = await api.copyACServerFromCache(acServerPath);
+      if (result.success) {
+        setSteamMessage({
+          type: 'success',
+          text: result.message || 'AC Dedicated Server copied from cache successfully!',
+        });
+      } else {
+        setSteamMessage({
+          type: 'error',
+          text: result.message || 'Failed to copy AC Dedicated Server from cache',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to copy AC server from cache:', error);
+      setSteamMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to copy AC Dedicated Server from cache',
+      });
+    } finally {
+      setCopyingFromCache(false);
     }
   };
 
@@ -375,7 +430,7 @@ function Settings() {
                       type="text"
                       value={acServerPath}
                       onChange={(e) => setAcServerPath(e.target.value)}
-                      disabled={downloadingACServer}
+                      disabled={downloadingACServer || copyingFromCache}
                       className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="/opt/acserver"
                     />
@@ -383,6 +438,46 @@ function Settings() {
                       Directory where the AC dedicated server will be installed
                     </p>
                   </div>
+
+                  {/* Cache Status */}
+                  {cacheStatus && cacheStatus.exists && (
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-green-800 dark:text-green-200 flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            Cache Available - Fast Installation
+                          </p>
+                          <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                            AC server cache found ({cacheStatus.size || 'Unknown size'}, {cacheStatus.fileCount || '0'} files). Copy from cache in ~10 seconds instead of downloading (~5-10 minutes).
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleCopyFromCache}
+                          disabled={copyingFromCache || !acServerPath.trim()}
+                          className="btn-primary ml-4 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        >
+                          {copyingFromCache ? 'Copying...' : '⚡ Copy from Cache'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Divider when cache exists */}
+                  {cacheStatus && cacheStatus.exists && (
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                          Or download from Steam
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>

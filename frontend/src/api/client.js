@@ -357,6 +357,19 @@ export const checkACServer = async (path) => {
   return response.data;
 };
 
+export const checkACServerCache = async (host = '192.168.1.70') => {
+  const response = await client.get('/steam/check-cache', { params: { host } });
+  return response.data;
+};
+
+export const copyACServerFromCache = async (installPath, cacheHost = '192.168.1.70') => {
+  const response = await client.post('/steam/copy-from-cache', {
+    installPath,
+    cacheHost,
+  });
+  return response.data;
+};
+
 export default {
   getServerStatus,
   startServer,
@@ -424,6 +437,8 @@ export default {
   installSteamCMD,
   downloadACServer,
   checkACServer,
+  checkACServerCache,
+  copyACServerFromCache,
   // Also export the axios instance for direct use
   get: (url, config) => client.get(url, config),
   post: (url, data, config) => client.post(url, data, config),
