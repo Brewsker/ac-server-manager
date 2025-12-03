@@ -570,9 +570,20 @@ start_container() {
     fi
     
     print_info "Waiting for container to boot..."
-    sleep 8 || true  # Give it time to initialize
     
-    print_success "Container started and responsive"
+    # Wait for container to be fully booted (up to 60 seconds)
+    local boot_timeout=60
+    local elapsed=0
+    while [ $elapsed -lt $boot_timeout ]; do
+        if pct exec $CTID -- test -d /root >/dev/null 2>&1; then
+            print_success "Container fully booted and responsive (${elapsed}s)"
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+    
+    print_warning "Container boot verification timed out after ${boot_timeout}s, proceeding anyway"
 }
 
 update_ssh_keys() {
