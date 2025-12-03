@@ -332,6 +332,17 @@ function Settings() {
     }
   };
 
+  const handleFormKeyPress = (event) => {
+    // Handle Enter or NumpadEnter key
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      // Check if download button would be enabled
+      if (!downloadingACServer && acServerPath.trim() && steamUser.trim() && steamPass.trim()) {
+        handleDownloadACServer();
+      }
+    }
+  };
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8">Settings</h1>
@@ -432,6 +443,7 @@ function Settings() {
                       type="text"
                       value={acServerPath}
                       onChange={(e) => setAcServerPath(e.target.value)}
+                      onKeyPress={handleFormKeyPress}
                       disabled={downloadingACServer || copyingFromCache}
                       className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="/opt/acserver"
@@ -488,6 +500,7 @@ function Settings() {
                         type="text"
                         value={steamUser}
                         onChange={(e) => setSteamUser(e.target.value)}
+                        onKeyPress={handleFormKeyPress}
                         disabled={downloadingACServer}
                         className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="username"
@@ -501,6 +514,7 @@ function Settings() {
                         type="password"
                         value={steamPass}
                         onChange={(e) => setSteamPass(e.target.value)}
+                        onKeyPress={handleFormKeyPress}
                         disabled={downloadingACServer}
                         className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="password"
