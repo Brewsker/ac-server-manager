@@ -985,97 +985,6 @@ configure_firewall() {
 }
 
 ###############################################################################
-# Completion and Output
-###############################################################################
-
-show_completion() {
-    local container_ip="$1"
-    
-    print_header "Installation Complete! 🎉"
-    
-    echo -e "${GREEN}"
-    cat << EOF
-
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║   AC Server Manager is ready!                            ║
-║   Open the web interface to complete setup              ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-
-EOF
-    echo -e "${NC}"
-    
-    echo "📍 Container Information:"
-    echo "   Container ID:    $CTID"
-    echo "   Hostname:        $HOSTNAME"
-    echo "   IP Address:      $container_ip"
-    echo "   Root Password:   $PASSWORD"
-    echo ""
-    
-    echo "🌐 Web Interface:"
-    echo "   Application:     http://$container_ip:$WIZARD_PORT"
-    echo "   Health Check:    http://$container_ip:$WIZARD_PORT/health"
-    echo ""
-    
-    echo "📂 Installation Locations:"
-    echo "   Application:     $APP_DIR"
-    echo "   AC Server:       $AC_SERVER_DIR (configure via UI)"
-    echo ""
-    
-    echo "🔧 Container Commands:"
-    echo "   Enter:           pct enter $CTID"
-    echo "   Stop:            pct stop $CTID"
-    echo "   Start:           pct start $CTID"
-    echo "   PM2 Status:      pct exec $CTID -- pm2 status"
-    echo "   PM2 Logs:        pct exec $CTID -- pm2 logs ac-server-manager"
-    echo ""
-    
-    echo "📝 Next Steps:"
-    echo "   1. Open http://$container_ip:$WIZARD_PORT in your browser"
-    echo "   2. Complete first-run setup wizard"
-    echo "   3. Download SteamCMD and AC Dedicated Server via Settings/Setup tab"
-    echo "   4. Configure your server and start racing!"
-    echo ""
-    
-    echo "🐛 Debug Information:"
-    echo "   Log File:        $LOG_FILE"
-    echo "   PM2 Status:      pct exec $CTID -- pm2 status"
-    echo "   PM2 Logs:        pct exec $CTID -- pm2 logs ac-server-manager"
-    echo ""
-    
-    print_info "Installation log saved to: $LOG_FILE"
-    
-    if [ "$DEBUG" = true ]; then
-        echo ""
-        print_warning "Debug mode enabled - additional logging active"
-    fi
-}
-    echo "   Destroy:         pct destroy $CTID"
-    echo ""
-    
-    echo "📝 Next Steps:"
-    echo "   1. Open http://$container_ip:$WIZARD_PORT in your browser"
-    echo "   2. Follow the setup wizard to configure installation"
-    echo "   3. The wizard will automatically install AC Server Manager"
-    echo "   4. After installation, access the app at http://$container_ip:3001"
-    echo ""
-    
-    echo "🐛 Debug Information:"
-    echo "   Log File:        $LOG_FILE"
-    echo "   Service Status:  pct exec $CTID -- systemctl status ac-setup-wizard"
-    echo "   Service Logs:    pct exec $CTID -- journalctl -u ac-setup-wizard -f"
-    echo ""
-    
-    print_info "Installation log saved to: $LOG_FILE"
-    
-    if [ "$DEBUG" = true ]; then
-        echo ""
-        print_warning "Debug mode enabled - additional logging active"
-    fi
-}
-
-###############################################################################
 # Main App Deployment (Replaces Wizard)
 ###############################################################################
 
@@ -1199,6 +1108,97 @@ test_app_accessibility() {
     
     debug "Application is accessible"
     print_success "Application is accessible"
+}
+
+###############################################################################
+# Completion and Output
+###############################################################################
+
+show_completion() {
+    local container_ip="$1"
+    
+    print_header "Installation Complete! 🎉"
+    
+    echo -e "${GREEN}"
+    cat << EOF
+
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   AC Server Manager is ready!                            ║
+║   Open the web interface to complete setup              ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+EOF
+    echo -e "${NC}"
+    
+    echo "📍 Container Information:"
+    echo "   Container ID:    $CTID"
+    echo "   Hostname:        $HOSTNAME"
+    echo "   IP Address:      $container_ip"
+    echo "   Root Password:   $PASSWORD"
+    echo ""
+    
+    echo "🌐 Web Interface:"
+    echo "   Application:     http://$container_ip:$WIZARD_PORT"
+    echo "   Health Check:    http://$container_ip:$WIZARD_PORT/health"
+    echo ""
+    
+    echo "📂 Installation Locations:"
+    echo "   Application:     $APP_DIR"
+    echo "   AC Server:       $AC_SERVER_DIR (configure via UI)"
+    echo ""
+    
+    echo "🔧 Container Commands:"
+    echo "   Enter:           pct enter $CTID"
+    echo "   Stop:            pct stop $CTID"
+    echo "   Start:           pct start $CTID"
+    echo "   PM2 Status:      pct exec $CTID -- pm2 status"
+    echo "   PM2 Logs:        pct exec $CTID -- pm2 logs ac-server-manager"
+    echo ""
+    
+    echo "📝 Next Steps:"
+    echo "   1. Open http://$container_ip:$WIZARD_PORT in your browser"
+    echo "   2. Complete first-run setup wizard"
+    echo "   3. Download SteamCMD and AC Dedicated Server via Settings/Setup tab"
+    echo "   4. Configure your server and start racing!"
+    echo ""
+    
+    echo "🐛 Debug Information:"
+    echo "   Log File:        $LOG_FILE"
+    echo "   PM2 Status:      pct exec $CTID -- pm2 status"
+    echo "   PM2 Logs:        pct exec $CTID -- pm2 logs ac-server-manager"
+    echo ""
+    
+    print_info "Installation log saved to: $LOG_FILE"
+    
+    if [ "$DEBUG" = true ]; then
+        echo ""
+        print_warning "Debug mode enabled - additional logging active"
+    fi
+}
+    echo "   Destroy:         pct destroy $CTID"
+    echo ""
+    
+    echo "📝 Next Steps:"
+    echo "   1. Open http://$container_ip:$WIZARD_PORT in your browser"
+    echo "   2. Follow the setup wizard to configure installation"
+    echo "   3. The wizard will automatically install AC Server Manager"
+    echo "   4. After installation, access the app at http://$container_ip:3001"
+    echo ""
+    
+    echo "🐛 Debug Information:"
+    echo "   Log File:        $LOG_FILE"
+    echo "   Service Status:  pct exec $CTID -- systemctl status ac-setup-wizard"
+    echo "   Service Logs:    pct exec $CTID -- journalctl -u ac-setup-wizard -f"
+    echo ""
+    
+    print_info "Installation log saved to: $LOG_FILE"
+    
+    if [ "$DEBUG" = true ]; then
+        echo ""
+        print_warning "Debug mode enabled - additional logging active"
+    fi
 }
 
 ###############################################################################
