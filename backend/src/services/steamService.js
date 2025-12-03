@@ -120,14 +120,20 @@ quit
         'SteamCMD initialization failed. Please try again or contact support.'
       );
     }
-    if (fullError.includes('Login Failure') || fullError.includes('Invalid Password') || error.code === 5) {
+    if (fullError.includes('Two-factor') || fullError.includes('Steam Guard') || fullError.includes('GUARD')) {
       throw new Error(
-        `Steam login failed (code ${error.code || 'unknown'}). Check your credentials or Steam Guard may be required. Output: ${errorOutput.substring(0, 500)}`
+        '🔐 Steam Guard Required: Please enter your current 5-digit Steam Guard code from your email or mobile app in the field above and try again. The code refreshes every 30 seconds.'
       );
     }
-    if (fullError.includes('Two-factor') || fullError.includes('Steam Guard')) {
+    if (fullError.includes('Login Failure') || fullError.includes('Invalid Password') || error.code === 5) {
+      // Check if it might be Steam Guard related even if not explicitly mentioned
+      if (!steamGuardCode || steamGuardCode.trim() === '') {
+        throw new Error(
+          `Steam login failed (code ${error.code || 'unknown'}). This might require a Steam Guard code. Please check your password and try entering your Steam Guard code if you have it enabled.`
+        );
+      }
       throw new Error(
-        'Steam Guard authentication required. Please disable Steam Guard or use an app-specific password.'
+        `Steam login failed (code ${error.code || 'unknown'}). Please verify your credentials and Steam Guard code are correct.`
       );
     }
     

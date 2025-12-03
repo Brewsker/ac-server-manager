@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { useTheme } from '../contexts/ThemeContext';
-import { useKeyboardNav } from '../hooks/useKeyboardNav';
 
 function Settings() {
   const [updateInfo, setUpdateInfo] = useState(null);
@@ -11,7 +10,6 @@ function Settings() {
   const [applyingUpdate, setApplyingUpdate] = useState(false);
   const [updateBranch, setUpdateBranch] = useState('main');
   const { theme, setTheme } = useTheme();
-  const { enableKeyboardNav } = useKeyboardNav();
 
   // Content upload states
   const [uploadingTrack, setUploadingTrack] = useState(false);
@@ -546,19 +544,19 @@ function Settings() {
                   </div>
 
                   <div>
-                    <label className="label">Steam Guard Code (if enabled)</label>
+                    <label className="label">Steam Guard Code (if prompted)</label>
                     <input
                       type="text"
                       value={steamGuardCode}
-                      onChange={(e) => setSteamGuardCode(e.target.value)}
+                      onChange={(e) => setSteamGuardCode(e.target.value.toUpperCase())}
                       onKeyPress={handleFormKeyPress}
                       disabled={downloadingACServer}
-                      className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder="XXXXX (leave empty if no Steam Guard)"
+                      className="input-field disabled:opacity-50 disabled:cursor-not-allowed font-mono text-center tracking-widest"
+                      placeholder="XXXXX"
                       maxLength={5}
                     />
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      If you have Steam Guard enabled, enter the 5-digit code from your email or mobile app
+                      ⏱️ Leave empty on first try. If Steam requires a code, you'll get an error - then enter your current 5-digit code from your email/app and retry. Codes expire every 30 seconds.
                     </p>
                   </div>
 
@@ -572,7 +570,6 @@ function Settings() {
                   </div>
 
                   <button
-                    ref={(el) => enableKeyboardNav(el, handleDownloadACServer)}
                     onClick={handleDownloadACServer}
                     disabled={downloadingACServer || !acServerPath.trim() || !steamUser.trim() || !steamPass.trim()}
                     className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
