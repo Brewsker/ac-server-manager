@@ -10,6 +10,7 @@ function Layout({ children }) {
   const [loadingPresets, setLoadingPresets] = useState(true);
   const [selectedPresetId, setSelectedPresetId] = useState(null);
   const [serverStatuses, setServerStatuses] = useState({}); // { presetId: { running: bool, pid: number } }
+  const [appVersion, setAppVersion] = useState('...');
 
   const navItems = [
     {
@@ -79,6 +80,7 @@ function Layout({ children }) {
   useEffect(() => {
     fetchPresets();
     checkAllServerStatuses(); // Initial check
+    fetchAppVersion(); // Fetch version
 
     // Poll server statuses every 3 seconds
     const interval = setInterval(checkAllServerStatuses, 3000);
@@ -127,6 +129,16 @@ function Layout({ children }) {
       console.error('Failed to fetch presets:', error);
     } finally {
       setLoadingPresets(false);
+    }
+  };
+
+  const fetchAppVersion = async () => {
+    try {
+      const data = await api.getAppVersion();
+      setAppVersion(data.version);
+    } catch (error) {
+      console.error('Failed to fetch version:', error);
+      setAppVersion('0.16.0'); // Fallback
     }
   };
 
@@ -227,7 +239,7 @@ function Layout({ children }) {
         <div className="p-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">AC Server Manager</h1>
-            <p className="text-gray-400 text-sm mt-1">v0.15.1</p>
+            <p className="text-gray-400 text-sm mt-1">v{appVersion}</p>
           </div>
         </div>
 

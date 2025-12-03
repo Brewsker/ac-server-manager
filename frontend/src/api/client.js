@@ -198,6 +198,11 @@ export const getWeather = async () => {
   return response.data;
 };
 
+export const getAppVersion = async () => {
+  const response = await client.get('/update/version');
+  return response.data;
+};
+
 export const scanContent = async () => {
   const response = await client.post('/content/scan');
   return response.data;
@@ -450,6 +455,7 @@ export default {
   getWeather,
   getContentStatus,
   scanContent,
+  getAppVersion,
   getAllTires,
   getTiresForCars,
   getEntries,
