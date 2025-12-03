@@ -76,7 +76,7 @@ AC_SERVER_DIR="/opt/assetto-corsa-server"
 
 # GitHub settings
 GITHUB_REPO="Brewsker/ac-server-manager"
-GITHUB_BRANCH="develop"
+GITHUB_BRANCH="feature/integrated-setup-wizard"  # Using feature branch for testing
 CACHE_BUST="?t=$(date +%s)"
 GITHUB_RAW="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}"
 
@@ -1021,12 +1021,21 @@ deploy_main_app() {
             pct exec $CTID -- bash -c "cd $APP_DIR/frontend && npm install && npm run build" >> "$LOG_FILE" 2>&1
             debug "Frontend built"
         else
-            print_error "Failed to copy repository from git-cache"
-            exit 1
+            print_warning "Failed to copy repository from git-cache, falling back to GitHub clone"
+            USE_GIT_CACHE=false  # Disable git-cache and use GitHub fallback
         fi
-    else
-        # Fallback: Download individual files (not ideal for full app)
+    fi
+    
+    if [ "$USE_GIT_CACHE" = false ]; then
+        # Fallback: Clone from GitHub
         print_warning "Git-cache not available - using git clone from GitHub"
+        
+        # Install git if not present
+        if ! pct exec $CTID -- command -v git &>/dev/null; then
+            print_info "Installing git..."
+            pct exec $CTID -- apt-get install -y git >> "$LOG_FILE" 2>&1
+        fi
+        
         pct exec $CTID -- bash -c "git clone -b ${GITHUB_BRANCH} https://github.com/${GITHUB_REPO}.git $APP_DIR" >> "$LOG_FILE" 2>&1
         
         # Install dependencies and build
