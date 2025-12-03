@@ -43,6 +43,112 @@ If something goes wrong, rollback to a previous version:
 .\scripts\rollback-deployment.ps1 -BackupName "backup-20251203-120000"
 ```
 
+---
+
+## Unified Installer - CRITICAL COMPONENT
+
+**⚠️ IMPORTANCE**: The unified installer is a **core feature** that enables zero-friction deployment. It represents the user's first experience with the application and must work flawlessly. Any regression in the installer is a **critical priority** to fix.
+
+### Why the Unified Installer Matters
+
+1. **First Impression**: Users judge the entire project by installation experience
+2. **Automation Goal**: Eliminates manual configuration and reduces setup time from hours to minutes
+3. **Deployment Strategy**: Enables rapid testing, demonstrations, and production deployments
+4. **Quality Signal**: A working installer demonstrates attention to detail and production-readiness
+
+### Complete Installation Workflow
+
+**From bare Proxmox server to running application:**
+
+```bash
+# Step 1: Run unified installer from GitHub (on Proxmox host)
+curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/scripts/install/install-proxmox-unified.sh" | bash
+
+# The installer automatically:
+# 1. Creates LXC container (ID 999, Ubuntu 22.04, 60GB disk)
+# 2. Configures static IP (192.168.1.71/24)
+# 3. Injects SSH keys for passwordless access
+# 4. Installs Node.js 20 LTS
+# 5. Downloads setup wizard files from git-cache (192.168.1.70)
+# 6. Creates and starts ac-setup-wizard.service
+# 7. Tests wizard accessibility
+# 8. Displays completion message with URL
+
+# Step 2: Access setup wizard
+# Open http://192.168.1.71:3001 in browser
+
+# Step 3: Complete wizard form
+# - Select installation type (Full recommended)
+# - Network pre-configured (static IP already set)
+# - Click "Get Started" → "Continue" → wizard starts installation
+
+# Step 4: Wizard triggers install-server.sh
+# - Clones repository from git-cache (develop branch)
+# - Installs dependencies (npm install)
+# - Builds frontend (npm run build)
+# - Configures PM2 with ecosystem.config.cjs
+# - Writes "SETUP_WIZARD_COMPLETE" marker to /var/log/installer.log
+
+# Step 5: Wizard auto-exits
+# - Detects completion marker in log stream
+# - Disables ac-setup-wizard.service
+# - Stops wizard process (frees port 3001)
+# - systemd ExecStopPost restarts PM2
+# - Browser auto-redirects to main app
+
+# Step 6: Application is live
+# - PM2 serves app on port 3001
+# - Frontend built and ready
+# - Version matches develop branch
+# - All APIs functional
+```
+
+### Post-Installation State
+
+```bash
+# Container 999 at 192.168.1.71
+pct exec 999 -- pm2 list
+# Should show: ac-server-manager (cluster mode, online)
+
+pct exec 999 -- systemctl status ac-setup-wizard
+# Should show: inactive (dead), disabled
+
+curl http://192.168.1.71:3001
+# Should return: React app HTML (not wizard)
+```
+
+### Critical Installer Files
+
+**These files must stay synchronized:**
+
+1. `scripts/install/install-proxmox-unified.sh` (1125 lines)
+   - Container orchestration
+   - Wizard deployment
+   - Service configuration
+
+2. `setup-wizard.html` (537 lines)
+   - Web interface
+   - Form validation
+   - Log streaming UI
+
+3. `setup-server.js` (317 lines)
+   - HTTP server for wizard
+   - Installation trigger
+   - Auto-exit logic
+
+4. `ac-setup-wizard.service`
+   - systemd unit file
+   - ExecStopPost for PM2 restart
+
+5. `scripts/install/install-server.sh` (698 lines)
+   - Actual installation logic
+   - Dependency management
+   - Completion marker
+
+**Development Rule**: Any change to installation flow requires testing the full unified installer workflow end-to-end.
+
+---
+
 ## Hot Fix Single File
 
 For quick backend fixes without full deployment:
@@ -559,30 +665,36 @@ read_file('file3.js'); // Wait
 
 **Investigation** (5 minutes):
 
-1. Check wizard logs: Installation completes
-2. Check PM2 status: App running
-3. Check PM2 logs: `EADDRINUSE port 3001`
-4. Check port binding: Wizard still holding port
-5. Review code: Wizard disables itself but PM2 started during install
+1. Check wizard logs: Installation completes ✓
+2. Check PM2 status: App running ✓
+3. Check wizard service: Stopped and disabled ✓
+4. Check port 3001: PM2 process listening ✓
+5. curl localhost:3001: Returns React app HTML ✓
+6. Browser shows: Setup wizard landing page ✗
 
-**Root Cause**: Race condition - PM2 starts before wizard stops
+**Root Cause**: Browser caching - the wizard HTML is cached, actual app is running correctly
 
-**Solution** (2 minutes):
+**Solution** (1 minute):
 
-```javascript
-// Health check now restarts PM2 after wizard stops
-exec('systemctl disable ac-setup-wizard && systemctl stop ac-setup-wizard && pm2 restart all');
-```
+User must hard refresh browser to clear cache:
+- **Windows/Linux**: Ctrl + Shift + R or Ctrl + F5
+- **Mac**: Cmd + Shift + R
+- **Alternative**: Clear browser cache or open in incognito/private mode
 
-**Testing** (5 minutes):
+**Prevention**: Setup wizard HTML now includes cache-busting headers, but browser may still cache initial page load
 
-1. Destroy container 999
-2. Run unified installer
-3. Complete wizard form
-4. Wait for auto-transition
-5. Verify main app accessible
+**Testing** (3 minutes):
 
-**Result**: Complete automation, zero user interaction needed
+1. Access http://192.168.1.71:3001 in fresh incognito window
+2. Verify React app loads (not wizard)
+3. Check PM2 logs for any errors
+4. Confirm version number matches expected
+
+**Result**: App accessible, wizard properly exited, zero code changes needed
+
+**Total Time**: 9 minutes of investigation vs. assuming code bug and wasting hours
+
+---
 
 **Total Time**: 12 minutes of autonomous work vs. asking user for help repeatedly
 
