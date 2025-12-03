@@ -147,6 +147,52 @@ curl http://192.168.1.71:3001
 
 **Development Rule**: Any change to installation flow requires testing the full unified installer workflow end-to-end.
 
+### 🚨 MANDATORY: Installer Integration Check
+
+**CRITICAL REQUIREMENT**: Before considering ANY system update complete, you MUST:
+
+1. **Verify Installer Compatibility**
+   - Check if changes affect installation process (dependencies, build steps, configuration, directory structure, etc.)
+   - Review `scripts/install/install-server.sh` for necessary updates
+   - Update installer scripts if system changes impact fresh installations
+
+2. **Test Complete Installation Flow**
+   ```bash
+   # Destroy existing test container
+   ssh root@192.168.1.199 "pct destroy 999 --purge --force"
+   
+   # Run unified installer from GitHub (tests actual user experience)
+   ssh root@192.168.1.199 'curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/scripts/install/install-proxmox-unified.sh" | bash'
+   
+   # Access wizard and complete installation
+   # Open http://192.168.1.71:3001
+   
+   # Verify app functionality
+   curl http://192.168.1.71:3001/api/update/check
+   ssh root@192.168.1.199 "pct exec 999 -- pm2 list"
+   ```
+
+3. **Confirm Flawless Operation**
+   - ✅ Installer completes without errors
+   - ✅ Wizard deploys and is accessible
+   - ✅ Installation runs to completion
+   - ✅ Wizard auto-exits and disables itself
+   - ✅ PM2 starts app correctly
+   - ✅ App serves on port 3001 with correct version
+   - ✅ All API endpoints functional
+   - ✅ No manual intervention required
+
+**Examples of changes requiring installer testing:**
+- New dependencies (npm packages, system packages)
+- Build process changes (Vite config, output directories)
+- Configuration file changes (.env, ecosystem.config.cjs)
+- Directory structure changes (where files are served from)
+- Environment variable requirements
+- Service startup sequence changes
+- New initialization steps
+
+**DO NOT** mark work complete until installer verification is done. A broken installer means **users cannot install the application** - this is a complete failure regardless of how well the feature works on existing installations.
+
 ---
 
 ## Hot Fix Single File
