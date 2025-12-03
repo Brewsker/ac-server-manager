@@ -15,50 +15,55 @@ router.get('/status', async (req, res, next) => {
 
     let carCount = 0;
     let trackCount = 0;
-    let hasContent = false;
 
+    // Check cars directory
     try {
-      // Check if directories exist
       await fs.access(carsPath);
-      await fs.access(tracksPath);
-
-      // Count directories (each car/track is a folder)
       const carFolders = await fs.readdir(carsPath);
-      const trackFolders = await fs.readdir(tracksPath);
-
-      // Filter out non-directories
       const carStats = await Promise.all(
         carFolders.map(async (folder) => {
-          const stat = await fs.stat(path.join(carsPath, folder));
-          return stat.isDirectory();
+          try {
+            const stat = await fs.stat(path.join(carsPath, folder));
+            return stat.isDirectory();
+          } catch {
+            return false;
+          }
         })
       );
+      carCount = carStats.filter(Boolean).length;
+    } catch (error) {
+      // Cars directory doesn't exist
+      carCount = 0;
+    }
+
+    // Check tracks directory
+    try {
+      await fs.access(tracksPath);
+      const trackFolders = await fs.readdir(tracksPath);
       const trackStats = await Promise.all(
         trackFolders.map(async (folder) => {
-          const stat = await fs.stat(path.join(tracksPath, folder));
-          return stat.isDirectory();
+          try {
+            const stat = await fs.stat(path.join(tracksPath, folder));
+            return stat.isDirectory();
+          } catch {
+            return false;
+          }
         })
       );
-
-      carCount = carStats.filter(Boolean).length;
       trackCount = trackStats.filter(Boolean).length;
-      hasContent = carCount > 0 || trackCount > 0;
-
-      res.json({
-        installed: hasContent,
-        carCount,
-        trackCount,
-        contentPath,
-      });
     } catch (error) {
-      // Content directories don't exist
-      res.json({
-        installed: false,
-        carCount: 0,
-        trackCount: 0,
-        contentPath,
-      });
+      // Tracks directory doesn't exist
+      trackCount = 0;
     }
+
+    const hasContent = carCount > 0 || trackCount > 0;
+
+    res.json({
+      installed: hasContent,
+      carCount,
+      trackCount,
+      contentPath,
+    });
   } catch (error) {
     next(error);
   }

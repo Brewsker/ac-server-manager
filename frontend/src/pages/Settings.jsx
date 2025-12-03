@@ -476,7 +476,7 @@ function Settings() {
 
       // Clear content cache so new content appears in UI
       await api.post('/content/clear-cache');
-      
+
       // Refresh content status to show new content
       await checkContentStatus();
     } catch (error) {
@@ -575,7 +575,7 @@ function Settings() {
                 <input
                   type="text"
                   className="input-field"
-                  placeholder="C:/Steam/steamapps/common/assettocorsa/server/acServer.exe"
+                  placeholder="/opt/acserver/acServer"
                 />
               </div>
 
@@ -584,7 +584,7 @@ function Settings() {
                 <input
                   type="text"
                   className="input-field"
-                  placeholder="C:/Steam/steamapps/common/assettocorsa/content"
+                  placeholder="/opt/acserver/content"
                 />
               </div>
 
@@ -593,7 +593,7 @@ function Settings() {
                 <input
                   type="text"
                   className="input-field"
-                  placeholder="C:/Steam/steamapps/common/assettocorsa/server/cfg"
+                  placeholder="/opt/acserver/cfg"
                 />
               </div>
             </div>
