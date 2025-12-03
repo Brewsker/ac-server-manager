@@ -448,6 +448,7 @@ export default {
   getTracks,
   getCars,
   getWeather,
+  getContentStatus,
   scanContent,
   getAllTires,
   getTiresForCars,
