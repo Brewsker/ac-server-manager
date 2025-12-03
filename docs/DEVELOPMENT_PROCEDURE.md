@@ -1,4 +1,27 @@
-# Development Procedure for AI Agents
+# Development Procedure
+
+## Quick Deployment to Proxmox
+
+After making changes to the frontend or backend, deploy to production:
+
+```powershell
+# Full deployment (builds frontend + deploys)
+.\scripts\deploy-to-proxmox.ps1
+
+# Skip build if you already built locally
+.\scripts\deploy-to-proxmox.ps1 -SkipBuild
+
+# Deploy to different host/container
+.\scripts\deploy-to-proxmox.ps1 -Host 192.168.1.100 -ContainerId 100
+```
+
+The script:
+
+1. Builds the frontend (unless `-SkipBuild` specified)
+2. Uploads all files to host `/tmp`
+3. Pushes files to container using `pct push`
+4. Verifies all files are present
+5. Restarts PM2 for AI Agents
 
 ## Core Principle: Minimize User Interaction
 

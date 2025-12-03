@@ -13,6 +13,8 @@ router.get('/status', async (req, res, next) => {
     const carsPath = path.join(contentPath, 'cars');
     const tracksPath = path.join(contentPath, 'tracks');
 
+    console.log('[Content Status] Checking:', { contentPath, carsPath, tracksPath });
+
     let carCount = 0;
     let trackCount = 0;
 
@@ -58,12 +60,16 @@ router.get('/status', async (req, res, next) => {
 
     const hasContent = carCount > 0 || trackCount > 0;
 
-    res.json({
+    const response = {
       installed: hasContent,
       carCount,
       trackCount,
       contentPath,
-    });
+    };
+
+    console.log('[Content Status] Response:', response);
+
+    res.json(response);
   } catch (error) {
     next(error);
   }

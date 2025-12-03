@@ -50,11 +50,27 @@ app.get('/health', (req, res) => {
 
 // Serve static frontend files in production
 if (process.env.NODE_ENV === 'production') {
-  const frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
-  app.use(express.static(frontendDistPath));
+  const frontendDistPath = path.join(__dirname, '..', '..', 'frontend');
+
+  // Serve static files with no-cache for HTML, cache for assets
+  app.use(
+    express.static(frontendDistPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          // Don't cache HTML files
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      },
+    })
+  );
 
   // Serve index.html for all non-API routes (SPA fallback)
   app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 }

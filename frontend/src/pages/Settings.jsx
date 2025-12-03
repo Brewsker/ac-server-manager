@@ -572,29 +572,17 @@ function Settings() {
             <div className="space-y-4">
               <div>
                 <label className="label">AC Server Executable</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="/opt/acserver/acServer"
-                />
+                <input type="text" className="input-field" placeholder="/opt/acserver/acServer" />
               </div>
 
               <div>
                 <label className="label">AC Content Folder</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="/opt/acserver/content"
-                />
+                <input type="text" className="input-field" placeholder="/opt/acserver/content" />
               </div>
 
               <div>
                 <label className="label">Server Config Path</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="/opt/acserver/cfg"
-                />
+                <input type="text" className="input-field" placeholder="/opt/acserver/cfg" />
               </div>
             </div>
           </div>
