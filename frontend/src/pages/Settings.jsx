@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import { useTheme } from '../contexts/ThemeContext';
+import { useKeyboardNav } from '../hooks/useKeyboardNav';
 
 function Settings() {
   const [updateInfo, setUpdateInfo] = useState(null);
@@ -10,6 +11,7 @@ function Settings() {
   const [applyingUpdate, setApplyingUpdate] = useState(false);
   const [updateBranch, setUpdateBranch] = useState('main');
   const { theme, setTheme } = useTheme();
+  const { enableKeyboardNav } = useKeyboardNav();
 
   // Content upload states
   const [uploadingTrack, setUploadingTrack] = useState(false);
@@ -517,6 +519,7 @@ function Settings() {
                   </div>
 
                   <button
+                    ref={(el) => enableKeyboardNav(el, handleDownloadACServer)}
                     onClick={handleDownloadACServer}
                     disabled={downloadingACServer || !acServerPath.trim() || !steamUser.trim() || !steamPass.trim()}
                     className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"

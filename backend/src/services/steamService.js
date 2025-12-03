@@ -42,6 +42,14 @@ export async function downloadACServer(installPath, steamUser = 'anonymous', ste
 
     console.log(`[SteamService] Using steamcmd at: ${steamcmdPath}`);
 
+    // First, run steamcmd to ensure it's updated (fixes steamconsole.so errors)
+    console.log('[SteamService] Initializing SteamCMD (first-time setup)...');
+    try {
+      await execAsync(`${steamcmdPath} +quit`, { timeout: 60000 });
+    } catch (error) {
+      console.warn('[SteamService] SteamCMD initialization warning (may be normal):', error.message);
+    }
+
     // Create install directory
     await fs.mkdir(installPath, { recursive: true });
 
