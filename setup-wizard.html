@@ -296,32 +296,9 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <div class="checkbox-group">
-              <input type="checkbox" id="downloadAC" onchange="toggleACFields()" />
-              <label for="downloadAC" style="margin-bottom: 0"
-                >Download AC Dedicated Server now</label
-              >
-            </div>
-            <div class="help-text">You can also download AC later from the Settings page</div>
-          </div>
-
-          <div id="acFields" style="display: none">
-            <div class="form-group">
-              <label>AC Server Install Path</label>
-              <input type="text" id="acPath" value="/opt/acserver" placeholder="/opt/acserver" />
-            </div>
-
-            <div class="form-group">
-              <label>Steam Username (Optional)</label>
-              <input type="text" id="steamUser" placeholder="username" />
-              <div class="help-text">Leave empty for anonymous download (if available)</div>
-            </div>
-
-            <div class="form-group">
-              <label>Steam Password (Optional)</label>
-              <input type="password" id="steamPass" placeholder="password" />
-            </div>
+          <div class="status info" style="margin-bottom: 24px">
+            <strong>ℹ️ Note:</strong> After installation, you can download the Assetto Corsa Dedicated Server
+            from the Settings page.
           </div>
 
           <div class="btn-group">
@@ -409,11 +386,6 @@
         }
       }
 
-      function toggleACFields() {
-        const checked = document.getElementById('downloadAC').checked;
-        document.getElementById('acFields').style.display = checked ? 'block' : 'none';
-      }
-
       function toggleNetworkFields() {
         const mode = document.getElementById('networkMode').value;
         const fields = document.getElementById('networkFields');
@@ -438,10 +410,6 @@
           staticIP: document.getElementById('staticIP').value,
           gateway: document.getElementById('gateway').value,
           bridge: document.getElementById('bridge').value,
-          downloadAC: document.getElementById('downloadAC').checked,
-          acPath: document.getElementById('acPath').value,
-          steamUser: document.getElementById('steamUser').value,
-          steamPass: document.getElementById('steamPass').value,
         };
 
         try {

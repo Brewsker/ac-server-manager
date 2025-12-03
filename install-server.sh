@@ -111,17 +111,15 @@ show_welcome() {
     ╔═══════════════════════════════════════════════════════════╗
     ║                                                           ║
     ║   This installer will set up AC Server Manager on your   ║
-    ║   server. It will install all dependencies and           ║
-    ║   optionally download the Assetto Corsa Dedicated        ║
-    ║   Server using SteamCMD.                                 ║
+    ║   server. It will install all dependencies.              ║
     ║                                                           ║
     ║   What will be installed:                                ║
     ║   • Node.js 20 LTS                                       ║
     ║   • Git                                                  ║
     ║   • PM2 (process manager)                                ║
-    ║   • SteamCMD (if downloading AC)                         ║
-    ║   • Assetto Corsa Dedicated Server (optional)            ║
     ║   • AC Server Manager application                        ║
+    ║                                                           ║
+    ║   Note: Install AC Dedicated Server from Settings page   ║
     ║                                                           ║
     ╚═══════════════════════════════════════════════════════════╝
 EOF
@@ -157,35 +155,12 @@ prompt_installation_type() {
 }
 
 prompt_ac_server() {
+    # AC server installation removed from wizard
+    # Users can install AC Dedicated Server from the Settings page in the main app
+    INSTALL_AC_SERVER="no"
+    
     if [[ "$NON_INTERACTIVE" == "yes" ]]; then
-        print_info "Non-interactive mode: AC Server download = $INSTALL_AC_SERVER"
-        return
-    fi
-    
-    print_step "Assetto Corsa Dedicated Server"
-    echo ""
-    read -p "Do you want to download AC Dedicated Server via Steam? (y/n): " download_ac
-    
-    if [[ $download_ac =~ ^[Yy]$ ]]; then
-        INSTALL_AC_SERVER="yes"
-        echo ""
-        print_warning "Steam credentials required for downloading AC server"
-        print_info "Your credentials are only used locally and not stored"
-        echo ""
-        read -p "Steam username: " STEAM_USER
-        read -sp "Steam password: " STEAM_PASS
-        echo ""
-        
-        # Ask about Steam Guard
-        echo ""
-        print_warning "If you have Steam Guard enabled, you'll need the code"
-        read -p "Press Enter to continue..."
-        
-    else
-        INSTALL_AC_SERVER="no"
-        echo ""
-        print_info "Skipping AC server download"
-        read -p "Enter path to existing AC server installation: " AC_SERVER_DIR
+        print_info "Non-interactive mode: AC Server download skipped (install from Settings page)"
     fi
 }
 
@@ -217,7 +192,7 @@ confirm_installation() {
     echo ""
     echo "Installation Type: $([ "$USE_DOCKER" = "yes" ] && echo "Docker" || echo "Node.js + PM2")"
     echo "App Directory:     $APP_DIR"
-    echo "AC Server:         $([ "$INSTALL_AC_SERVER" = "yes" ] && echo "Will download" || echo "$AC_SERVER_DIR")"
+    echo "AC Server:         Install from Settings page after setup"
     echo ""
     read -p "Proceed with installation? (y/n): " confirm
     
