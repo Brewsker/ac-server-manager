@@ -1177,29 +1177,6 @@ EOF
         print_warning "Debug mode enabled - additional logging active"
     fi
 }
-    echo "   Destroy:         pct destroy $CTID"
-    echo ""
-    
-    echo "📝 Next Steps:"
-    echo "   1. Open http://$container_ip:$WIZARD_PORT in your browser"
-    echo "   2. Follow the setup wizard to configure installation"
-    echo "   3. The wizard will automatically install AC Server Manager"
-    echo "   4. After installation, access the app at http://$container_ip:3001"
-    echo ""
-    
-    echo "🐛 Debug Information:"
-    echo "   Log File:        $LOG_FILE"
-    echo "   Service Status:  pct exec $CTID -- systemctl status ac-setup-wizard"
-    echo "   Service Logs:    pct exec $CTID -- journalctl -u ac-setup-wizard -f"
-    echo ""
-    
-    print_info "Installation log saved to: $LOG_FILE"
-    
-    if [ "$DEBUG" = true ]; then
-        echo ""
-        print_warning "Debug mode enabled - additional logging active"
-    fi
-}
 
 ###############################################################################
 # Main Installation Flow
