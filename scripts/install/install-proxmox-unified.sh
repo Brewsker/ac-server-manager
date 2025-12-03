@@ -1020,40 +1020,37 @@ deploy_main_app() {
     if [ "$USE_GIT_CACHE" = true ]; then
         print_info "Copying repository from git-cache..."
         if pct push $GIT_CACHE_CTID /opt/git-cache/ac-server-manager $CTID:$APP_DIR >> "$LOG_FILE" 2>&1; then
-            debug "Repository copied successfully"
-            
-            # Install backend dependencies
-            print_info "Installing backend dependencies..."
-            pct exec $CTID -- bash -c "cd $APP_DIR/backend && npm install --production" >> "$LOG_FILE" 2>&1
-            debug "Backend dependencies installed"
-            
-            # Build frontend
-            print_info "Building frontend..."
-            pct exec $CTID -- bash -c "cd $APP_DIR/frontend && npm install && npm run build" >> "$LOG_FILE" 2>&1
-            debug "Frontend built"
+            debug "Repository copied successfully from git-cache"
         else
             print_warning "Failed to copy repository from git-cache, falling back to GitHub clone"
-            USE_GIT_CACHE=false  # Disable git-cache and use GitHub fallback
+            USE_GIT_CACHE=false
+            # Remove incomplete directory
+            pct exec $CTID -- rm -rf $APP_DIR >> "$LOG_FILE" 2>&1
         fi
     fi
     
     if [ "$USE_GIT_CACHE" = false ]; then
         # Fallback: Clone from GitHub
-        print_warning "Git-cache not available - using git clone from GitHub"
+        print_info "Cloning from GitHub..."
         
         # Install git if not present
         if ! pct exec $CTID -- command -v git &>/dev/null; then
-            print_info "Installing git..."
+            debug "Installing git..."
             pct exec $CTID -- apt-get install -y git >> "$LOG_FILE" 2>&1
         fi
         
         pct exec $CTID -- bash -c "git clone -b ${GITHUB_BRANCH} https://github.com/${GITHUB_REPO}.git $APP_DIR" >> "$LOG_FILE" 2>&1
-        
-        # Install dependencies and build
-        print_info "Installing dependencies..."
-        pct exec $CTID -- bash -c "cd $APP_DIR/backend && npm install --production" >> "$LOG_FILE" 2>&1
-        pct exec $CTID -- bash -c "cd $APP_DIR/frontend && npm install && npm run build" >> "$LOG_FILE" 2>&1
+        debug "Repository cloned from GitHub"
     fi
+    
+    # Install dependencies and build (common for both paths)
+    print_info "Installing backend dependencies..."
+    pct exec $CTID -- bash -c "cd $APP_DIR/backend && npm install --production" >> "$LOG_FILE" 2>&1
+    debug "Backend dependencies installed"
+    
+    print_info "Building frontend..."
+    pct exec $CTID -- bash -c "cd $APP_DIR/frontend && npm install && npm run build" >> "$LOG_FILE" 2>&1
+    debug "Frontend built"
     
     # Create .env file with defaults
     print_info "Creating default configuration..."
