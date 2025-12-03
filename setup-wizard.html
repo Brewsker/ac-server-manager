@@ -43,30 +43,6 @@
         opacity: 0.9;
         font-size: 14px;
       }
-      .update-btn {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-        border: 2px solid rgba(255, 255, 255, 0.5);
-        padding: 8px 16px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 600;
-        transition: all 0.3s;
-      }
-      .update-btn:hover {
-        background: rgba(255, 255, 255, 0.3);
-        border-color: rgba(255, 255, 255, 0.8);
-        transform: translateY(-2px);
-      }
-      .update-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-      }
       .content {
         padding: 40px 30px;
       }
@@ -226,7 +202,6 @@
   <body>
     <div class="container">
       <div class="header">
-        <button class="update-btn" onclick="updateWizard()" id="updateBtn">🔄 Update Wizard</button>
         <h1>🏎️ AC Server Manager</h1>
         <p>Setup Wizard</p>
       </div>
@@ -512,18 +487,19 @@
             document.getElementById('statusMessage').innerHTML =
               '<strong>✅ Installation Complete!</strong><br>Waiting for services to restart...';
             showStep(4);
-            
+
             // Poll to check if wizard has stopped (returns error when wizard exits)
             let countdown = 15;
             const checkAndReload = () => {
               fetch('/health')
-                .then(res => res.json())
-                .then(data => {
+                .then((res) => res.json())
+                .then((data) => {
                   // Wizard still running, wait a bit more
                   countdown--;
                   if (countdown > 0) {
-                    document.getElementById('statusMessage').innerHTML =
-                      `<strong>✅ Installation Complete!</strong><br>Redirecting in ${countdown} seconds...`;
+                    document.getElementById(
+                      'statusMessage'
+                    ).innerHTML = `<strong>✅ Installation Complete!</strong><br>Redirecting in ${countdown} seconds...`;
                     setTimeout(checkAndReload, 1000);
                   } else {
                     window.location.reload();
@@ -558,43 +534,6 @@
 
       function goToApp() {
         window.location.href = '/';
-      }
-
-      async function updateWizard() {
-        const btn = document.getElementById('updateBtn');
-        const originalText = btn.textContent;
-
-        btn.disabled = true;
-        btn.textContent = '⏳ Updating...';
-
-        try {
-          const response = await fetch('/setup/update', {
-            method: 'POST',
-          });
-
-          const data = await response.json();
-
-          if (data.success) {
-            btn.textContent = '✅ Updated!';
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          } else {
-            btn.textContent = '❌ Failed';
-            setTimeout(() => {
-              btn.textContent = originalText;
-              btn.disabled = false;
-            }, 2000);
-            alert('Update failed: ' + (data.message || 'Unknown error'));
-          }
-        } catch (error) {
-          btn.textContent = '❌ Error';
-          setTimeout(() => {
-            btn.textContent = originalText;
-            btn.disabled = false;
-          }, 2000);
-          alert('Update error: ' + error.message);
-        }
       }
 
       // Set server URL

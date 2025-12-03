@@ -225,62 +225,6 @@ function streamLogs(req, res) {
 }
 
 // Handle wizard update from git-cache
-function handleUpdate(req, res) {
-  console.log('[Setup] Update wizard requested');
-
-  // Check if git-cache is accessible
-  exec('curl -s http://192.168.1.70/ac-server-manager/setup-wizard.html -o /dev/null', (error) => {
-    if (error) {
-      console.error('[Setup] Git-cache not accessible:', error);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          success: false,
-          message: 'Git-cache server not accessible at 192.168.1.70',
-        })
-      );
-      return;
-    }
-
-    // Download latest files from git-cache
-    const updateCmd = `
-      curl -fsSL http://192.168.1.70/ac-server-manager/setup-wizard.html -o /tmp/setup-wizard.html && 
-      curl -fsSL http://192.168.1.70/ac-server-manager/setup-server.js -o /tmp/setup-server.js
-    `;
-
-    console.log('[Setup] Downloading latest code from git-cache...');
-
-    exec(updateCmd, (error, stdout, stderr) => {
-      if (error) {
-        console.error('[Setup] Update failed:', error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({
-            success: false,
-            message: 'Failed to download latest code: ' + stderr,
-          })
-        );
-        return;
-      }
-
-      console.log('[Setup] Update successful, wizard will reload');
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          success: true,
-          message: 'Wizard updated successfully',
-        })
-      );
-
-      // Restart the wizard server after a short delay
-      setTimeout(() => {
-        console.log('[Setup] Restarting wizard with updated code...');
-        process.exit(0); // systemd will restart it
-      }, 1000);
-    });
-  });
-}
-
 // Add health check endpoint
 function handleHealth(req, res) {
   // Check if installation is complete
@@ -329,8 +273,6 @@ const server = http.createServer((req, res) => {
     serveSetupPage(req, res);
   } else if (req.url === '/setup/install' && req.method === 'POST') {
     handleInstall(req, res);
-  } else if (req.url === '/setup/update' && req.method === 'POST') {
-    handleUpdate(req, res);
   } else if (req.url === '/setup/logs') {
     streamLogs(req, res);
   } else if (req.url === '/health') {
