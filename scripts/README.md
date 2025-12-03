@@ -36,6 +36,7 @@ scripts/
 ### Deployment
 
 - **`deploy-to-proxmox.ps1`** - Deploy app to production container
+
   ```powershell
   .\scripts\deploy-to-proxmox.ps1              # Full deployment
   .\scripts\deploy-to-proxmox.ps1 -SkipBuild   # Skip build step
@@ -88,6 +89,7 @@ SSH configuration and management tools:
 ## Usage Examples
 
 ### Deploy a new version
+
 ```powershell
 # Build and deploy with backup
 .\scripts\deploy-to-proxmox.ps1
@@ -97,6 +99,7 @@ SSH configuration and management tools:
 ```
 
 ### Rollback if something breaks
+
 ```powershell
 # See what backups are available
 .\scripts\rollback-deployment.ps1 -ListOnly
@@ -106,6 +109,7 @@ SSH configuration and management tools:
 ```
 
 ### Fresh installation
+
 ```bash
 # On Proxmox host
 ./scripts/install/install-proxmox-unified.sh

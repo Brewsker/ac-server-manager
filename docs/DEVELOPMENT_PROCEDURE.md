@@ -11,7 +11,7 @@ After making changes to the frontend or backend, deploy to production:
 # Skip build if you already built locally
 .\scripts\deploy-to-proxmox.ps1 -SkipBuild
 
-# Skip backup for faster deployment
+# Skip backup for faster deployment (not recommended for production)
 .\scripts\deploy-to-proxmox.ps1 -SkipBackup
 
 # Deploy to different host/container
@@ -21,18 +21,18 @@ After making changes to the frontend or backend, deploy to production:
 The script:
 
 1. Builds the frontend (unless `-SkipBuild`)
-2. Creates backup of current deployment (unless `-SkipBackup`)
+2. Creates timestamped backup (unless `-SkipBackup`)
 3. Cleans old assets to prevent file pollution
 4. Uploads all files to host `/tmp`
 5. Pushes files to container using `pct push`
-6. Verifies deployment
-7. Restarts PM2
+6. Verifies deployment (counts assets)
+7. Restarts PM2 and displays URL
 
 ## Rollback Deployment
 
 If something goes wrong, rollback to a previous version:
 
-````powershell
+```powershell
 # List available backups
 .\scripts\rollback-deployment.ps1 -ListOnly
 
@@ -41,7 +41,65 @@ If something goes wrong, rollback to a previous version:
 
 # Rollback to specific backup
 .\scripts\rollback-deployment.ps1 -BackupName "backup-20251203-120000"
-``` for AI Agents
+```
+
+## Hot Fix Single File
+
+For quick backend fixes without full deployment:
+
+```powershell
+# Upload single file and restart PM2
+scp backend/src/routes/someFile.js root@192.168.1.199:/tmp/
+ssh root@192.168.1.199 "pct push 999 /tmp/someFile.js /opt/ac-server-manager/backend/src/routes/someFile.js && pct exec 999 -- pm2 restart ac-server-manager"
+
+# Verify fix worked
+ssh root@192.168.1.199 "pct exec 999 -- pm2 logs ac-server-manager --lines 20 --nostream"
+```
+
+## Testing Procedures
+
+### Frontend Testing
+
+```powershell
+# Local development server
+cd frontend
+npm run dev
+
+# Build and check bundle size
+npm run build
+# Check dist/ for generated assets
+```
+
+### Backend Testing
+
+```powershell
+# Check for errors in production
+ssh root@192.168.1.199 "pct exec 999 -- pm2 logs ac-server-manager --lines 50 --nostream"
+
+# Test specific API endpoint
+ssh root@192.168.1.199 "pct exec 999 -- curl -I http://localhost:3001/api/endpoint"
+
+# Check PM2 status
+ssh root@192.168.1.199 "pct exec 999 -- pm2 status"
+```
+
+### Common Issues
+
+**Broken Thumbnails (car/track previews)**:
+
+- Symptom: Images fail to load, 500 errors on `/api/content/car-preview/` or `/api/content/track-preview/`
+- Common cause: Mixing `fs/promises` import with synchronous fs methods
+- Fix: Import both `import fs from 'fs/promises'` and `import fsSync from 'fs'`
+- Use `fsSync.existsSync()`, `fsSync.readdirSync()`, etc. for sync operations
+
+**Version Not Updating**:
+
+- Check if `Layout.jsx` fetches version from `/api/update/version`
+- Verify backend `package.json` has correct version
+- Ensure frontend build includes updated code
+- Deploy using `deploy-to-proxmox.ps1` (cleans old bundles)
+
+## Guide for AI Agents
 
 ## Core Principle: Minimize User Interaction
 
@@ -73,7 +131,7 @@ If something goes wrong, rollback to a previous version:
 grep_search("EADDRINUSE", isRegexp=false)  # Find port binding issues
 semantic_search("port configuration")       # Understand port setup
 read_file("/var/log/installer.log")        # Check installation logs
-````
+```
 
 ### 2. Issue Analysis
 

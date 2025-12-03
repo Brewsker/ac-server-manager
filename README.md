@@ -6,7 +6,6 @@ STILL UNDER DEVELOPMENT. DOWNLOAD AT OWN RISK.
 Core functionality seems solid.
 Working to dial in the installer for local testing before development can continue.
 
-
 ## 🚀 Quick Start
 
 ### Windows (Local Development)
@@ -87,6 +86,7 @@ The project includes a VS Code control panel with buttons in the status bar:
 Just click the buttons to control your development environment!
 
 For deployment to production:
+
 ```powershell
 .\scripts\deploy-to-proxmox.ps1
 ```
