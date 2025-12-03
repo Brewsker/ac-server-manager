@@ -1,0 +1,21 @@
+#!/bin/sh
+# Pre-commit hook to validate version consistency
+
+powershell.exe -ExecutionPolicy Bypass -Command "& {
+    Write-Host '`nRunning pre-commit checks...' -ForegroundColor Cyan
+    
+    # Check version consistency
+    Write-Host 'Checking version consistency...' -ForegroundColor Yellow
+    
+    .\\scripts\\version-manager.ps1 -Action validate
+    
+    if (\$LASTEXITCODE -ne 0) {
+        Write-Host '`n[ERROR] Pre-commit check failed: Version mismatch detected!' -ForegroundColor Red
+        Write-Host 'Run: .\\scripts\\version-manager.ps1 -Action sync' -ForegroundColor Yellow
+        Write-Host 'Then stage the changes and commit again.`n' -ForegroundColor Yellow
+        exit 1
+    }
+    
+    Write-Host '[OK] All pre-commit checks passed`n' -ForegroundColor Green
+    exit 0
+}"

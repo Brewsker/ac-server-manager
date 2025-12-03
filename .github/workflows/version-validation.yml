@@ -1,0 +1,101 @@
+name: Version Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check version consistency
+        run: |
+          BACKEND_VERSION=$(node -p "require('./backend/package.json').version")
+          FRONTEND_VERSION=$(node -p "require('./frontend/package.json').version")
+          CURSOR_VERSION=$(grep -oP 'Current Version: \K\d+\.\d+\.\d+' .cursorrules)
+
+          echo "Backend version:  $BACKEND_VERSION"
+          echo "Frontend version: $FRONTEND_VERSION"
+          echo "Cursor version:   $CURSOR_VERSION"
+
+          if [ "$BACKEND_VERSION" != "$FRONTEND_VERSION" ] || [ "$BACKEND_VERSION" != "$CURSOR_VERSION" ]; then
+            echo "❌ Version mismatch detected!"
+            echo "All version numbers must match across:"
+            echo "  - backend/package.json"
+            echo "  - frontend/package.json"
+            echo "  - .cursorrules"
+            exit 1
+          fi
+
+          echo "✅ All versions match: $BACKEND_VERSION"
+
+      - name: Validate package.json
+        run: |
+          cd backend && npm install --package-lock-only
+          cd ../frontend && npm install --package-lock-only
+
+      - name: Check for package-lock changes
+        run: |
+          if git diff --exit-code backend/package-lock.json frontend/package-lock.json; then
+            echo "✅ package-lock.json files are up to date"
+          else
+            echo "❌ package-lock.json files need to be regenerated"
+            echo "Run: cd backend && npm install"
+            echo "Run: cd frontend && npm install"
+            exit 1
+          fi
+
+  build-test:
+    runs-on: ubuntu-latest
+    needs: validate-version
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: cd backend && npm ci
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+
+      - name: Check build output
+        run: |
+          if [ ! -d "frontend/dist" ]; then
+            echo "❌ Frontend build failed - dist directory not found"
+            exit 1
+          fi
+
+          ASSET_COUNT=$(find frontend/dist -name '*.js' -o -name '*.css' | wc -l)
+          echo "✅ Frontend built successfully ($ASSET_COUNT assets)"
+
+      - name: Upload build artifacts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
