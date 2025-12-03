@@ -391,8 +391,8 @@ install_application() {
         # Disable credential prompts and use HTTPS
         export GIT_TERMINAL_PROMPT=0
         
-        # Capture full output for debugging
-        clone_output=$(git clone --depth 1 https://github.com/Brewsker/ac-server-manager.git . 2>&1)
+        # Capture full output for debugging - clone develop branch
+        clone_output=$(git clone --depth 1 --branch develop https://github.com/Brewsker/ac-server-manager.git . 2>&1)
         clone_status=$?
         
         if [ $clone_status -eq 0 ]; then
