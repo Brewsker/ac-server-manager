@@ -1,5 +1,19 @@
 # Development Procedure
 
+## ⭐ Preferred Workflow
+
+**CRITICAL**: Follow this workflow for all development iterations. Each step is mandatory.
+
+1. Make code changes locally
+2. Commit and push changes to develop branch: `git add . && git commit -m "description" && git push`
+3. Sync git-cache server: `ssh root@192.168.1.70 'cd /opt/git-cache/ac-server-manager && git pull'`
+4. Run `.\scripts\deploy-to-proxmox.ps1` to deploy to container 999
+5. Test in container at http://192.168.1.71:3001
+6. Test unified installer for correct operation (see [Installer Integration Check](#-mandatory-installer-integration-check))
+7. Iterate as needed (return to step 1)
+
+---
+
 ## Standard Deployment Workflow (Remote Development)
 
 **PRIMARY METHOD**: Use the deployment scripts for all updates to the Proxmox container.
@@ -141,16 +155,6 @@ The following VSCode tasks exist in `.vscode/tasks.json` but are **deprecated fo
 - Local development on Windows host (if needed for testing)
 - Quick frontend-only development with hot reload
 - Debugging backend locally outside container
-
-**Preferred Workflow:**
-
-1. Make code changes locally
-2. Commit and push changes to develop branch: `git add . && git commit -m "description" && git push`
-3. Sync git-cache server: `ssh root@192.168.1.70 'cd /opt/git-cache/ac-server-manager && git pull'`
-4. Run `.\scripts\deploy-to-proxmox.ps1` to deploy to container 999
-5. Test in container at http://192.168.1.71:3001
-6. Test unified installer for correct operation (see [Installer Integration Check](#-mandatory-installer-integration-check))
-7. Iterate as needed (return to step 1)
 
 **Legacy Tasks Preserved:**
 The task definitions remain in the repository for potential future use in different development scenarios or for developers who prefer local testing before deployment.
