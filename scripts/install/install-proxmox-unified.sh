@@ -831,8 +831,9 @@ install_bootstrap_packages() {
     debug "Updating package lists..."
     pct exec $CTID -- apt-get update -qq >> "$LOG_FILE" 2>&1 || true
     
-    debug "Installing curl, wget, and git..."
-    pct exec $CTID -- bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget git" >> "$LOG_FILE" 2>&1 || true
+    debug "Installing curl, wget, git, and rsync..."
+    # These are small packages that download quickly - not worth caching
+    pct exec $CTID -- bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget git rsync" >> "$LOG_FILE" 2>&1 || true
     
     # Verify installation
     if pct exec $CTID -- test -x /usr/bin/curl 2>/dev/null; then
@@ -851,60 +852,109 @@ install_nodejs() {
     pct exec $CTID -- apt-get autoremove -y >> "$LOG_FILE" 2>&1
     set -e  # Re-enable exit on error
     
-    debug "Adding NodeSource repository..."
-    set +e
-    pct exec $CTID -- bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -" >> "$LOG_FILE" 2>&1
-    set -e
+    local nodejs_installed=false
     
-    debug "Installing Node.js via filesystem write (this may take a moment)..."
-    # Create installation script in container filesystem to avoid pct exec timeouts
-    # Mount container to access its filesystem
-    pct mount $CTID >> "$LOG_FILE" 2>&1
+    # Try to install Node.js from git-cache first
+    if [ "$USE_GIT_CACHE" = true ]; then
+        debug "Attempting to install Node.js from git-cache..."
+        local cache_url="http://$GIT_CACHE_IP/packages/debs"
+        
+        # Check if cache has nodejs package (look for any nodejs*.deb file)
+        set +e
+        # Download the directory listing and look for nodejs
+        local has_nodejs=$(pct exec $CTID -- bash -c "curl -s $cache_url/ 2>/dev/null | grep -q 'nodejs.*\.deb' && echo yes" 2>/dev/null)
+        set -e
+        
+        if [ "$has_nodejs" = "yes" ]; then
+            debug "Found Node.js package in cache, downloading..."
+            # Download any nodejs deb - use wget with accept pattern
+            set +e
+            pct exec $CTID -- bash -c "cd /tmp && wget -q -r -l1 -nd -A 'nodejs*.deb' $cache_url/ 2>/dev/null" >> "$LOG_FILE" 2>&1
+            
+            # Install the downloaded package
+            if pct exec $CTID -- test -f /tmp/nodejs*.deb 2>/dev/null; then
+                local nodejs_file=$(pct exec $CTID -- bash -c "ls /tmp/nodejs*.deb 2>/dev/null | head -1")
+                debug "Installing cached package: $nodejs_file"
+                pct exec $CTID -- dpkg -i "$nodejs_file" >> "$LOG_FILE" 2>&1
+                local dpkg_result=$?
+                
+                if [ $dpkg_result -ne 0 ]; then
+                    debug "dpkg returned $dpkg_result, fixing dependencies..."
+                    pct exec $CTID -- apt-get install -f -y >> "$LOG_FILE" 2>&1 || true
+                fi
+                
+                # Check if it worked
+                if pct exec $CTID -- test -f /usr/bin/node 2>/dev/null; then
+                    debug "Node.js installed from cache successfully"
+                    nodejs_installed=true
+                fi
+            else
+                debug "Failed to download nodejs package from cache"
+            fi
+            set -e
+        else
+            debug "Node.js package not found in cache"
+        fi
+    fi
     
-    local rootfs="/var/lib/lxc/$CTID/rootfs"
-    cat > "$rootfs/tmp/install-nodejs.sh" <<'EOFSCRIPT'
+    # Fall back to NodeSource if cache install failed
+    if [ "$nodejs_installed" = false ]; then
+        debug "Installing Node.js from NodeSource..."
+        debug "Adding NodeSource repository..."
+        set +e
+        pct exec $CTID -- bash -c "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -" >> "$LOG_FILE" 2>&1
+        set -e
+        
+        debug "Installing Node.js via filesystem write (this may take a moment)..."
+        # Create installation script in container filesystem to avoid pct exec timeouts
+        # Mount container to access its filesystem
+        pct mount $CTID >> "$LOG_FILE" 2>&1
+        
+        local rootfs="/var/lib/lxc/$CTID/rootfs"
+        cat > "$rootfs/tmp/install-nodejs.sh" <<'EOFSCRIPT'
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive
 apt-get install -y nodejs > /tmp/nodejs-install.log 2>&1
 echo $? > /tmp/nodejs-install-exitcode
 EOFSCRIPT
-    chmod +x "$rootfs/tmp/install-nodejs.sh"
-    
-    # Unmount after creating script
-    pct unmount $CTID >> "$LOG_FILE" 2>&1
-    
-    # Run installation script via pct exec in true background (don't redirect to log yet)
-    debug "Starting Node.js installation in background..."
-    set +e
-    ( pct exec $CTID -- bash /tmp/install-nodejs.sh & )
-    set -e
-    
-    # Give it a moment to start
-    sleep 3
-    
-    # Wait for installation to complete by polling for exit code file (max 120 seconds)
-    local max_wait=120
-    local waited=0
-    debug "Waiting for Node.js installation to complete..."
-    while [ $waited -lt $max_wait ]; do
-        # Check if exit code file exists using pct exec
-        if pct exec $CTID -- test -f /tmp/nodejs-install-exitcode 2>/dev/null; then
-            local exitcode=$(pct exec $CTID -- cat /tmp/nodejs-install-exitcode 2>/dev/null || echo "1")
-            debug "Installation completed with exit code: $exitcode"
-            # Copy installation log to our log file
-            pct exec $CTID -- cat /tmp/nodejs-install.log >> "$LOG_FILE" 2>&1 || true
-            break
-        fi
+        chmod +x "$rootfs/tmp/install-nodejs.sh"
+        
+        # Unmount after creating script
+        pct unmount $CTID >> "$LOG_FILE" 2>&1
+        
+        # Run installation script via pct exec in true background (don't redirect to log yet)
+        debug "Starting Node.js installation in background..."
+        set +e
+        ( pct exec $CTID -- bash /tmp/install-nodejs.sh & )
+        set -e
+        
+        # Give it a moment to start
         sleep 3
-        waited=$((waited + 3))
-        if [ $((waited % 15)) -eq 0 ]; then
-            debug "Still waiting for Node.js installation... ${waited}s"
+        
+        # Wait for installation to complete by polling for exit code file (max 120 seconds)
+        local max_wait=120
+        local waited=0
+        debug "Waiting for Node.js installation to complete..."
+        while [ $waited -lt $max_wait ]; do
+            # Check if exit code file exists using pct exec
+            if pct exec $CTID -- test -f /tmp/nodejs-install-exitcode 2>/dev/null; then
+                local exitcode=$(pct exec $CTID -- cat /tmp/nodejs-install-exitcode 2>/dev/null || echo "1")
+                debug "Installation completed with exit code: $exitcode"
+                # Copy installation log to our log file
+                pct exec $CTID -- cat /tmp/nodejs-install.log >> "$LOG_FILE" 2>&1 || true
+                break
+            fi
+            sleep 3
+            waited=$((waited + 3))
+            if [ $((waited % 15)) -eq 0 ]; then
+                debug "Still waiting for Node.js installation... ${waited}s"
+            fi
+        done
+        
+        # Check if we timed out
+        if [ $waited -ge $max_wait ]; then
+            print_warning "Node.js installation timed out after ${max_wait}s, checking if it completed anyway..."
         fi
-    done
-    
-    # Check if we timed out
-    if [ $waited -ge $max_wait ]; then
-        print_warning "Node.js installation timed out after ${max_wait}s, checking if it completed anyway..."
     fi
     
     set -e
