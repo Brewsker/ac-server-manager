@@ -859,41 +859,51 @@ install_nodejs() {
         debug "Attempting to install Node.js from git-cache..."
         local cache_url="http://$GIT_CACHE_IP/packages/debs"
         
-        # Check if cache has nodejs package (look for any nodejs*.deb file)
+        # Create a download script in the container to avoid shell escaping issues
+        pct exec $CTID -- bash -c 'cat > /tmp/download-nodejs.sh << "EOF"
+#!/bin/bash
+CACHE_URL="$1"
+cd /tmp
+# Get directory listing and extract nodejs filename
+NODEJS_DEB=$(curl -s "$CACHE_URL/" | grep -oE "nodejs_[0-9][^\">]+\.deb" | head -1)
+if [ -n "$NODEJS_DEB" ]; then
+    echo "Downloading: $NODEJS_DEB"
+    curl -sO "$CACHE_URL/$NODEJS_DEB"
+    if [ -f "$NODEJS_DEB" ]; then
+        echo "SUCCESS:$NODEJS_DEB"
+    else
+        echo "FAILED:download"
+    fi
+else
+    echo "FAILED:notfound"
+fi
+EOF
+chmod +x /tmp/download-nodejs.sh'
+        
         set +e
-        # Download the directory listing and look for nodejs
-        local has_nodejs=$(pct exec $CTID -- bash -c "curl -s $cache_url/ 2>/dev/null | grep -q 'nodejs.*\.deb' && echo yes" 2>/dev/null)
+        local result=$(pct exec $CTID -- bash /tmp/download-nodejs.sh "$cache_url" 2>/dev/null)
         set -e
         
-        if [ "$has_nodejs" = "yes" ]; then
-            debug "Found Node.js package in cache, downloading..."
-            # Download any nodejs deb - use wget with accept pattern
-            set +e
-            pct exec $CTID -- bash -c "cd /tmp && wget -q -r -l1 -nd -A 'nodejs*.deb' $cache_url/ 2>/dev/null" >> "$LOG_FILE" 2>&1
+        if echo "$result" | grep -q "^SUCCESS:"; then
+            local nodejs_deb=$(echo "$result" | grep "^SUCCESS:" | cut -d: -f2)
+            debug "Downloaded from cache: $nodejs_deb"
             
-            # Install the downloaded package
-            if pct exec $CTID -- test -f /tmp/nodejs*.deb 2>/dev/null; then
-                local nodejs_file=$(pct exec $CTID -- bash -c "ls /tmp/nodejs*.deb 2>/dev/null | head -1")
-                debug "Installing cached package: $nodejs_file"
-                pct exec $CTID -- dpkg -i "$nodejs_file" >> "$LOG_FILE" 2>&1
-                local dpkg_result=$?
-                
-                if [ $dpkg_result -ne 0 ]; then
-                    debug "dpkg returned $dpkg_result, fixing dependencies..."
-                    pct exec $CTID -- apt-get install -f -y >> "$LOG_FILE" 2>&1 || true
-                fi
-                
-                # Check if it worked
-                if pct exec $CTID -- test -f /usr/bin/node 2>/dev/null; then
-                    debug "Node.js installed from cache successfully"
-                    nodejs_installed=true
-                fi
-            else
-                debug "Failed to download nodejs package from cache"
+            # Install the package
+            pct exec $CTID -- dpkg -i "/tmp/$nodejs_deb" >> "$LOG_FILE" 2>&1
+            local dpkg_result=$?
+            
+            if [ $dpkg_result -ne 0 ]; then
+                debug "dpkg returned $dpkg_result, fixing dependencies..."
+                pct exec $CTID -- apt-get install -f -y >> "$LOG_FILE" 2>&1 || true
             fi
-            set -e
+            
+            # Check if it worked
+            if pct exec $CTID -- test -f /usr/bin/node 2>/dev/null; then
+                debug "Node.js installed from cache successfully"
+                nodejs_installed=true
+            fi
         else
-            debug "Node.js package not found in cache"
+            debug "Cache download failed: $result"
         fi
     fi
     
