@@ -4,7 +4,6 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import ServerConfig from './pages/ServerConfig';
-import ActiveDrivers from './pages/ActiveDrivers';
 import Monitoring from './pages/Monitoring';
 import Settings from './pages/Settings';
 
@@ -64,7 +63,6 @@ function App() {
             <Route path="/" element={<Navigate to="/settings" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/config" element={<ServerConfig />} />
-            <Route path="/active-drivers" element={<ActiveDrivers />} />
             <Route path="/monitoring" element={<Monitoring />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
