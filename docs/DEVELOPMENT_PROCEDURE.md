@@ -34,6 +34,7 @@ After making changes to the frontend or backend, deploy to production container:
 8. Displays completion status and app URL
 
 **Expected Output:**
+
 ```
 ========================================
  AC Server Manager Deployment
@@ -76,6 +77,7 @@ If something goes wrong, rollback to a previous backup:
 ```
 
 **Rollback Process:**
+
 1. Lists available backups in container
 2. Restores selected backup to `/opt/ac-server-manager`
 3. Restarts PM2 to apply changes
@@ -84,23 +86,27 @@ If something goes wrong, rollback to a previous backup:
 ### Development Best Practices
 
 **When to Deploy:**
+
 - After completing a feature or bugfix
 - Before testing in production-like environment
 - When frontend changes need browser testing
 - After git commits to sync remote container
 
 **When to Skip Backup:**
+
 - During active development (rapid iteration)
 - When making minor CSS/UI tweaks
 - When you know you can redeploy easily
 
 **When to Keep Backup:**
+
 - Before major refactoring
 - Before dependency updates
 - When deploying to production
 - Before risky changes
 
 **Verification After Deployment:**
+
 ```powershell
 # Check app is accessible
 curl http://192.168.1.71:3001
@@ -124,21 +130,26 @@ The following VSCode tasks exist in `.vscode/tasks.json` but are **deprecated fo
 - `🔴 Kill All Terminals & Processes`
 
 **Why Deprecated:**
+
 - Remote container development requires different tools (SSH, pct commands)
 - Deploy scripts handle build + restart more reliably
 - Tasks designed for local Windows environment, not Linux containers
 - PM2 process manager used in production, not npm scripts
 
 **When to Use VSCode Tasks:**
+
 - Local development on Windows host (if needed for testing)
 - Quick frontend-only development with hot reload
 - Debugging backend locally outside container
 
 **Preferred Workflow:**
+
 1. Make code changes locally
 2. Run `.\scripts\deploy-to-proxmox.ps1` to deploy to container
 3. Test in container at http://192.168.1.71:3001
-4. Iterate as needed
+4. Test unified installer for correct operation (see [Installer Integration Check](#-mandatory-installer-integration-check))
+5. Iterate as needed
+6. Update git (commit and push) upon successful iteration
 
 **Legacy Tasks Preserved:**
 The task definitions remain in the repository for potential future use in different development scenarios or for developers who prefer local testing before deployment.
