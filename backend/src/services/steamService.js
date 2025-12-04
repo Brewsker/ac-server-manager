@@ -213,7 +213,9 @@ export async function installSteamCMD() {
     // Install SteamCMD and required 32-bit libs
     // Note: On Debian, steamcmd is in main repo (contrib/non-free may be needed)
     // On Ubuntu, it's in multiverse - but we skip add-apt-repository as it may not exist
-    await execAsync('sudo apt-get install -y steamcmd lib32gcc-s1 || sudo apt-get install -y steamcmd lib32gcc1');
+    await execAsync(
+      'sudo apt-get install -y steamcmd lib32gcc-s1 || sudo apt-get install -y steamcmd lib32gcc1'
+    );
 
     // Initialize SteamCMD to create required directories
     console.log('[SteamService] Initializing SteamCMD...');
@@ -503,8 +505,8 @@ quit
 
 /**
  * Extract content from AC base game to AC server installation
- * @param {string} gameInstallPath - Path where AC base game is installed
- * @param {string} serverContentPath - Path to AC server content folder
+ * @param {string} gameInstallPath - Path where AC base game is installed (e.g., /tmp/ac-basegame)
+ * @param {string} serverContentPath - Path to AC server content folder (e.g., /opt/acserver/content)
  * @returns {Promise<Object>} Extraction status
  */
 export async function extractACContent(gameInstallPath, serverContentPath) {
@@ -513,8 +515,34 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
       `[SteamService] Extracting content from ${gameInstallPath} to ${serverContentPath}...`
     );
 
-    const gameCarsPath = path.join(gameInstallPath, 'content', 'cars');
-    const gameTracksPath = path.join(gameInstallPath, 'content', 'tracks');
+    // SteamCMD installs to different paths depending on state
+    // Try common locations for AC content
+    const possiblePaths = [
+      path.join(gameInstallPath, 'steamapps', 'common', 'assettocorsa', 'content'),
+      path.join(gameInstallPath, 'steamapps', 'downloading', '244210', 'content'),
+      path.join(gameInstallPath, 'content'),
+    ];
+
+    let contentBasePath = null;
+    for (const p of possiblePaths) {
+      try {
+        await fs.access(path.join(p, 'cars'));
+        contentBasePath = p;
+        console.log(`[SteamService] Found content at: ${contentBasePath}`);
+        break;
+      } catch {
+        // Try next path
+      }
+    }
+
+    if (!contentBasePath) {
+      throw new Error(
+        `Could not find AC content in ${gameInstallPath}. Tried: ${possiblePaths.join(', ')}`
+      );
+    }
+
+    const gameCarsPath = path.join(contentBasePath, 'cars');
+    const gameTracksPath = path.join(contentBasePath, 'tracks');
     const serverCarsPath = path.join(serverContentPath, 'cars');
     const serverTracksPath = path.join(serverContentPath, 'tracks');
 
@@ -527,21 +555,23 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
     await fs.mkdir(serverTracksPath, { recursive: true });
 
     console.log('[SteamService] Copying cars...');
-    await execAsync(`rsync -av ${gameCarsPath}/ ${serverCarsPath}/`, {
-      maxBuffer: 10 * 1024 * 1024,
+    await execAsync(`rsync -av "${gameCarsPath}/" "${serverCarsPath}/"`, {
+      maxBuffer: 50 * 1024 * 1024,
+      timeout: 600000, // 10 minute timeout for large copies
     });
 
     console.log('[SteamService] Copying tracks...');
-    await execAsync(`rsync -av ${gameTracksPath}/ ${serverTracksPath}/`, {
-      maxBuffer: 10 * 1024 * 1024,
+    await execAsync(`rsync -av "${gameTracksPath}/" "${serverTracksPath}/"`, {
+      maxBuffer: 50 * 1024 * 1024,
+      timeout: 600000,
     });
 
     // Count extracted content
     const { stdout: carCount } = await execAsync(
-      `find ${serverCarsPath} -type d -maxdepth 1 | wc -l`
+      `find "${serverCarsPath}" -maxdepth 1 -type d | wc -l`
     );
     const { stdout: trackCount } = await execAsync(
-      `find ${serverTracksPath} -type d -maxdepth 1 | wc -l`
+      `find "${serverTracksPath}" -maxdepth 1 -type d | wc -l`
     );
 
     return {
