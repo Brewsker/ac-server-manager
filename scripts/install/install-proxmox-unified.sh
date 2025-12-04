@@ -599,17 +599,20 @@ update_ssh_keys() {
         ssh-keygen -R "192.168.1.71" >> "$LOG_FILE" 2>&1
     fi
     
-    # Enable password authentication in SSH
+    # Enable password and pubkey authentication in SSH
     enable_ssh_password_auth
     
     # Inject SSH public key into container for password-less access
     inject_ssh_key
     
+    # Setup SSH for inter-container communication (container -> git-cache)
+    setup_inter_container_ssh
+    
     print_success "SSH access configured"
 }
 
 enable_ssh_password_auth() {
-    debug "Enabling SSH password authentication"
+    debug "Enabling SSH password and pubkey authentication"
     
     # Use direct filesystem access instead of pct exec (avoid segfaults)
     # Containers are mounted at /var/lib/lxc/<ctid>/rootfs
@@ -619,13 +622,14 @@ enable_ssh_password_auth() {
     if [ -f "$sshd_config" ]; then
         sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' "$sshd_config"
         sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' "$sshd_config"
+        sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' "$sshd_config"
         
         # Restart SSH using pct exec with error handling
         set +e
         pct exec "$CTID" -- systemctl restart sshd >> "$LOG_FILE" 2>&1
         set -e
         
-        debug "SSH password authentication enabled"
+        debug "SSH password and pubkey authentication enabled"
     else
         print_warning "Could not find sshd_config, SSH may need manual configuration"
     fi
@@ -669,6 +673,43 @@ inject_ssh_key() {
     pct exec "$CTID" -- bash -c "sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
     
     print_success "SSH key injected - password-less SSH enabled"
+}
+
+setup_inter_container_ssh() {
+    print_section "Setting up SSH for inter-container communication"
+    
+    local git_cache_ip="192.168.1.70"
+    
+    # Generate SSH keypair in container if it doesn't exist
+    debug "Generating SSH keypair in container..."
+    pct exec "$CTID" -- bash -c "
+        if [ ! -f /root/.ssh/id_ed25519 ]; then
+            ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -N '' -q
+        fi
+    " >> "$LOG_FILE" 2>&1
+    
+    # Add git-cache server host key to known_hosts
+    debug "Adding git-cache server to known_hosts..."
+    pct exec "$CTID" -- bash -c "
+        mkdir -p /root/.ssh
+        ssh-keyscan -H $git_cache_ip >> /root/.ssh/known_hosts 2>/dev/null
+    " >> "$LOG_FILE" 2>&1
+    
+    # Get container's public key
+    local container_pubkey
+    container_pubkey=$(pct exec "$CTID" -- cat /root/.ssh/id_ed25519.pub 2>/dev/null || echo "")
+    
+    if [ -n "$container_pubkey" ]; then
+        # Add container's key to git-cache server's authorized_keys
+        debug "Adding container key to git-cache server..."
+        if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@$git_cache_ip "echo '$container_pubkey' >> /root/.ssh/authorized_keys; sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1; then
+            print_success "Inter-container SSH configured"
+        else
+            print_warning "Could not configure git-cache SSH access - SteamService cache may not work"
+        fi
+    else
+        print_warning "Could not get container public key"
+    fi
 }
 
 get_container_ip() {
