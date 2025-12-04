@@ -658,7 +658,7 @@ inject_ssh_key() {
             local ssh_key=$(cat "$key_file")
             debug "Found SSH public key: $key_file"
             pct exec "$CTID" -- bash -c "echo '$ssh_key' >> /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
-            ((keys_added++))
+            keys_added=$((keys_added + 1))
             break  # Only add one key from standard locations
         fi
     done
@@ -671,7 +671,7 @@ inject_ssh_key() {
         while IFS= read -r extra_key || [ -n "$extra_key" ]; do
             if [ -n "$extra_key" ] && [[ "$extra_key" == ssh-* ]]; then
                 pct exec "$CTID" -- bash -c "echo '$extra_key' >> /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
-                ((keys_added++))
+                keys_added=$((keys_added + 1))
                 debug "Added extra key from file"
             fi
         done < "$extra_keys_file"
@@ -684,7 +684,6 @@ inject_ssh_key() {
             extra_key=$(echo "$extra_key" | xargs)  # Trim whitespace
             if [ -n "$extra_key" ] && [[ "$extra_key" == ssh-* ]]; then
                 pct exec "$CTID" -- bash -c "echo '$extra_key' >> /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
-                ((keys_added++))
                 debug "Added extra key from environment"
             fi
         done
