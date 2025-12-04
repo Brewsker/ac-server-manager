@@ -1,8 +1,12 @@
 # Development Procedure
 
-## Quick Deployment to Proxmox
+## Standard Deployment Workflow (Remote Development)
 
-After making changes to the frontend or backend, deploy to production:
+**PRIMARY METHOD**: Use the deployment scripts for all updates to the Proxmox container.
+
+### Quick Deployment to Proxmox
+
+After making changes to the frontend or backend, deploy to production container:
 
 ```powershell
 # Full deployment (builds frontend + deploys + creates backup)
@@ -11,37 +15,133 @@ After making changes to the frontend or backend, deploy to production:
 # Skip build if you already built locally
 .\scripts\deploy-to-proxmox.ps1 -SkipBuild
 
-# Skip backup for faster deployment (not recommended for production)
+# Skip backup for faster deployment during active development
 .\scripts\deploy-to-proxmox.ps1 -SkipBackup
 
 # Deploy to different host/container
 .\scripts\deploy-to-proxmox.ps1 -HostIP 192.168.1.100 -ContainerId 100
 ```
 
-The script:
+**Deployment Process:**
 
-1. Builds the frontend (unless `-SkipBuild`)
-2. Creates timestamped backup (unless `-SkipBackup`)
-3. Cleans old assets to prevent file pollution
-4. Uploads all files to host `/tmp`
+1. Builds the frontend with Vite (unless `-SkipBuild`)
+2. Creates timestamped backup in container (unless `-SkipBackup`)
+3. Cleans old frontend assets to prevent file pollution
+4. Uploads all changed files to host `/tmp`
 5. Pushes files to container using `pct push`
-6. Verifies deployment (counts assets)
-7. Restarts PM2 and displays URL
+6. Verifies deployment by counting assets
+7. Restarts PM2 process manager
+8. Displays completion status and app URL
 
-## Rollback Deployment
+**Expected Output:**
+```
+========================================
+ AC Server Manager Deployment
+========================================
+Host:      192.168.1.199
+Container: 999
 
-If something goes wrong, rollback to a previous version:
+[1/6] Building frontend...
+   Built
+[2/6] Creating backup...
+   Backed up to: /opt/ac-server-manager/backups/backup-20251203-164500
+[3/6] Cleaning old files...
+   Cleaned
+[4/6] Uploading...
+   Uploaded
+[5/6] Deploying...
+   Deployed
+[6/6] Restarting...
+   Restarted (11 assets)
+
+Complete! http://192.168.1.71:3001
+```
+
+### Rollback Deployment
+
+If something goes wrong, rollback to a previous backup:
 
 ```powershell
-# List available backups
+# List available backups (shows last 10 by default)
 .\scripts\rollback-deployment.ps1 -ListOnly
 
 # Rollback to most recent backup
 .\scripts\rollback-deployment.ps1
 
-# Rollback to specific backup
+# Rollback to specific backup by timestamp
 .\scripts\rollback-deployment.ps1 -BackupName "backup-20251203-120000"
+
+# Rollback to different container
+.\scripts\rollback-deployment.ps1 -HostIP 192.168.1.100 -ContainerId 100
 ```
+
+**Rollback Process:**
+1. Lists available backups in container
+2. Restores selected backup to `/opt/ac-server-manager`
+3. Restarts PM2 to apply changes
+4. Verifies app is accessible
+
+### Development Best Practices
+
+**When to Deploy:**
+- After completing a feature or bugfix
+- Before testing in production-like environment
+- When frontend changes need browser testing
+- After git commits to sync remote container
+
+**When to Skip Backup:**
+- During active development (rapid iteration)
+- When making minor CSS/UI tweaks
+- When you know you can redeploy easily
+
+**When to Keep Backup:**
+- Before major refactoring
+- Before dependency updates
+- When deploying to production
+- Before risky changes
+
+**Verification After Deployment:**
+```powershell
+# Check app is accessible
+curl http://192.168.1.71:3001
+
+# Verify PM2 status
+ssh root@192.168.1.199 "pct exec 999 -- pm2 list"
+
+# Check for errors in logs
+ssh root@192.168.1.199 "pct exec 999 -- pm2 logs ac-server-manager --lines 20 --nostream"
+```
+
+## ⚠️ VSCode Tasks (Deprecated for Remote Development)
+
+The following VSCode tasks exist in `.vscode/tasks.json` but are **deprecated for remote Proxmox container development**. They were useful during early local development but are no longer the primary workflow:
+
+- `🔴 Hard Reset - Kill All & Restart`
+- `🧹 Cleanup Only (No Restart)`
+- `▶️ Start Backend`
+- `▶️ Start Frontend`
+- `🚀 Start Both Services`
+- `🔴 Kill All Terminals & Processes`
+
+**Why Deprecated:**
+- Remote container development requires different tools (SSH, pct commands)
+- Deploy scripts handle build + restart more reliably
+- Tasks designed for local Windows environment, not Linux containers
+- PM2 process manager used in production, not npm scripts
+
+**When to Use VSCode Tasks:**
+- Local development on Windows host (if needed for testing)
+- Quick frontend-only development with hot reload
+- Debugging backend locally outside container
+
+**Preferred Workflow:**
+1. Make code changes locally
+2. Run `.\scripts\deploy-to-proxmox.ps1` to deploy to container
+3. Test in container at http://192.168.1.71:3001
+4. Iterate as needed
+
+**Legacy Tasks Preserved:**
+The task definitions remain in the repository for potential future use in different development scenarios or for developers who prefer local testing before deployment.
 
 ---
 
