@@ -615,15 +615,31 @@ enable_ssh_password_auth() {
     debug "Enabling SSH password and pubkey authentication"
     
     # Use pct exec to configure SSH (works with both directory and LVM storage)
+    # Stop SSH first, modify config, then start - avoids "Address already in use" race
     set +e
     pct exec "$CTID" -- bash -c "
         if [ -f /etc/ssh/sshd_config ]; then
+            # Stop SSH service first to avoid port binding race
+            systemctl stop sshd 2>/dev/null || systemctl stop ssh 2>/dev/null || true
+            sleep 1
+            
+            # Modify configuration
             sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
             sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
             sed -i 's/^#\\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
-            systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null || true
-            sleep 2  # Wait for sshd to fully restart and release port
-            echo 'SSH configured'
+            
+            # Start SSH service (not restart - it's already stopped)
+            systemctl start sshd 2>/dev/null || systemctl start ssh 2>/dev/null || true
+            sleep 1
+            
+            # Verify it started
+            if systemctl is-active --quiet sshd 2>/dev/null || systemctl is-active --quiet ssh 2>/dev/null; then
+                echo 'SSH configured and started'
+            else
+                echo 'SSH failed to start, retrying...'
+                sleep 2
+                systemctl start sshd 2>/dev/null || systemctl start ssh 2>/dev/null || true
+            fi
         else
             echo 'sshd_config not found'
         fi
