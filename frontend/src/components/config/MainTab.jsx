@@ -8,6 +8,7 @@ export default function MainTab({
   getSelectedTrackName,
   selectedCars,
   cars,
+  tracks,
   getCarPreviewUrl,
   showPassword,
   setShowPassword,
@@ -57,7 +58,7 @@ export default function MainTab({
                         No track selected
                       </div>
                       <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        {cars.length === 0
+                        {tracks.length === 0
                           ? 'Install content in Settings/Setup'
                           : 'Click to select'}
                       </div>

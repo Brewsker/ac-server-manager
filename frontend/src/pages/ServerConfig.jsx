@@ -846,6 +846,7 @@ function ServerConfig() {
                   getSelectedTrackName={getSelectedTrackName}
                   selectedCars={data.selectedCars}
                   cars={data.cars}
+                  tracks={data.tracks}
                   getCarPreviewUrl={getCarPreviewUrl}
                   showPassword={ui.showPassword}
                   setShowPassword={(show) => updateUi({ showPassword: show })}

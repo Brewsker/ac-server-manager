@@ -1,8 +1,12 @@
 # Development Procedure
 
-# User Notes
-- SSH sleeps during troubleshooting. max time = 10sec 
-- Always bash a during and install to monitor unless take time priority
+## User Notes
+
+- SSH sleeps during troubleshooting. max time = 10sec
+- Always bash a during and install to monitor unless other tasks take time priority
+- Keep debug content enabled in the unified installer. I like to see all the stuff hehe
+- Command Notes:
+  - curl -s http://192.168.1.71:3001/api/server/status :: commands like this generally result in a URL prompt in the terminal and thhat prompt is always cancelled. Generally a waster of time.
 
 ## ⭐ Preferred Workflow
 
@@ -11,8 +15,8 @@
 1. Make code changes locally
 2. Commit and push changes to develop branch: `git add . && git commit -m "description" && git push`
 3. Sync git-cache server: `ssh root@192.168.1.70 'cd /opt/git-cache/ac-server-manager && git pull'`
-4. Run `.\scripts\deploy-to-proxmox.ps1` to deploy to container 999
-5. Test in container at http://192.168.1.71:3001
+4. Run `.\scripts\deploy-to-proxmox.ps1` to deploy to container 999 (builds frontend, uploads, restarts PM2)
+5. Refresh browser at http://192.168.1.71:3001 to load new frontend bundles
 6. Test unified installer for correct operation (see [Installer Integration Check](#-mandatory-installer-integration-check))
 7. Iterate as needed (return to step 1)
 
@@ -122,6 +126,16 @@ If something goes wrong, rollback to a previous backup:
 - Before dependency updates
 - When deploying to production
 - Before risky changes
+
+**Viewing Frontend Changes:**
+
+The deployment script (`deploy-to-proxmox.ps1`) handles:
+
+1. Building the frontend with Vite (new hashed asset filenames)
+2. Uploading to container
+3. Restarting PM2
+
+After deployment completes, simply **refresh the browser** at http://192.168.1.71:3001 to load the new bundles. Since Vite generates new hashed filenames on each build, a normal refresh is sufficient (no hard refresh needed).
 
 **Verification After Deployment:**
 
@@ -340,13 +354,23 @@ ssh root@192.168.1.199 "pct exec 999 -- pm2 logs ac-server-manager --lines 20 --
 ### Frontend Testing
 
 ```powershell
-# Local development server
+# Local development server (with hot reload)
 cd frontend
 npm run dev
+# Changes auto-refresh in browser via Vite HMR
 
 # Build and check bundle size
 npm run build
 # Check dist/ for generated assets
+```
+
+**After Making Frontend Changes:**
+
+```powershell
+# Deploy to container (builds, uploads, restarts PM2)
+.\scripts\deploy-to-proxmox.ps1
+
+# Refresh browser at http://192.168.1.71:3001 to see changes
 ```
 
 ### Backend Testing
