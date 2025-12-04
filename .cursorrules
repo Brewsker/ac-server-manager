@@ -1,4 +1,4 @@
-﻿# AC Server Manager - AI Development Guidelines
+# AC Server Manager - AI Development Guidelines
 
 ## ðŸŽ¯ Primary Objectives
 
@@ -327,7 +327,7 @@ main (production releases only - tagged versions)
 
 ### Version Management
 
-- Current version: **0.21.1**
+- Current version: **0.21.2**
 - Update in 3 places:
   1. `backend/package.json`
   2. `frontend/package.json`

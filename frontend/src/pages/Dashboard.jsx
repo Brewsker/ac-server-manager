@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/client';
 
 // ============================================================================
@@ -646,6 +646,12 @@ function ResourceGraph({ title, value, max, unit, color, height = 'h-24' }) {
     red: 'bg-red-500',
   };
 
+  // Generate stable bar heights using useMemo to prevent memory leak from continuous re-renders
+  const barHeights = React.useMemo(
+    () => Array.from({ length: 20 }, (_, i) => 10 + ((i * 7 + 13) % 60)),
+    []
+  );
+
   return (
     <div className="bg-gray-800 rounded-lg p-4">
       <div className="flex justify-between items-center mb-3">
@@ -658,11 +664,11 @@ function ResourceGraph({ title, value, max, unit, color, height = 'h-24' }) {
       <div className={`${height} bg-gray-900 rounded relative overflow-hidden`}>
         {/* Graph placeholder - shows a simple bar for now */}
         <div className="absolute bottom-0 left-0 right-0 flex items-end justify-around h-full px-1 py-1">
-          {[...Array(20)].map((_, i) => (
+          {barHeights.map((h, i) => (
             <div
               key={i}
               className={`w-full mx-px ${colors[color] || colors.yellow} opacity-70`}
-              style={{ height: `${Math.random() * 60 + 10}%` }}
+              style={{ height: `${h}%` }}
             />
           ))}
         </div>
