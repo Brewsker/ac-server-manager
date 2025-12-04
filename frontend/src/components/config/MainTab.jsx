@@ -53,15 +53,26 @@ export default function MainTab({
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
-                      <div className="text-4xl mb-2">🏁</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        No track selected
-                      </div>
-                      <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        {tracks.length === 0
-                          ? 'Install content in Settings/Setup'
-                          : 'Click to select'}
-                      </div>
+                      {tracks.length === 0 ? (
+                        <>
+                          <svg className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                          </svg>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                            No content
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-4xl mb-2">🏁</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            No track selected
+                          </div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                            Click to select
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </button>
@@ -114,15 +125,26 @@ export default function MainTab({
                     </div>
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center">
-                      <div className="text-4xl mb-2">🏎️</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        No cars selected
-                      </div>
-                      <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        {cars.length === 0
-                          ? 'Install content in Settings/Setup'
-                          : 'Click to manage cars'}
-                      </div>
+                      {cars.length === 0 ? (
+                        <>
+                          <svg className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 17h.01M16 17h.01M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11M5 11h14M5 11a2 2 0 00-2 2v4a1 1 0 001 1h1m14-7a2 2 0 012 2v4a1 1 0 01-1 1h-1M5 17H4a1 1 0 01-1-1v-1a2 2 0 012-2m14 4h1a1 1 0 001-1v-1a2 2 0 00-2-2" />
+                          </svg>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                            No content
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-4xl mb-2">🏎️</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            No cars selected
+                          </div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                            Click to manage cars
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </button>
