@@ -1055,17 +1055,17 @@ deploy_main_app() {
     pct exec $CTID -- bash -c "cd $APP_DIR/frontend && npm install && npm run build" >> "$LOG_FILE" 2>&1
     debug "Frontend built"
     
-    # Create .env file with defaults
+    # Create .env file with pre-configured paths for SteamCMD/AC installation
     print_info "Creating default configuration..."
     pct exec $CTID -- bash -c "cat > $APP_DIR/backend/.env << 'ENVEOF'
 NODE_ENV=production
 PORT=3001
-AC_SERVER_PATH=
-AC_SERVER_CONFIG_PATH=
-AC_ENTRY_LIST_PATH=
-AC_CONTENT_PATH=
+AC_SERVER_PATH=/opt/acserver/acServer
+AC_SERVER_CONFIG_PATH=/opt/acserver/cfg
+AC_ENTRY_LIST_PATH=/opt/acserver/cfg/entry_list.ini
+AC_CONTENT_PATH=/opt/acserver/content
 ENVEOF" >> "$LOG_FILE" 2>&1
-    debug ".env file created with empty paths (will be configured via UI)"
+    debug ".env file created with paths for SteamCMD installation at /opt/acserver"
     
     print_success "Application deployed"
 }

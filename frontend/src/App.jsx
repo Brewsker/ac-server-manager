@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Layout from './components/Layout';
-import SetupWizard from './components/SetupWizard';
 import Dashboard from './pages/Dashboard';
 import ServerConfig from './pages/ServerConfig';
 import ActiveDrivers from './pages/ActiveDrivers';
@@ -27,7 +26,8 @@ function App() {
       const response = await fetch('/api/setup/status', { signal });
       const data = await response.json();
       if (!signal.aborted) {
-        setSetupComplete(data.configured);
+        // Always consider setup complete - redirect to Settings if not configured
+        setSetupComplete(true);
       }
     } catch (error) {
       // Ignore AbortError when component unmounts
@@ -35,7 +35,8 @@ function App() {
 
       console.error('Failed to check setup status:', error);
       if (!signal.aborted) {
-        setSetupComplete(false);
+        // On error, allow access but user will see setup tab in Settings
+        setSetupComplete(true);
       }
     }
   };
@@ -54,22 +55,14 @@ function App() {
     );
   }
 
-  // Show setup wizard if not configured
-  if (!setupComplete) {
-    return (
-      <ThemeProvider>
-        <SetupWizard onComplete={() => setSetupComplete(true)} />
-      </ThemeProvider>
-    );
-  }
-
-  // Show main app if configured
+  // Always show main app - redirect to Settings on first load
   return (
     <ThemeProvider>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Layout>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Navigate to="/settings" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/config" element={<ServerConfig />} />
             <Route path="/active-drivers" element={<ActiveDrivers />} />
             <Route path="/monitoring" element={<Monitoring />} />
