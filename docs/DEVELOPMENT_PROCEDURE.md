@@ -14,12 +14,35 @@
 **CRITICAL**: Follow this workflow for all development iterations. Each step is mandatory.
 
 1. Make code changes locally
-2. Commit and push changes to develop branch: `git add . && git commit -m "description" && git push`
-3. Sync git-cache server: `ssh root@192.168.1.70 'cd /opt/git-cache/ac-server-manager && git pull'`
-4. Run `.\scripts\deploy-to-proxmox.ps1` to deploy to container 999 (builds frontend, uploads, restarts PM2)
-5. Refresh browser at http://192.168.1.71:3001 to load new frontend bundles
-6. Test unified installer for correct operation (see [Installer Integration Check](#-mandatory-installer-integration-check))
-7. Iterate as needed (return to step 1)
+2. Commit with conventional commit message (version auto-bumps via git hook):
+   - `feat:` → MINOR bump (0.21.0 → 0.22.0)
+   - `fix:` / `refactor:` / `perf:` → PATCH bump (0.21.0 → 0.21.1)
+   - `chore:` / `docs:` / `style:` / `test:` → NO bump
+3. Push to develop: `git push origin develop`
+4. Sync git-cache server: `ssh root@192.168.1.70 'cd /opt/git-cache/ac-server-manager && git pull'`
+5. Deploy: `.\scripts\deploy-to-proxmox.ps1` (builds frontend, uploads, restarts PM2)
+6. Refresh browser at http://192.168.1.71:3001
+7. Test unified installer for correct operation (see [Installer Integration Check](#-mandatory-installer-integration-check))
+8. Iterate as needed (return to step 1)
+
+### Version Management (Automatic)
+
+Git hooks handle versioning automatically - no manual intervention needed:
+
+```powershell
+# Version bumps happen automatically on commit based on message prefix
+git commit -m "feat: add new dashboard"   # 0.21.0 → 0.22.0 (MINOR)
+git commit -m "fix: resolve port issue"   # 0.22.0 → 0.22.1 (PATCH)
+git commit -m "chore: update docs"        # 0.22.1 (NO BUMP)
+
+# Check current version
+.\scripts\version-manager.ps1 -Action info
+
+# For fresh clones, install hooks:
+.\scripts\install-hooks.ps1
+```
+
+**Files auto-updated by hooks**: `backend/package.json`, `frontend/package.json`, `.cursorrules`
 
 ---
 
