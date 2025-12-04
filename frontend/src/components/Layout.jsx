@@ -219,7 +219,7 @@ function Layout({ children }) {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950">
+    <div className={`min-h-screen flex ${location.pathname === '/dashboard' ? 'bg-gray-900' : 'bg-gray-50 dark:bg-gray-950'}`}>
       {/* Sidebar */}
       <aside className="w-64 bg-gray-900 dark:bg-black text-white flex flex-col border-r border-gray-800 dark:border-gray-900">
         <div className="p-6 flex items-center justify-between">
@@ -316,8 +316,14 @@ function Layout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-white dark:bg-gray-950">
-        <div className="max-w-7xl mx-auto px-8 py-8">{children}</div>
+      <main className={`flex-1 ${location.pathname === '/dashboard' ? 'overflow-hidden bg-gray-900' : 'overflow-y-auto bg-white dark:bg-gray-950'}`}>
+        {location.pathname === '/dashboard' ? (
+          // Dashboard gets full edge-to-edge layout with no overflow
+          children
+        ) : (
+          // Other pages get standard contained layout
+          <div className="max-w-7xl mx-auto px-8 py-8">{children}</div>
+        )}
       </main>
     </div>
   );

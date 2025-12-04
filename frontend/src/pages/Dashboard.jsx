@@ -1,30 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-  Card,
-  Title,
-  Text,
-  Metric,
-  Flex,
-  Grid,
-  Col,
-  Badge,
-  Table,
-  TableHead,
-  TableRow,
-  TableHeaderCell,
-  TableBody,
-  TableCell,
-  ProgressBar,
-  List,
-  ListItem,
-} from '@tremor/react';
 import api from '../api/client';
 
+// ============================================================================
+// PROXMOX-STYLE DASHBOARD
+// Three-column layout: Resource Tree | Context Menu | Content Panel
+// ============================================================================
+
 function Dashboard() {
-  const [runningServers, setRunningServers] = useState([]);
+  // State Management
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [selectedServer, setSelectedServer] = useState(null);
+  const [runningServers, setRunningServers] = useState([]);
+  const [selectedItem, setSelectedItem] = useState({ type: 'datacenter', id: null });
+  const [selectedView, setSelectedView] = useState('summary');
   const [monitoringData, setMonitoringData] = useState({
     players: [],
     session: null,
@@ -32,6 +19,7 @@ function Dashboard() {
   });
   const isMountedRef = useRef(true);
 
+  // Fetch running servers periodically
   useEffect(() => {
     isMountedRef.current = true;
     fetchRunningServers();
@@ -42,13 +30,14 @@ function Dashboard() {
     };
   }, []);
 
+  // Fetch monitoring data for selected server
   useEffect(() => {
-    if (selectedServer) {
+    if (selectedItem.type === 'server' && selectedItem.id) {
       fetchMonitoringData();
       const interval = setInterval(fetchMonitoringData, 2000);
       return () => clearInterval(interval);
     }
-  }, [selectedServer]);
+  }, [selectedItem]);
 
   const fetchRunningServers = async () => {
     try {
@@ -56,26 +45,18 @@ function Dashboard() {
       if (isMountedRef.current) {
         const running = statuses.servers.filter((s) => s.running);
         setRunningServers(running);
-        if (running.length > 0 && !selectedServer) {
-          setSelectedServer(running[0].presetId);
-        }
-        if (selectedServer && !running.find((s) => s.presetId === selectedServer)) {
-          setSelectedServer(running.length > 0 ? running[0].presetId : null);
-        }
       }
     } catch (error) {
       console.error('Failed to fetch server statuses:', error);
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      if (isMountedRef.current) setLoading(false);
     }
   };
 
   const fetchMonitoringData = async () => {
-    if (!selectedServer) return;
+    if (selectedItem.type !== 'server' || !selectedItem.id) return;
     try {
-      const logsData = await api.getServerInstanceLogs(selectedServer, 50);
+      const logsData = await api.getServerInstanceLogs(selectedItem.id, 50);
       const playersData = await api.getPlayers();
       if (isMountedRef.current) {
         setMonitoringData({
@@ -89,334 +70,546 @@ function Dashboard() {
     }
   };
 
-  const handleStopAll = async () => {
-    setActionLoading(true);
+  const handleStopServer = async (presetId) => {
     try {
-      await api.stopAllServerInstances();
+      await api.stopServerInstance(presetId);
       await fetchRunningServers();
     } catch (error) {
-      console.error('Failed to stop all servers:', error);
-      alert('Failed to stop all servers: ' + (error.response?.data?.error?.message || error.message));
-    } finally {
-      setActionLoading(false);
+      console.error('Failed to stop server:', error);
     }
   };
 
-  const handleRestartAll = async () => {
-    if (runningServers.length === 0) {
-      alert('No servers are currently running');
-      return;
-    }
-    if (!confirm(`Restart all ${runningServers.length} running server instance(s)?`)) return;
-    setActionLoading(true);
+  const handleRestartServer = async (presetId) => {
     try {
-      for (const server of runningServers) {
-        await api.restartServerInstance(server.presetId);
-      }
+      await api.restartServerInstance(presetId);
       await fetchRunningServers();
-      alert(`Successfully restarted ${runningServers.length} server(s)`);
     } catch (error) {
-      console.error('Failed to restart all servers:', error);
-      alert('Failed to restart all servers: ' + (error.response?.data?.error?.message || error.message));
-    } finally {
-      setActionLoading(false);
+      console.error('Failed to restart server:', error);
     }
   };
 
-  const selectedServerInfo = runningServers.find((s) => s.presetId === selectedServer);
-  const totalPlayers = monitoringData.players.length;
-  const maxPlayers = monitoringData.session?.maxPlayers || 18;
+  // Get menu items based on selected item type
+  const getContextMenuItems = () => {
+    if (selectedItem.type === 'datacenter') {
+      return [
+        { id: 'summary', label: 'Summary', icon: '📊' },
+        { id: 'cluster', label: 'Cluster', icon: '🔗' },
+        { id: 'options', label: 'Options', icon: '⚙️' },
+        { id: 'storage', label: 'Storage', icon: '💾' },
+      ];
+    }
+    if (selectedItem.type === 'server') {
+      return [
+        { id: 'summary', label: 'Summary', icon: '📊' },
+        { id: 'console', label: 'Console', icon: '🖥️' },
+        { id: 'resources', label: 'Resources', icon: '📈' },
+        { id: 'network', label: 'Network', icon: '🌐' },
+        { id: 'drivers', label: 'Drivers', icon: '👥' },
+        { id: 'options', label: 'Options', icon: '⚙️' },
+        { id: 'taskhistory', label: 'Task History', icon: '📜' },
+      ];
+    }
+    return [];
+  };
+
+  const selectedServer = runningServers.find((s) => s.presetId === selectedItem.id);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="dashboard-layout flex items-center justify-center h-full bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="pb-24 space-y-6">
-      {/* Header */}
-      <div>
-        <Title>Dashboard</Title>
-        <Text>Monitor and manage your Assetto Corsa servers</Text>
+    <div className="dashboard-layout h-full flex flex-col bg-gray-900 text-gray-100 overflow-hidden">
+      {/* Top Header Bar - Proxmox style */}
+      <div className="h-10 bg-gray-800 border-b border-gray-700 flex items-center px-4 justify-between shrink-0">
+        <div className="flex items-center gap-4">
+          <span className="text-orange-500 font-bold text-lg">AC Server Manager</span>
+          <span className="text-gray-400 text-sm">Virtual Environment</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedItem.type === 'server' && selectedServer && (
+            <>
+              <button
+                onClick={() => handleRestartServer(selectedServer.presetId)}
+                className="px-3 py-1 bg-yellow-600 hover:bg-yellow-500 text-white text-xs rounded transition-colors"
+              >
+                Restart
+              </button>
+              <button
+                onClick={() => handleStopServer(selectedServer.presetId)}
+                className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-xs rounded transition-colors"
+              >
+                Shutdown
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* KPI Cards */}
-      <Grid numItemsSm={2} numItemsLg={4} className="gap-6">
-        <Card decoration="top" decorationColor="emerald">
-          <Flex justifyContent="between" alignItems="center">
-            <div>
-              <Text>Running Servers</Text>
-              <Metric>{runningServers.length}</Metric>
-            </div>
-            <Badge color={runningServers.length > 0 ? 'emerald' : 'gray'} size="xl">
-              {runningServers.length > 0 ? 'Online' : 'Offline'}
-            </Badge>
-          </Flex>
-        </Card>
-
-        <Card decoration="top" decorationColor="blue">
-          <Flex justifyContent="between" alignItems="center">
-            <div>
-              <Text>Active Drivers</Text>
-              <Metric>{totalPlayers}</Metric>
-            </div>
-            <Badge color={totalPlayers > 0 ? 'blue' : 'gray'} size="xl">
-              {totalPlayers > 0 ? 'Connected' : 'Empty'}
-            </Badge>
-          </Flex>
-        </Card>
-
-        <Card decoration="top" decorationColor="amber">
-          <div>
-            <Text>Server Capacity</Text>
-            <Metric>{totalPlayers}/{maxPlayers}</Metric>
+      {/* Main Three-Column Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* LEFT COLUMN - Resource Tree */}
+        <div className="w-52 bg-gray-850 border-r border-gray-700 flex flex-col shrink-0" style={{ backgroundColor: '#1e2328' }}>
+          <div className="p-2 border-b border-gray-700 bg-gray-800">
+            <span className="text-xs text-gray-400 font-medium">Server Pool</span>
           </div>
-          <ProgressBar value={(totalPlayers / maxPlayers) * 100} color="amber" className="mt-3" />
-        </Card>
-
-        <Card decoration="top" decorationColor="violet">
-          <Flex justifyContent="between" alignItems="center">
-            <div>
-              <Text>Session</Text>
-              <Metric className="text-2xl">{monitoringData.session?.type || 'None'}</Metric>
+          <div className="flex-1 overflow-y-auto">
+            {/* Datacenter Node */}
+            <div
+              onClick={() => {
+                setSelectedItem({ type: 'datacenter', id: null });
+                setSelectedView('summary');
+              }}
+              className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${
+                selectedItem.type === 'datacenter'
+                  ? 'bg-blue-600/30 border-l-2 border-blue-500'
+                  : 'hover:bg-gray-700/50 border-l-2 border-transparent'
+              }`}
+            >
+              <span className="text-lg">🖧</span>
+              <span className="text-sm font-medium">Datacenter</span>
             </div>
-            {monitoringData.session?.timeRemaining && (
-              <Text>{monitoringData.session.timeRemaining}s left</Text>
-            )}
-          </Flex>
-        </Card>
-      </Grid>
 
-      {/* Main Content Grid */}
-      <Grid numItemsLg={3} className="gap-6">
-        {/* Server Selection - Left Column */}
-        <Col numColSpanLg={1}>
-          <Card className="h-full">
-            <Title>Server Instances</Title>
-            {runningServers.length === 0 ? (
-              <div className="py-8 text-center">
-                <div className="text-4xl mb-3">🖥️</div>
-                <Text>No servers running</Text>
-                <Text className="text-sm text-gray-500">Start a server from the Config Editor</Text>
-              </div>
-            ) : (
-              <List className="mt-4">
-                {runningServers.map((server) => (
-                  <ListItem key={server.presetId}>
-                    <button
-                      onClick={() => setSelectedServer(server.presetId)}
-                      className={`w-full text-left p-3 rounded-lg transition-all ${
-                        selectedServer === server.presetId
-                          ? 'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
-                    >
-                      <Flex justifyContent="between" alignItems="center">
-                        <div>
-                          <Text className="font-semibold">{server.name || 'Unknown Server'}</Text>
-                          <Text className="text-xs">Port: {server.port || 'N/A'}</Text>
-                        </div>
-                        <Badge color="emerald" size="sm">
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                            Live
-                          </span>
-                        </Badge>
-                      </Flex>
-                    </button>
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </Card>
-        </Col>
-
-        {/* Active Drivers - Center/Right */}
-        <Col numColSpanLg={2}>
-          <Card className="h-full">
-            <Flex justifyContent="between" alignItems="center">
-              <div>
-                <Title>Active Drivers</Title>
-                <Text>{selectedServerInfo?.name || 'Select a server'}</Text>
-              </div>
-              {totalPlayers > 0 && (
-                <Badge color="blue">{totalPlayers} connected</Badge>
+            {/* Server Instances */}
+            <div className="ml-4">
+              {runningServers.length === 0 ? (
+                <div className="px-3 py-4 text-gray-500 text-xs text-center">
+                  No servers running
+                </div>
+              ) : (
+                runningServers.map((server, index) => (
+                  <div
+                    key={server.presetId}
+                    onClick={() => {
+                      setSelectedItem({ type: 'server', id: server.presetId });
+                      setSelectedView('summary');
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${
+                      selectedItem.type === 'server' && selectedItem.id === server.presetId
+                        ? 'bg-blue-600/30 border-l-2 border-blue-500'
+                        : 'hover:bg-gray-700/50 border-l-2 border-transparent'
+                    }`}
+                  >
+                    <span className="text-lg">🖥️</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">
+                        {server.name || `Server ${index + 1}`}
+                      </div>
+                      <div className="text-xs text-gray-400 flex items-center gap-1">
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                        running
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
-            </Flex>
+            </div>
+          </div>
+        </div>
 
-            {!selectedServer ? (
-              <div className="py-12 text-center">
-                <div className="text-5xl mb-4">👥</div>
-                <Text>Select a running server to view drivers</Text>
+        {/* MIDDLE COLUMN - Context Menu */}
+        <div className="w-40 bg-gray-800 border-r border-gray-700 flex flex-col shrink-0">
+          <div className="p-2 border-b border-gray-700 bg-gray-750" style={{ backgroundColor: '#252a30' }}>
+            <span className="text-xs text-gray-300 font-medium">
+              {selectedItem.type === 'datacenter' ? 'Datacenter' : selectedServer?.name || 'Server'}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {getContextMenuItems().map((item) => (
+              <div
+                key={item.id}
+                onClick={() => setSelectedView(item.id)}
+                className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors text-sm ${
+                  selectedView === item.id
+                    ? 'bg-blue-600/40 text-white'
+                    : 'hover:bg-gray-700/50 text-gray-300'
+                }`}
+              >
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
               </div>
-            ) : monitoringData.players.length === 0 ? (
-              <div className="py-12 text-center">
-                <div className="text-5xl mb-4">🏎️</div>
-                <Text className="font-medium">No Active Drivers</Text>
-                <Text className="text-sm text-gray-500">Players will appear here when they connect</Text>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN - Content Panel */}
+        <div className="flex-1 bg-gray-850 overflow-hidden flex flex-col" style={{ backgroundColor: '#1a1e22' }}>
+          <ContentPanel
+            selectedItem={selectedItem}
+            selectedView={selectedView}
+            selectedServer={selectedServer}
+            runningServers={runningServers}
+            monitoringData={monitoringData}
+            onStopServer={handleStopServer}
+            onRestartServer={handleRestartServer}
+          />
+        </div>
+      </div>
+
+      {/* Bottom Status Bar */}
+      <div className="h-6 bg-gray-800 border-t border-gray-700 flex items-center px-4 text-xs text-gray-400 shrink-0">
+        <span>{runningServers.length} server(s) running</span>
+        <span className="mx-2">|</span>
+        <span>{monitoringData.players.length} players connected</span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// CONTENT PANEL - Renders content based on selection
+// ============================================================================
+
+function ContentPanel({ selectedItem, selectedView, selectedServer, runningServers, monitoringData, onStopServer, onRestartServer }) {
+  // Datacenter Views
+  if (selectedItem.type === 'datacenter') {
+    return <DatacenterView view={selectedView} servers={runningServers} />;
+  }
+
+  // Server Views
+  if (selectedItem.type === 'server' && selectedServer) {
+    return (
+      <ServerView
+        view={selectedView}
+        server={selectedServer}
+        monitoringData={monitoringData}
+        onStop={() => onStopServer(selectedServer.presetId)}
+        onRestart={() => onRestartServer(selectedServer.presetId)}
+      />
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-center h-full text-gray-500">
+      Select an item from the left panel
+    </div>
+  );
+}
+
+// ============================================================================
+// DATACENTER VIEW
+// ============================================================================
+
+function DatacenterView({ view, servers }) {
+  if (view === 'summary') {
+    const totalPlayers = 0; // Would aggregate from all servers
+
+    return (
+      <div className="p-4 overflow-y-auto h-full">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <span className="text-3xl">🖧</span>
+          <div>
+            <h1 className="text-xl font-semibold text-white">Datacenter</h1>
+            <span className="text-sm text-gray-400">AC Server Manager</span>
+          </div>
+        </div>
+
+        {/* Status Row */}
+        <div className="flex gap-4 mb-6 text-sm">
+          <StatusPill label="Status" value="running" color="emerald" />
+          <StatusPill label="Servers" value={`${servers.length} online`} color="blue" />
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <StatCard label="Running Servers" value={servers.length} unit="" icon="🖥️" />
+          <StatCard label="Total Players" value={totalPlayers} unit="" icon="👥" />
+          <StatCard label="CPU Usage" value="--" unit="%" icon="📊" />
+          <StatCard label="Memory" value="--" unit="MB" icon="💾" />
+        </div>
+
+        {/* Server List */}
+        <div className="bg-gray-800 rounded-lg overflow-hidden">
+          <div className="px-4 py-2 bg-gray-750 border-b border-gray-700" style={{ backgroundColor: '#2d333b' }}>
+            <span className="text-sm font-medium text-gray-200">Server Instances</span>
+          </div>
+          <div className="divide-y divide-gray-700">
+            {servers.length === 0 ? (
+              <div className="px-4 py-8 text-center text-gray-500">
+                No servers running. Start a server from the Config Editor.
               </div>
             ) : (
-              <Table className="mt-4">
-                <TableHead>
-                  <TableRow>
-                    <TableHeaderCell>Driver</TableHeaderCell>
-                    <TableHeaderCell>Car</TableHeaderCell>
-                    <TableHeaderCell>Position</TableHeaderCell>
-                    <TableHeaderCell>Ping</TableHeaderCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {monitoringData.players.map((player, idx) => (
-                    <TableRow key={player.id || idx}>
-                      <TableCell>
-                        <Text className="font-medium">{player.name || 'Unknown'}</Text>
-                      </TableCell>
-                      <TableCell>
-                        <Text>{player.carName || player.carModel || player.car || 'N/A'}</Text>
-                      </TableCell>
-                      <TableCell>
-                        <Badge color={idx === 0 ? 'amber' : 'gray'}>P{player.position || idx + 1}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge color={player.ping < 50 ? 'emerald' : player.ping < 100 ? 'amber' : 'red'}>
-                          {player.ping || '--'}ms
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
-        </Col>
-      </Grid>
-
-      {/* Live Timing & Session Info */}
-      {selectedServer && (
-        <Grid numItemsLg={2} className="gap-6">
-          {/* Live Timing */}
-          <Card>
-            <Title>Live Timing</Title>
-            {monitoringData.players.length === 0 ? (
-              <div className="py-8 text-center">
-                <Text className="text-gray-500">No timing data available</Text>
-              </div>
-            ) : (
-              <Table className="mt-4">
-                <TableHead>
-                  <TableRow>
-                    <TableHeaderCell>Pos</TableHeaderCell>
-                    <TableHeaderCell>Driver</TableHeaderCell>
-                    <TableHeaderCell>Best Lap</TableHeaderCell>
-                    <TableHeaderCell>Last Lap</TableHeaderCell>
-                    <TableHeaderCell>Gap</TableHeaderCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {monitoringData.players.map((player, idx) => (
-                    <TableRow key={player.id || idx}>
-                      <TableCell>
-                        <Badge color={idx === 0 ? 'amber' : idx === 1 ? 'gray' : idx === 2 ? 'orange' : 'slate'}>
-                          {idx + 1}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Text className="font-medium">{player.name || 'Unknown'}</Text>
-                      </TableCell>
-                      <TableCell><Text>--:--:---</Text></TableCell>
-                      <TableCell><Text>--:--:---</Text></TableCell>
-                      <TableCell><Text>--:--</Text></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
-
-          {/* Session Details */}
-          <Card>
-            <Title>Session Details</Title>
-            {monitoringData.session ? (
-              <div className="mt-4 space-y-4">
-                <Flex justifyContent="between">
-                  <Text>Session Type</Text>
-                  <Badge color="blue">{monitoringData.session.type}</Badge>
-                </Flex>
-                <Flex justifyContent="between">
-                  <Text>Track</Text>
-                  <Text className="font-medium">{monitoringData.session.trackName || monitoringData.session.track || 'N/A'}</Text>
-                </Flex>
-                <Flex justifyContent="between">
-                  <Text>Players</Text>
-                  <Text className="font-medium">{monitoringData.session.currentPlayers || totalPlayers}/{monitoringData.session.maxPlayers || maxPlayers}</Text>
-                </Flex>
-                <Flex justifyContent="between">
-                  <Text>Time Remaining</Text>
-                  <Text className="font-medium">{monitoringData.session.timeRemaining || '--'}s</Text>
-                </Flex>
-                {monitoringData.session.laps && (
-                  <Flex justifyContent="between">
-                    <Text>Laps</Text>
-                    <Text className="font-medium">{monitoringData.session.laps}</Text>
-                  </Flex>
-                )}
-              </div>
-            ) : (
-              <div className="py-8 text-center">
-                <Text className="text-gray-500">No session data available</Text>
-              </div>
-            )}
-          </Card>
-        </Grid>
-      )}
-
-      {/* Server Logs */}
-      {selectedServer && (
-        <Card>
-          <Title>Server Logs</Title>
-          <Text>{selectedServerInfo?.name}</Text>
-          <div className="mt-4 bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm h-48 overflow-y-auto">
-            {monitoringData.logs.length === 0 ? (
-              <span className="text-gray-500">No logs available</span>
-            ) : (
-              monitoringData.logs.map((log, idx) => (
-                <div key={idx} className="leading-relaxed hover:bg-gray-800 px-1">
-                  {log}
+              servers.map((server) => (
+                <div key={server.presetId} className="px-4 py-3 flex items-center justify-between hover:bg-gray-750/50">
+                  <div className="flex items-center gap-3">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    <div>
+                      <div className="text-sm font-medium text-white">{server.name || 'Unknown'}</div>
+                      <div className="text-xs text-gray-400">Port: {server.port || 'N/A'}</div>
+                    </div>
+                  </div>
+                  <span className="text-xs text-emerald-400">running</span>
                 </div>
               ))
             )}
           </div>
-        </Card>
-      )}
+        </div>
+      </div>
+    );
+  }
 
-      {/* Fixed Bottom Controls */}
-      <div className="fixed bottom-0 left-64 right-0 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-700 shadow-lg z-10">
-        <div className="max-w-7xl mx-auto px-8 py-4">
-          <div className="flex gap-3 justify-end">
+  // Placeholder views
+  return (
+    <div className="p-4">
+      <h2 className="text-lg font-semibold text-white mb-4 capitalize">{view}</h2>
+      <div className="bg-gray-800 rounded-lg p-8 text-center text-gray-500">
+        {view} view coming soon
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// SERVER VIEW
+// ============================================================================
+
+function ServerView({ view, server, monitoringData, onStop, onRestart }) {
+  if (view === 'summary') {
+    const session = monitoringData.session || {};
+    const players = monitoringData.players || [];
+
+    return (
+      <div className="p-4 overflow-y-auto h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🖥️</span>
+            <div>
+              <h1 className="text-xl font-semibold text-white">{server.name || 'Server'}</h1>
+              <span className="text-sm text-gray-400">on AC Server Manager</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleRestartAll}
-              disabled={actionLoading || runningServers.length === 0}
-              className="px-6 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center gap-2"
+              onClick={onRestart}
+              className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-sm rounded transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Restart All
+              ↻ Restart
             </button>
             <button
-              onClick={handleStopAll}
-              disabled={actionLoading || runningServers.length === 0}
-              className="px-6 py-2 bg-red-600 dark:bg-red-700 text-white rounded hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center gap-2"
+              onClick={onStop}
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-sm rounded transition-colors"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="6" width="12" height="12" rx="1" />
-              </svg>
-              Stop All
+              ⏹ Shutdown
             </button>
           </div>
+        </div>
+
+        {/* Status Row */}
+        <div className="flex flex-wrap gap-4 mb-6 text-sm">
+          <StatusPill label="Status" value="running" color="emerald" />
+          <StatusPill label="Players" value={`${players.length}/${session.maxPlayers || 18}`} color="blue" />
+          <StatusPill label="Session" value={session.type || 'None'} color="violet" />
+          <StatusPill label="Port" value={server.port || 'N/A'} color="gray" />
+        </div>
+
+        {/* Resource Graphs Placeholder */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <ResourceGraph title="CPU Usage" value={0} max={100} unit="%" color="yellow" />
+          <ResourceGraph title="Memory Usage" value={0} max={512} unit="MB" color="cyan" />
+        </div>
+
+        {/* Notes Section */}
+        <div className="bg-gray-800 rounded-lg overflow-hidden">
+          <div className="px-4 py-2 bg-gray-750 border-b border-gray-700 flex justify-between items-center" style={{ backgroundColor: '#2d333b' }}>
+            <span className="text-sm font-medium text-gray-200">Session Info</span>
+          </div>
+          <div className="p-4 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-400">Track</span>
+              <span className="text-white">{session.trackName || session.track || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Session Type</span>
+              <span className="text-white">{session.type || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Time Remaining</span>
+              <span className="text-white">{session.timeRemaining || '--'}s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'console') {
+    return (
+      <div className="p-4 h-full flex flex-col">
+        <h2 className="text-lg font-semibold text-white mb-4">Console</h2>
+        <div className="flex-1 bg-black rounded-lg p-4 font-mono text-sm text-green-400 overflow-y-auto">
+          {monitoringData.logs.length === 0 ? (
+            <span className="text-gray-500">No logs available</span>
+          ) : (
+            monitoringData.logs.map((log, idx) => (
+              <div key={idx} className="leading-relaxed hover:bg-gray-900 px-1">
+                {log}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'drivers') {
+    const players = monitoringData.players || [];
+    return (
+      <div className="p-4 overflow-y-auto h-full">
+        <h2 className="text-lg font-semibold text-white mb-4">Active Drivers ({players.length})</h2>
+        {players.length === 0 ? (
+          <div className="bg-gray-800 rounded-lg p-8 text-center text-gray-500">
+            <div className="text-4xl mb-3">🏎️</div>
+            No drivers connected
+          </div>
+        ) : (
+          <div className="bg-gray-800 rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-750" style={{ backgroundColor: '#2d333b' }}>
+                <tr className="text-left text-xs text-gray-400">
+                  <th className="px-4 py-2">Pos</th>
+                  <th className="px-4 py-2">Driver</th>
+                  <th className="px-4 py-2">Car</th>
+                  <th className="px-4 py-2">Best Lap</th>
+                  <th className="px-4 py-2">Ping</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {players.map((player, idx) => (
+                  <tr key={player.id || idx} className="hover:bg-gray-750/50">
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold ${
+                        idx === 0 ? 'bg-yellow-500 text-black' :
+                        idx === 1 ? 'bg-gray-400 text-black' :
+                        idx === 2 ? 'bg-orange-600 text-white' :
+                        'bg-gray-700 text-gray-300'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-sm text-white">{player.name || 'Unknown'}</td>
+                    <td className="px-4 py-2 text-sm text-gray-300">{player.carName || player.car || 'N/A'}</td>
+                    <td className="px-4 py-2 text-sm text-gray-300">--:--:---</td>
+                    <td className="px-4 py-2">
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        player.ping < 50 ? 'bg-emerald-500/20 text-emerald-400' :
+                        player.ping < 100 ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        {player.ping || '--'}ms
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (view === 'resources') {
+    return (
+      <div className="p-4 overflow-y-auto h-full">
+        <h2 className="text-lg font-semibold text-white mb-4">Resources</h2>
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <StatCard label="CPU Cores" value="1" unit="" icon="🔲" />
+          <StatCard label="Memory" value="512" unit="MB" icon="💾" />
+          <StatCard label="Disk" value="--" unit="GB" icon="💿" />
+          <StatCard label="Network" value="--" unit="Mbps" icon="🌐" />
+        </div>
+        <ResourceGraph title="CPU Usage" value={0} max={100} unit="%" color="yellow" height="h-32" />
+        <div className="mt-4">
+          <ResourceGraph title="Memory Usage" value={0} max={512} unit="MB" color="cyan" height="h-32" />
+        </div>
+      </div>
+    );
+  }
+
+  // Placeholder for other views
+  return (
+    <div className="p-4">
+      <h2 className="text-lg font-semibold text-white mb-4 capitalize">{view}</h2>
+      <div className="bg-gray-800 rounded-lg p-8 text-center text-gray-500">
+        {view} view coming soon
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// HELPER COMPONENTS
+// ============================================================================
+
+function StatusPill({ label, value, color }) {
+  const colors = {
+    emerald: 'text-emerald-400',
+    blue: 'text-blue-400',
+    violet: 'text-violet-400',
+    amber: 'text-amber-400',
+    red: 'text-red-400',
+    gray: 'text-gray-400',
+  };
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1 bg-gray-800 rounded">
+      <span className="text-gray-400 text-xs">{label}:</span>
+      <span className={`text-xs font-medium ${colors[color] || colors.gray}`}>{value}</span>
+    </div>
+  );
+}
+
+function StatCard({ label, value, unit, icon }) {
+  return (
+    <div className="bg-gray-800 rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <span>{icon}</span>
+        <span className="text-xs text-gray-400">{label}</span>
+      </div>
+      <div className="text-2xl font-bold text-white">
+        {value}<span className="text-sm text-gray-400 ml-1">{unit}</span>
+      </div>
+    </div>
+  );
+}
+
+function ResourceGraph({ title, value, max, unit, color, height = 'h-24' }) {
+  const percentage = max > 0 ? (value / max) * 100 : 0;
+  const colors = {
+    yellow: 'bg-yellow-500',
+    cyan: 'bg-cyan-500',
+    emerald: 'bg-emerald-500',
+    red: 'bg-red-500',
+  };
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-4">
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-sm text-gray-300">{title}</span>
+        <span className="text-sm text-white font-medium">{value}{unit}</span>
+      </div>
+      <div className={`${height} bg-gray-900 rounded relative overflow-hidden`}>
+        {/* Graph placeholder - shows a simple bar for now */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-end justify-around h-full px-1 py-1">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className={`w-full mx-px ${colors[color] || colors.yellow} opacity-70`}
+              style={{ height: `${Math.random() * 60 + 10}%` }}
+            />
+          ))}
+        </div>
+        {/* Value overlay */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-2xl font-bold text-white drop-shadow-lg">
+            {percentage.toFixed(1)}%
+          </span>
         </div>
       </div>
     </div>

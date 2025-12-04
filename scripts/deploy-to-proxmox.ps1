@@ -40,8 +40,9 @@ if (-not $SkipBackup) {
     Write-Host "[2/6] Skipping backup" -ForegroundColor Gray
 }
 
-# Step 3: Clean
+# Step 3: Clean (stop server first to prevent 404s)
 Write-Host "[3/6] Cleaning old files..." -ForegroundColor Yellow
+ssh root@$HostIP "pct exec $ContainerId -- pm2 stop ac-server-manager 2>/dev/null; exit 0" | Out-Null
 ssh root@$HostIP "pct exec $ContainerId -- rm -rf /opt/ac-server-manager/frontend/dist 2>/dev/null; exit 0" | Out-Null
 Write-Host "   Cleaned" -ForegroundColor Green
 
