@@ -327,7 +327,7 @@ main (production releases only - tagged versions)
 
 ### Version Management
 
-- Current version: **0.20.2**
+- Current version: **0.21.0**
 - Update in 3 places:
   1. `backend/package.json`
   2. `frontend/package.json`

@@ -153,7 +153,10 @@ function Dashboard() {
       {/* Main Three-Column Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT COLUMN - Resource Tree */}
-        <div className="w-52 bg-gray-850 border-r border-gray-700 flex flex-col shrink-0" style={{ backgroundColor: '#1e2328' }}>
+        <div
+          className="w-52 bg-gray-850 border-r border-gray-700 flex flex-col shrink-0"
+          style={{ backgroundColor: '#1e2328' }}
+        >
           <div className="p-2 border-b border-gray-700 bg-gray-800">
             <span className="text-xs text-gray-400 font-medium">Server Pool</span>
           </div>
@@ -213,7 +216,10 @@ function Dashboard() {
 
         {/* MIDDLE COLUMN - Context Menu */}
         <div className="w-40 bg-gray-800 border-r border-gray-700 flex flex-col shrink-0">
-          <div className="p-2 border-b border-gray-700 bg-gray-750" style={{ backgroundColor: '#252a30' }}>
+          <div
+            className="p-2 border-b border-gray-700 bg-gray-750"
+            style={{ backgroundColor: '#252a30' }}
+          >
             <span className="text-xs text-gray-300 font-medium">
               {selectedItem.type === 'datacenter' ? 'Datacenter' : selectedServer?.name || 'Server'}
             </span>
@@ -237,7 +243,10 @@ function Dashboard() {
         </div>
 
         {/* RIGHT COLUMN - Content Panel */}
-        <div className="flex-1 bg-gray-850 overflow-hidden flex flex-col" style={{ backgroundColor: '#1a1e22' }}>
+        <div
+          className="flex-1 bg-gray-850 overflow-hidden flex flex-col"
+          style={{ backgroundColor: '#1a1e22' }}
+        >
           <ContentPanel
             selectedItem={selectedItem}
             selectedView={selectedView}
@@ -264,7 +273,15 @@ function Dashboard() {
 // CONTENT PANEL - Renders content based on selection
 // ============================================================================
 
-function ContentPanel({ selectedItem, selectedView, selectedServer, runningServers, monitoringData, onStopServer, onRestartServer }) {
+function ContentPanel({
+  selectedItem,
+  selectedView,
+  selectedServer,
+  runningServers,
+  monitoringData,
+  onStopServer,
+  onRestartServer,
+}) {
   // Datacenter Views
   if (selectedItem.type === 'datacenter') {
     return <DatacenterView view={selectedView} servers={runningServers} />;
@@ -325,7 +342,10 @@ function DatacenterView({ view, servers }) {
 
         {/* Server List */}
         <div className="bg-gray-800 rounded-lg overflow-hidden">
-          <div className="px-4 py-2 bg-gray-750 border-b border-gray-700" style={{ backgroundColor: '#2d333b' }}>
+          <div
+            className="px-4 py-2 bg-gray-750 border-b border-gray-700"
+            style={{ backgroundColor: '#2d333b' }}
+          >
             <span className="text-sm font-medium text-gray-200">Server Instances</span>
           </div>
           <div className="divide-y divide-gray-700">
@@ -335,11 +355,16 @@ function DatacenterView({ view, servers }) {
               </div>
             ) : (
               servers.map((server) => (
-                <div key={server.presetId} className="px-4 py-3 flex items-center justify-between hover:bg-gray-750/50">
+                <div
+                  key={server.presetId}
+                  className="px-4 py-3 flex items-center justify-between hover:bg-gray-750/50"
+                >
                   <div className="flex items-center gap-3">
                     <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
                     <div>
-                      <div className="text-sm font-medium text-white">{server.name || 'Unknown'}</div>
+                      <div className="text-sm font-medium text-white">
+                        {server.name || 'Unknown'}
+                      </div>
                       <div className="text-xs text-gray-400">Port: {server.port || 'N/A'}</div>
                     </div>
                   </div>
@@ -403,7 +428,11 @@ function ServerView({ view, server, monitoringData, onStop, onRestart }) {
         {/* Status Row */}
         <div className="flex flex-wrap gap-4 mb-6 text-sm">
           <StatusPill label="Status" value="running" color="emerald" />
-          <StatusPill label="Players" value={`${players.length}/${session.maxPlayers || 18}`} color="blue" />
+          <StatusPill
+            label="Players"
+            value={`${players.length}/${session.maxPlayers || 18}`}
+            color="blue"
+          />
           <StatusPill label="Session" value={session.type || 'None'} color="violet" />
           <StatusPill label="Port" value={server.port || 'N/A'} color="gray" />
         </div>
@@ -416,7 +445,10 @@ function ServerView({ view, server, monitoringData, onStop, onRestart }) {
 
         {/* Notes Section */}
         <div className="bg-gray-800 rounded-lg overflow-hidden">
-          <div className="px-4 py-2 bg-gray-750 border-b border-gray-700 flex justify-between items-center" style={{ backgroundColor: '#2d333b' }}>
+          <div
+            className="px-4 py-2 bg-gray-750 border-b border-gray-700 flex justify-between items-center"
+            style={{ backgroundColor: '#2d333b' }}
+          >
             <span className="text-sm font-medium text-gray-200">Session Info</span>
           </div>
           <div className="p-4 space-y-2 text-sm">
@@ -483,24 +515,35 @@ function ServerView({ view, server, monitoringData, onStop, onRestart }) {
                 {players.map((player, idx) => (
                   <tr key={player.id || idx} className="hover:bg-gray-750/50">
                     <td className="px-4 py-2">
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold ${
-                        idx === 0 ? 'bg-yellow-500 text-black' :
-                        idx === 1 ? 'bg-gray-400 text-black' :
-                        idx === 2 ? 'bg-orange-600 text-white' :
-                        'bg-gray-700 text-gray-300'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold ${
+                          idx === 0
+                            ? 'bg-yellow-500 text-black'
+                            : idx === 1
+                            ? 'bg-gray-400 text-black'
+                            : idx === 2
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-gray-700 text-gray-300'
+                        }`}
+                      >
                         {idx + 1}
                       </span>
                     </td>
                     <td className="px-4 py-2 text-sm text-white">{player.name || 'Unknown'}</td>
-                    <td className="px-4 py-2 text-sm text-gray-300">{player.carName || player.car || 'N/A'}</td>
+                    <td className="px-4 py-2 text-sm text-gray-300">
+                      {player.carName || player.car || 'N/A'}
+                    </td>
                     <td className="px-4 py-2 text-sm text-gray-300">--:--:---</td>
                     <td className="px-4 py-2">
-                      <span className={`text-xs px-2 py-0.5 rounded ${
-                        player.ping < 50 ? 'bg-emerald-500/20 text-emerald-400' :
-                        player.ping < 100 ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-red-500/20 text-red-400'
-                      }`}>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          player.ping < 50
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : player.ping < 100
+                            ? 'bg-yellow-500/20 text-yellow-400'
+                            : 'bg-red-500/20 text-red-400'
+                        }`}
+                      >
                         {player.ping || '--'}ms
                       </span>
                     </td>
@@ -524,9 +567,23 @@ function ServerView({ view, server, monitoringData, onStop, onRestart }) {
           <StatCard label="Disk" value="--" unit="GB" icon="💿" />
           <StatCard label="Network" value="--" unit="Mbps" icon="🌐" />
         </div>
-        <ResourceGraph title="CPU Usage" value={0} max={100} unit="%" color="yellow" height="h-32" />
+        <ResourceGraph
+          title="CPU Usage"
+          value={0}
+          max={100}
+          unit="%"
+          color="yellow"
+          height="h-32"
+        />
         <div className="mt-4">
-          <ResourceGraph title="Memory Usage" value={0} max={512} unit="MB" color="cyan" height="h-32" />
+          <ResourceGraph
+            title="Memory Usage"
+            value={0}
+            max={512}
+            unit="MB"
+            color="cyan"
+            height="h-32"
+          />
         </div>
       </div>
     );
@@ -573,7 +630,8 @@ function StatCard({ label, value, unit, icon }) {
         <span className="text-xs text-gray-400">{label}</span>
       </div>
       <div className="text-2xl font-bold text-white">
-        {value}<span className="text-sm text-gray-400 ml-1">{unit}</span>
+        {value}
+        <span className="text-sm text-gray-400 ml-1">{unit}</span>
       </div>
     </div>
   );
@@ -592,7 +650,10 @@ function ResourceGraph({ title, value, max, unit, color, height = 'h-24' }) {
     <div className="bg-gray-800 rounded-lg p-4">
       <div className="flex justify-between items-center mb-3">
         <span className="text-sm text-gray-300">{title}</span>
-        <span className="text-sm text-white font-medium">{value}{unit}</span>
+        <span className="text-sm text-white font-medium">
+          {value}
+          {unit}
+        </span>
       </div>
       <div className={`${height} bg-gray-900 rounded relative overflow-hidden`}>
         {/* Graph placeholder - shows a simple bar for now */}
