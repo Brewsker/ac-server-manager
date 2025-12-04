@@ -84,20 +84,22 @@ powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "
         Write-Host \"  \$currentVersion -> \$newVersion (\$bumpLabel)\" -ForegroundColor Green
         Write-Host ''
         
-        # Update backend package.json
+        # Update backend package.json (UTF8 without BOM)
         \$backendPkg.version = \$newVersion
-        \$backendPkg | ConvertTo-Json -Depth 100 | Set-Content \$backendPath -Encoding UTF8
+        \$json = \$backendPkg | ConvertTo-Json -Depth 100
+        [System.IO.File]::WriteAllText(\$backendPath, \$json, [System.Text.UTF8Encoding]::new(\$false))
         
-        # Update frontend package.json
+        # Update frontend package.json (UTF8 without BOM)
         \$frontendPkg = Get-Content \$frontendPath -Raw | ConvertFrom-Json
         \$frontendPkg.version = \$newVersion
-        \$frontendPkg | ConvertTo-Json -Depth 100 | Set-Content \$frontendPath -Encoding UTF8
+        \$json = \$frontendPkg | ConvertTo-Json -Depth 100
+        [System.IO.File]::WriteAllText(\$frontendPath, \$json, [System.Text.UTF8Encoding]::new(\$false))
         
         # Update .cursorrules (find and replace version pattern)
         if (Test-Path \$cursorPath) {
             \$cursorContent = Get-Content \$cursorPath -Raw
             \$cursorContent = \$cursorContent -replace 'Current version:\s*\*\*[\d\.]+\*\*', \"Current version: **\$newVersion**\"
-            Set-Content \$cursorPath \$cursorContent -NoNewline -Encoding UTF8
+            [System.IO.File]::WriteAllText(\$cursorPath, \$cursorContent, [System.Text.UTF8Encoding]::new(\$false))
         }
         
         # Stage the updated version files (amend them into the current commit)
