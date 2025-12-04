@@ -229,6 +229,31 @@ install_system_packages() {
     fi
 }
 
+setup_ssh_trust() {
+    print_step "Configuring SSH trust for git-cache server"
+    
+    # Ensure .ssh directory exists
+    mkdir -p /root/.ssh
+    chmod 700 /root/.ssh
+    
+    # Add git-cache server host key (192.168.1.70)
+    if command -v ssh-keyscan &> /dev/null; then
+        # Remove old key if exists
+        ssh-keygen -R 192.168.1.70 > /dev/null 2>&1 || true
+        
+        # Add new host key
+        ssh-keyscan -H 192.168.1.70 >> /root/.ssh/known_hosts 2>/dev/null || true
+        
+        if [ $? -eq 0 ]; then
+            print_success "Git-cache SSH host key added"
+        else
+            print_warning "Could not add git-cache host key (server may not be reachable)"
+        fi
+    else
+        print_warning "ssh-keyscan not available, skipping SSH trust setup"
+    fi
+}
+
 install_nodejs() {
     print_step "Installing Node.js $NODE_VERSION"
     
@@ -655,6 +680,7 @@ main() {
     
     # System setup
     install_system_packages
+    setup_ssh_trust
     
     if [ "$USE_DOCKER" = "yes" ]; then
         install_docker
