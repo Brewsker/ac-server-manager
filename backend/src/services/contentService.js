@@ -177,11 +177,89 @@ export async function getCars() {
       const stat = await fs.stat(carPath);
 
       if (stat.isDirectory()) {
-        // TODO: Read ui/ui_car.json for car metadata
+        // Get skins for this car with display names from ui_skin.json
+        const skinsPath = path.join(carPath, 'skins');
+        let skins = [];
+        try {
+          const skinFolders = await fs.readdir(skinsPath);
+          // Filter to only directories (actual skin folders)
+          for (const skinFolder of skinFolders) {
+            const skinStat = await fs.stat(path.join(skinsPath, skinFolder));
+            if (skinStat.isDirectory()) {
+              // Try to read ui_skin.json for display name
+              let displayName = skinFolder.replace(/_/g, ' ');
+              try {
+                const uiSkinPath = path.join(skinsPath, skinFolder, 'ui_skin.json');
+                const uiSkinData = await fs.readFile(uiSkinPath, 'utf8');
+                const uiSkin = JSON.parse(uiSkinData);
+                if (uiSkin.skinname && uiSkin.skinname.trim()) {
+                  displayName = uiSkin.skinname;
+                }
+              } catch {
+                // No ui_skin.json or invalid - use folder name
+              }
+              skins.push({ id: skinFolder, name: displayName });
+            }
+          }
+        } catch (err) {
+          // No skins folder or error reading it - use default
+          skins = [{ id: 'default', name: 'Default' }];
+        }
+
+        // Read ui/ui_car.json for proper car name, brand, etc.
+        let carName = folder.replace(/_/g, ' ');
+        let brand = '';
+        let author = 'Kunos';
+        try {
+          const uiCarPath = path.join(carPath, 'ui', 'ui_car.json');
+          // Read as buffer first, then convert to handle various encodings
+          const buffer = await fs.readFile(uiCarPath);
+          // Check for UTF-16 LE BOM (ff fe) or UTF-16 BE BOM (fe ff)
+          let uiCarData;
+          if (buffer[0] === 0xff && buffer[1] === 0xfe) {
+            // UTF-16 LE
+            uiCarData = buffer.toString('utf16le').slice(1); // Skip BOM
+          } else if (buffer[0] === 0xfe && buffer[1] === 0xff) {
+            // UTF-16 BE - need to create new buffer for swap16
+            const swapped = Buffer.from(buffer);
+            swapped.swap16();
+            uiCarData = swapped.toString('utf16le').slice(1);
+          } else {
+            // UTF-8 (possibly with BOM)
+            uiCarData = buffer.toString('utf8').replace(/^\uFEFF/, '');
+          }
+          // Fix control characters inside JSON string values
+          // This regex finds string values and escapes control chars within them
+          uiCarData = uiCarData.replace(/"([^"\\]|\\.)*"/g, (match) => {
+            return match
+              .replace(/\r\n/g, '\\n') // CRLF -> escaped newline
+              .replace(/\r/g, '\\n') // CR -> escaped newline
+              .replace(/\n/g, '\\n') // LF -> escaped newline
+              .replace(/\t/g, '\\t') // Tab -> escaped tab
+              .replace(/[\x00-\x1F\x7F]/g, ' '); // Other control chars -> space
+          });
+          const uiCar = JSON.parse(uiCarData);
+          if (uiCar.name && uiCar.name.trim()) {
+            carName = uiCar.name;
+          }
+          if (uiCar.brand && uiCar.brand.trim()) {
+            brand = uiCar.brand;
+          }
+          if (uiCar.author && uiCar.author.trim()) {
+            author = uiCar.author;
+          }
+        } catch (uiErr) {
+          // No ui_car.json or invalid - use folder name
+          console.log(`[getCars] No ui_car.json for ${folder}: ${uiErr.message}`);
+        }
+
         cars.push({
           id: folder,
-          name: folder.replace(/_/g, ' '),
+          name: carName,
+          brand: brand,
+          author: author,
           path: carPath,
+          skins: skins.length > 0 ? skins : [{ id: 'default', name: 'Default' }],
         });
       }
     }

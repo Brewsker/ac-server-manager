@@ -240,6 +240,36 @@ router.get('/car-preview/:carId', (req, res) => {
   }
 });
 
+// Serve skin preview image (livery.png as color swatch preferred)
+router.get('/skin-preview/:carId/:skinId', (req, res) => {
+  const acContentPath = process.env.AC_CONTENT_PATH;
+  if (!acContentPath) {
+    return res.status(500).send('AC_CONTENT_PATH not configured');
+  }
+
+  const { carId, skinId } = req.params;
+  const skinPath = path.join(acContentPath, 'cars', carId, 'skins', skinId);
+
+  try {
+    // Prefer livery.png as it's a small color swatch (64x64)
+    const liveryPath = path.join(skinPath, 'livery.png');
+    if (fsSync.existsSync(liveryPath)) {
+      return res.sendFile(liveryPath);
+    }
+
+    // Fall back to preview.jpg
+    const previewPath = path.join(skinPath, 'preview.jpg');
+    if (fsSync.existsSync(previewPath)) {
+      return res.sendFile(previewPath);
+    }
+
+    // Return 204 No Content instead of 404 so UI doesn't show broken image
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).send('Error reading skin preview');
+  }
+});
+
 // Serve country flag image
 router.get('/country-flag/:countryCode', (req, res) => {
   const acContentPath = process.env.AC_CONTENT_PATH;

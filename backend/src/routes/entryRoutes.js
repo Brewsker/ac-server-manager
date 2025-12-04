@@ -6,8 +6,19 @@ const router = express.Router();
 // Get all entries
 router.get('/', async (req, res, next) => {
   try {
-    const entries = await entryService.getEntries();
-    res.json(entries);
+    const result = await entryService.getEntries();
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Save all entries (bulk update)
+router.put('/', async (req, res, next) => {
+  try {
+    const { entries } = req.body;
+    const result = await entryService.saveEntries(entries);
+    res.json(result);
   } catch (error) {
     next(error);
   }

@@ -41,6 +41,7 @@ function ServerConfig() {
     showTrack: false,
     showCspOptions: false,
     showClone: false,
+    showRename: false,
     showDelete: false,
     showFolderBrowser: false,
     showCMImport: false,
@@ -248,8 +249,9 @@ function ServerConfig() {
       const [configData, presetsData] = await Promise.all([api.getConfig(), api.getPresets()]);
 
       // Try to fetch cars and tracks, but don't fail if AC server path is invalid
-      let tracksData = { tracks: [] };
-      let carsData = { cars: [] };
+      // Note: API returns arrays directly, not wrapped objects
+      let tracksData = [];
+      let carsData = [];
 
       try {
         tracksData = await api.getTracks();
@@ -316,13 +318,25 @@ function ServerConfig() {
         WEATHER_0: configToUse?.WEATHER_0 || {},
       };
 
+      // Get cars from SERVER.CARS field
       const carsInConfig = normalizedConfig?.SERVER?.CARS || '';
-      const selectedCars =
+      let selectedCars =
         typeof carsInConfig === 'string'
           ? carsInConfig.split(';').filter((c) => c.trim())
           : Array.isArray(carsInConfig)
           ? carsInConfig
           : [];
+
+      // Also extract unique car models from CAR_X entry sections
+      const entryCars = [];
+      for (let i = 0; i < 100; i++) {
+        const carSection = normalizedConfig[`CAR_${i}`];
+        if (carSection?.MODEL) {
+          entryCars.push(carSection.MODEL);
+        }
+      }
+      // Merge and deduplicate
+      selectedCars = [...new Set([...selectedCars, ...entryCars])];
 
       // Try to match current config name to a preset
       const currentPreset = presetsData.presets?.find(
@@ -331,8 +345,8 @@ function ServerConfig() {
 
       updateData({
         config: shouldShowEditor ? normalizedConfig : null,
-        tracks: tracksData.tracks || [],
-        cars: carsData.cars || [],
+        tracks: Array.isArray(tracksData) ? tracksData : [],
+        cars: Array.isArray(carsData) ? carsData : [],
         selectedCars: shouldShowEditor ? selectedCars : [],
         presets: presetsData.presets || [],
         currentPresetId: currentPreset?.id || null,
@@ -380,7 +394,8 @@ function ServerConfig() {
     if (!ui.presetName.trim()) return;
 
     try {
-      const updatedConfig = {
+      // Build the complete config to save
+      const configToSave = {
         ...data.config,
         SERVER: {
           ...data.config.SERVER,
@@ -388,8 +403,16 @@ function ServerConfig() {
           CARS: data.selectedCars.join(';'),
         },
       };
-      await api.updateConfig(updatedConfig);
-      await api.savePreset(ui.presetName);
+
+      // Debug: Log what we're saving
+      const carSections = Object.keys(configToSave).filter((k) => k.startsWith('CAR_'));
+      const weatherSections = Object.keys(configToSave).filter((k) => k.startsWith('WEATHER_'));
+      console.log('[Save] Config sections:', Object.keys(configToSave).length);
+      console.log('[Save] CAR sections:', carSections.length, carSections);
+      console.log('[Save] WEATHER sections:', weatherSections.length, weatherSections);
+
+      // Save preset with config in a single call
+      await api.savePreset(ui.presetName, configToSave);
       console.log('Configuration saved as preset:', ui.presetName);
 
       // Dispatch event to refresh preset list in sidebar
@@ -399,7 +422,7 @@ function ServerConfig() {
       updateUi({ presetName: '' });
 
       if (applyToServer) {
-        await api.updateConfig(updatedConfig);
+        await api.updateConfig(configToSave);
         await api.applyConfig();
         console.log('Configuration applied to server');
       }
@@ -442,6 +465,38 @@ function ServerConfig() {
       updateModals({ showClone: false });
     } catch (error) {
       console.error('Failed to clone preset:', error);
+    }
+  };
+
+  const handleRenamePreset = async () => {
+    if (!data.currentPresetId) return;
+
+    const currentPreset = data.presets.find((p) => p.id === data.currentPresetId);
+    const newName = prompt('Rename preset to:', currentPreset?.name || '');
+    if (!newName || newName === currentPreset?.name) return;
+
+    try {
+      await api.renamePreset(data.currentPresetId, newName);
+      console.log('Preset renamed:', newName);
+
+      // Update local state with new name
+      updateData({
+        config: {
+          ...data.config,
+          SERVER: { ...data.config.SERVER, NAME: newName },
+        },
+        presets: data.presets.map((p) =>
+          p.id === data.currentPresetId ? { ...p, name: newName } : p
+        ),
+      });
+
+      // Dispatch event to refresh sidebar
+      window.dispatchEvent(new CustomEvent('presetSaved'));
+
+      updateModals({ showRename: false });
+    } catch (error) {
+      console.error('Failed to rename preset:', error);
+      alert('Failed to rename preset');
     }
   };
 
@@ -520,6 +575,18 @@ function ServerConfig() {
         }, 0);
       }
 
+      return {
+        ...prev,
+        config: newConfig,
+      };
+    });
+  };
+
+  // Delete an entire config section (e.g., WEATHER_1)
+  const deleteConfigSection = (section) => {
+    setData((prev) => {
+      const newConfig = { ...prev.config };
+      delete newConfig[section];
       return {
         ...prev,
         config: newConfig,
@@ -631,13 +698,14 @@ function ServerConfig() {
 
   // New button handlers for multi-instance manager
   const handleSaveConfig = async () => {
-    if (!data.currentPresetId) {
+    const presetName = data.config?.SERVER?.NAME;
+    if (!presetName) {
       alert('Please save as a preset first');
       return;
     }
 
     try {
-      const updatedConfig = {
+      const configToSave = {
         ...data.config,
         SERVER: {
           ...data.config.SERVER,
@@ -645,10 +713,17 @@ function ServerConfig() {
         },
       };
 
-      // Just update the working config and apply to the preset files
-      await api.updateConfig(updatedConfig);
-      await api.applyConfig();
-      console.log('Configuration saved to preset');
+      // Debug logging
+      const carSections = Object.keys(configToSave).filter((k) => k.startsWith('CAR_'));
+      console.log('[handleSaveConfig] Saving with', carSections.length, 'CAR entries');
+
+      // Save to preset file (updates existing preset with same name)
+      await api.savePreset(presetName, configToSave);
+
+      // Dispatch event to refresh preset list in sidebar
+      window.dispatchEvent(new CustomEvent('presetSaved'));
+
+      console.log('Configuration saved to preset:', presetName);
     } catch (error) {
       console.error('Failed to save config:', error);
       alert('Failed to save configuration');
@@ -795,15 +870,14 @@ function ServerConfig() {
           {/* Server Name and Tab Navigation */}
           <div className="mb-6">
             <div className="flex flex-wrap items-end gap-4 border-b border-gray-200 dark:border-gray-700 pb-0">
-              {/* Server Name Field */}
+              {/* Server Name Display (read-only, use Rename button to change) */}
               <div className="flex-shrink-0 min-w-[250px]">
-                <input
-                  type="text"
-                  className="w-full text-lg font-semibold bg-transparent border-none outline-none focus:bg-white dark:focus:bg-gray-800 focus:border focus:border-blue-500 dark:focus:border-blue-400 rounded px-3 py-2 transition-all h-[42px]"
-                  placeholder="Server Name"
-                  value={data.config?.SERVER?.NAME || ''}
-                  onChange={(e) => updateConfigValue('SERVER', 'NAME', e.target.value)}
-                />
+                <div
+                  className="w-full text-lg font-semibold text-gray-900 dark:text-gray-100 px-3 py-2 h-[42px] flex items-center"
+                  title="Use the Rename button to change the server name"
+                >
+                  {data.config?.SERVER?.NAME || 'Unnamed Server'}
+                </div>
               </div>
 
               {/* Tab Navigation - wraps underneath when needed */}
@@ -860,9 +934,9 @@ function ServerConfig() {
                 <EntryListTab
                   config={data.config}
                   updateConfigValue={updateConfigValue}
+                  deleteConfigSection={deleteConfigSection}
                   cars={data.cars}
                   selectedCars={data.selectedCars}
-                  setShowCarModal={(show) => updateModals({ showCar: show })}
                 />
               )}
 
@@ -878,6 +952,7 @@ function ServerConfig() {
                 <ConditionsTab
                   config={data.config}
                   updateConfigValue={updateConfigValue}
+                  deleteConfigSection={deleteConfigSection}
                   loadTabDefaults={loadTabDefaults}
                 />
               )}
@@ -966,8 +1041,26 @@ function ServerConfig() {
               </button>
               <button
                 type="button"
+                onClick={handleRenamePreset}
+                disabled={!data.currentPresetId}
+                className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                title="Rename this preset"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Rename
+              </button>
+              <button
+                type="button"
                 onClick={handleSaveConfig}
-                className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors flex items-center gap-2"
+                disabled={!data.currentPresetId}
+                className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 title="Save configuration (Ctrl+S)"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

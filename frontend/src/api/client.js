@@ -86,8 +86,14 @@ export const getPresets = async () => {
   return response.data;
 };
 
-export const savePreset = async (name, description = '') => {
-  const response = await client.post('/config/presets', { name, description });
+/**
+ * Save a preset with the provided configuration
+ * @param {string} name - Preset name
+ * @param {object} config - Full config object to save
+ * @param {string} description - Optional description
+ */
+export const savePreset = async (name, config = null, description = '') => {
+  const response = await client.post('/config/presets', { name, config, description });
   return response.data;
 };
 
@@ -221,6 +227,11 @@ export const getTiresForCars = async (carIds) => {
 // Entry endpoints
 export const getEntries = async () => {
   const response = await client.get('/entries');
+  return response.data;
+};
+
+export const saveEntries = async (entries) => {
+  const response = await client.put('/entries', { entries });
   return response.data;
 };
 

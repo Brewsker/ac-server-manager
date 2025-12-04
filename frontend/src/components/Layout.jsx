@@ -331,8 +331,8 @@ function Layout({ children }) {
           // Dashboard gets full edge-to-edge layout with no overflow
           children
         ) : (
-          // Other pages get standard contained layout
-          <div className="max-w-7xl mx-auto px-8 py-8">{children}</div>
+          // Other pages get full-width layout
+          <div className="px-4 py-4">{children}</div>
         )}
       </main>
     </div>

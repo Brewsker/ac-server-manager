@@ -1,20 +1,21 @@
 import ini from 'ini';
 import fs from 'fs/promises';
+import path from 'path';
 
 /**
- * Get all entries from entry_list.ini
+ * Get entry list from entry_list.ini
  */
-export async function getEntries() {
+export async function getEntryList() {
   const entryListPath = process.env.AC_ENTRY_LIST_PATH;
   if (!entryListPath) {
-    return { entries: [], configured: false };
+    return { entries: [], error: 'AC_ENTRY_LIST_PATH not configured' };
   }
 
   try {
-    const entryContent = await fs.readFile(entryListPath, 'utf-8');
-    const parsed = ini.parse(entryContent);
+    const content = await fs.readFile(entryListPath, 'utf-8');
+    const parsed = ini.parse(content);
 
-    // Convert to array format
+    // Convert to array of entries
     const entries = [];
     for (let i = 0; i < 100; i++) {
       const key = `CAR_${i}`;
@@ -33,19 +34,19 @@ export async function getEntries() {
       }
     }
 
-    return { entries, configured: true };
+    return { entries };
   } catch (error) {
     if (error.code === 'ENOENT') {
-      return { entries: [], configured: true };
+      return { entries: [], error: 'Entry list file not found' };
     }
     throw error;
   }
 }
 
 /**
- * Save all entries to entry_list.ini
+ * Save entry list to entry_list.ini
  */
-export async function saveEntries(entries) {
+export async function saveEntryList(entries) {
   const entryListPath = process.env.AC_ENTRY_LIST_PATH;
   if (!entryListPath) {
     throw new Error('AC_ENTRY_LIST_PATH not configured');
@@ -75,10 +76,26 @@ export async function saveEntries(entries) {
 }
 
 /**
- * Add new entry
+ * Update a single entry in the list
+ */
+export async function updateEntry(index, entryData) {
+  const { entries } = await getEntryList();
+
+  if (index < 0 || index >= entries.length) {
+    throw new Error('Entry index out of range');
+  }
+
+  entries[index] = { ...entries[index], ...entryData, index };
+  await saveEntryList(entries);
+
+  return entries[index];
+}
+
+/**
+ * Add a new entry to the list
  */
 export async function addEntry(entryData) {
-  const { entries } = await getEntries();
+  const { entries } = await getEntryList();
 
   const newEntry = {
     index: entries.length,
@@ -93,58 +110,35 @@ export async function addEntry(entryData) {
   };
 
   entries.push(newEntry);
-  await saveEntries(entries);
+  await saveEntryList(entries);
 
-  return { success: true, entry: newEntry };
+  return newEntry;
 }
 
 /**
- * Update existing entry
- */
-export async function updateEntry(index, entryData) {
-  const { entries } = await getEntries();
-  const idx = parseInt(index);
-
-  if (idx < 0 || idx >= entries.length) {
-    throw new Error('Entry index out of range');
-  }
-
-  entries[idx] = {
-    ...entries[idx],
-    ...entryData,
-    index: idx,
-  };
-
-  await saveEntries(entries);
-
-  return { success: true, entry: entries[idx] };
-}
-
-/**
- * Delete entry
+ * Delete an entry from the list
  */
 export async function deleteEntry(index) {
-  const { entries } = await getEntries();
-  const idx = parseInt(index);
+  const { entries } = await getEntryList();
 
-  if (idx < 0 || idx >= entries.length) {
+  if (index < 0 || index >= entries.length) {
     throw new Error('Entry index out of range');
   }
 
-  entries.splice(idx, 1);
+  entries.splice(index, 1);
 
   // Re-index remaining entries
   entries.forEach((entry, i) => {
     entry.index = i;
   });
 
-  await saveEntries(entries);
+  await saveEntryList(entries);
 
   return { success: true, remainingCount: entries.length };
 }
 
 /**
- * Convert entries array to preset format (CAR_0, CAR_1, etc.)
+ * Convert entry list data to preset format
  */
 export function entriesToPresetFormat(entries) {
   const result = {};
@@ -164,7 +158,7 @@ export function entriesToPresetFormat(entries) {
 }
 
 /**
- * Convert preset format (CAR_0, CAR_1, etc.) to entries array
+ * Convert preset format to entry list array
  */
 export function presetFormatToEntries(presetData) {
   const entries = [];

@@ -36,7 +36,7 @@
   }
 
   .card {
-    @apply bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-800;
+    @apply bg-white dark:bg-gray-900 rounded-lg shadow-md p-3 border border-gray-200 dark:border-gray-800;
   }
 
   .input {

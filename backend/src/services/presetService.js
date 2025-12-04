@@ -44,48 +44,97 @@ export async function getAllPresets() {
   return index.presets || [];
 }
 
-// Save current working configuration as a preset
-export async function savePreset(name, description = '') {
+/**
+ * Save a configuration as a preset
+ * @param {string} name - Preset name
+ * @param {object} config - Full config object to save (optional, uses working config if not provided)
+ * @param {string} description - Optional description
+ */
+export async function savePreset(name, config = null, description = '') {
   await ensurePresetsDir();
 
-  const currentConfig = await configStateManager.getWorkingConfig();
-  const id = uuidv4();
+  // Use provided config or fall back to working config
+  const configToSave = config || (await configStateManager.getWorkingConfig());
+
+  if (!configToSave) {
+    throw new Error('No configuration to save');
+  }
+
+  // Also update working config to keep in sync
+  if (config) {
+    await configStateManager.updateWorkingConfig(config);
+  }
+
+  // Count CAR_X entries for metadata
+  const carEntryCount = Object.keys(configToSave).filter((k) => k.startsWith('CAR_')).length;
 
   // Extract metadata from config
   const metadata = {
-    track: currentConfig.SERVER?.TRACK || 'Unknown',
-    cars: Array.isArray(currentConfig.SERVER?.CARS)
-      ? currentConfig.SERVER.CARS.length
-      : currentConfig.SERVER?.CARS?.split(';').length || 0,
-    maxClients: currentConfig.SERVER?.MAX_CLIENTS || 0,
+    track: configToSave.SERVER?.TRACK || 'Unknown',
+    cars: carEntryCount,
+    maxClients: configToSave.SERVER?.MAX_CLIENTS || 0,
     sessions:
       [
-        currentConfig.PRACTICE?.TIME ? 'Practice' : null,
-        currentConfig.QUALIFY?.TIME ? 'Qualify' : null,
-        currentConfig.RACE?.TIME || currentConfig.RACE?.LAPS ? 'Race' : null,
+        configToSave.PRACTICE?.TIME ? 'Practice' : null,
+        configToSave.QUALIFY?.TIME ? 'Qualify' : null,
+        configToSave.RACE?.TIME || configToSave.RACE?.LAPS ? 'Race' : null,
       ]
         .filter(Boolean)
         .join(', ') || 'None',
   };
 
-  const preset = {
-    id,
-    name,
-    description,
-    created: new Date().toISOString(),
-    modified: new Date().toISOString(),
-    ...metadata,
-  };
+  // Check if preset with this name already exists
+  const index = await readPresetsIndex();
+  const existingPreset = index.presets.find((p) => p.name === name);
+
+  let preset;
+  let configPath;
+
+  if (existingPreset) {
+    // Update existing preset
+    preset = {
+      ...existingPreset,
+      modified: new Date().toISOString(),
+      ...metadata,
+    };
+    configPath = path.join(PRESETS_DIR, `${existingPreset.id}.json`);
+
+    // Update in index
+    const presetIndex = index.presets.findIndex((p) => p.id === existingPreset.id);
+    index.presets[presetIndex] = preset;
+
+    console.log(`[savePreset] Updating existing preset: ${name} (${existingPreset.id})`);
+  } else {
+    // Create new preset
+    const id = uuidv4();
+    preset = {
+      id,
+      name,
+      description,
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+      ...metadata,
+    };
+    configPath = path.join(PRESETS_DIR, `${id}.json`);
+    index.presets.push(preset);
+
+    console.log(`[savePreset] Creating new preset: ${name} (${id})`);
+  }
+
+  // Log what we're saving
+  const carSections = Object.keys(configToSave).filter((k) => k.startsWith('CAR_'));
+  const weatherSections = Object.keys(configToSave).filter((k) => k.startsWith('WEATHER_'));
+  console.log(`[savePreset] Config sections: ${Object.keys(configToSave).length} total`);
+  console.log(`[savePreset] CAR sections: ${carSections.join(', ') || 'none'}`);
+  console.log(`[savePreset] WEATHER sections: ${weatherSections.join(', ') || 'none'}`);
 
   // Save config file
-  const configPath = path.join(PRESETS_DIR, `${id}.json`);
-  await fs.writeFile(configPath, JSON.stringify(currentConfig, null, 2));
+  await fs.writeFile(configPath, JSON.stringify(configToSave, null, 2));
 
   // Update index
-  const index = await readPresetsIndex();
-  index.presets.push(preset);
   await writePresetsIndex(index);
 
+  console.log(`[savePreset] Preset saved successfully: ${preset.name}`);
   return preset;
 }
 

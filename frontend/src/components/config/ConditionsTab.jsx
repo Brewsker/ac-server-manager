@@ -1,51 +1,86 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 
-export default function ConditionsTab({ config, updateConfigValue, loadTabDefaults }) {
-  const [weatherSlots, setWeatherSlots] = useState([
-    {
-      id: 1,
-      graphics: 'Clear',
-      baseTemp: 18,
-      tempVar: 5,
-      roadTemp: 24,
-      roadTempVar: 5,
-      windSpeed: 0,
-      windDir: 0,
-    },
-    {
-      id: 2,
-      graphics: 'Heavy Clouds',
-      baseTemp: 15,
-      tempVar: 5,
-      roadTemp: 14,
-      roadTempVar: 5,
-      windSpeed: 0,
-      windDir: 0,
-    },
-  ]);
-
+export default function ConditionsTab({
+  config,
+  updateConfigValue,
+  deleteConfigSection,
+  loadTabDefaults,
+}) {
+  // Weather graphics options with their AC internal codes
   const weatherOptions = [
-    'Clear',
-    'Few Clouds',
-    'Scattered Clouds',
-    'Broken Clouds',
-    'Overcast',
-    'Fog',
-    'Mist',
-    'Light Drizzle',
-    'Drizzle',
-    'Heavy Drizzle',
-    'Light Rain',
-    'Rain',
-    'Heavy Rain',
-    'Light Thunderstorm',
-    'Thunderstorm',
-    'Heavy Thunderstorm',
-    'Light Snow',
-    'Snow',
-    'Heavy Snow',
-    'Heavy Clouds',
+    { name: 'Clear', code: '3_clear' },
+    { name: 'Few Clouds', code: '4_mid_clear' },
+    { name: 'Scattered Clouds', code: '5_light_clouds' },
+    { name: 'Broken Clouds', code: '6_mid_clouds' },
+    { name: 'Overcast', code: '7_heavy_clouds' },
+    { name: 'Fog', code: '1_fog' },
+    { name: 'Mist', code: '2_mist' },
+    { name: 'Light Drizzle', code: '8_light_drizzle' },
+    { name: 'Drizzle', code: '9_drizzle' },
+    { name: 'Heavy Drizzle', code: '10_heavy_drizzle' },
+    { name: 'Light Rain', code: '11_light_rain' },
+    { name: 'Rain', code: '12_rain' },
+    { name: 'Heavy Rain', code: '13_heavy_rain' },
+    { name: 'Light Thunderstorm', code: '14_light_thunderstorm' },
+    { name: 'Thunderstorm', code: '15_thunderstorm' },
+    { name: 'Heavy Thunderstorm', code: '16_heavy_thunderstorm' },
+    { name: 'Light Snow', code: '17_light_snow' },
+    { name: 'Snow', code: '18_snow' },
+    { name: 'Heavy Snow', code: '19_heavy_snow' },
   ];
+
+  // Helper to parse numeric values (config may store as strings)
+  const parseNum = (val, fallback) => {
+    if (val === undefined || val === null) return fallback;
+    const num = typeof val === 'string' ? parseInt(val, 10) : val;
+    return isNaN(num) ? fallback : num;
+  };
+
+  // Extract weather slots from config (WEATHER_0, WEATHER_1, etc.)
+  const weatherSlots = useMemo(() => {
+    const slots = [];
+    if (!config) return slots;
+
+    // Find all WEATHER_X sections
+    for (let i = 0; i < 10; i++) {
+      const key = `WEATHER_${i}`;
+      if (config[key]) {
+        slots.push({
+          id: i,
+          sectionKey: key,
+          graphics: config[key].GRAPHICS || '3_clear',
+          baseTemp: parseNum(config[key].BASE_TEMPERATURE_AMBIENT, 26),
+          tempVar: parseNum(config[key].VARIATION_AMBIENT, 2),
+          roadTemp: parseNum(config[key].BASE_TEMPERATURE_ROAD, 36),
+          roadTempVar: parseNum(config[key].VARIATION_ROAD, 2),
+        });
+      }
+    }
+
+    // If no weather slots exist, create default WEATHER_0 in config
+    if (slots.length === 0) {
+      // Return a placeholder - the actual creation happens on first interaction
+      return [
+        {
+          id: 0,
+          sectionKey: 'WEATHER_0',
+          graphics: '3_clear',
+          baseTemp: 26,
+          tempVar: 2,
+          roadTemp: 36,
+          roadTempVar: 2,
+        },
+      ];
+    }
+
+    return slots;
+  }, [config]);
+
+  // Get display name for a weather code
+  const getWeatherDisplayName = (code) => {
+    const option = weatherOptions.find((opt) => opt.code === code);
+    return option ? option.name : code;
+  };
 
   const formatTime = (minutes) => {
     const hours = Math.floor(minutes / 60);
@@ -53,29 +88,38 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
     return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
   };
 
+  // Add a new weather slot
   const addWeatherSlot = () => {
-    const newId = weatherSlots.length > 0 ? Math.max(...weatherSlots.map((w) => w.id)) + 1 : 1;
-    setWeatherSlots([
-      ...weatherSlots,
-      {
-        id: newId,
-        graphics: 'Clear',
-        baseTemp: 18,
-        tempVar: 5,
-        roadTemp: 24,
-        roadTempVar: 5,
-        windSpeed: 0,
-        windDir: 0,
-      },
-    ]);
+    // Find the next available slot index
+    const usedIndices = weatherSlots.map((s) => s.id);
+    let nextIndex = 0;
+    while (usedIndices.includes(nextIndex)) {
+      nextIndex++;
+    }
+
+    const sectionKey = `WEATHER_${nextIndex}`;
+    updateConfigValue(sectionKey, 'GRAPHICS', '3_clear');
+    updateConfigValue(sectionKey, 'BASE_TEMPERATURE_AMBIENT', 26);
+    updateConfigValue(sectionKey, 'VARIATION_AMBIENT', 2);
+    updateConfigValue(sectionKey, 'BASE_TEMPERATURE_ROAD', 36);
+    updateConfigValue(sectionKey, 'VARIATION_ROAD', 2);
   };
 
-  const deleteWeatherSlot = (id) => {
-    setWeatherSlots(weatherSlots.filter((w) => w.id !== id));
+  // Delete a weather slot (remove entire section)
+  const deleteWeatherSlot = (sectionKey) => {
+    deleteConfigSection(sectionKey);
   };
 
-  const updateWeatherSlot = (id, field, value) => {
-    setWeatherSlots(weatherSlots.map((w) => (w.id === id ? { ...w, [field]: value } : w)));
+  // Update a specific field in a weather slot
+  const updateWeatherSlot = (sectionKey, field, value) => {
+    const fieldMap = {
+      graphics: 'GRAPHICS',
+      baseTemp: 'BASE_TEMPERATURE_AMBIENT',
+      tempVar: 'VARIATION_AMBIENT',
+      roadTemp: 'BASE_TEMPERATURE_ROAD',
+      roadTempVar: 'VARIATION_ROAD',
+    };
+    updateConfigValue(sectionKey, fieldMap[field], value);
   };
 
   return (
@@ -260,23 +304,25 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {weatherSlots.map((slot) => (
                 <div
-                  key={slot.id}
+                  key={slot.sectionKey}
                   className="border border-gray-300 dark:border-gray-600 rounded p-4 space-y-4"
                 >
                   <div className="flex items-center gap-4">
                     <span className="text-gray-700 dark:text-gray-300 font-medium">#{slot.id}</span>
 
                     <div className="flex items-center gap-4 flex-1">
-                      <label className="label whitespace-nowrap">Basic weather</label>
+                      <label className="label whitespace-nowrap">Weather</label>
                       <select
                         className="input bg-gray-800 border-gray-700 text-gray-100 flex-1"
                         style={{ position: 'relative', top: '-4px' }}
                         value={slot.graphics}
-                        onChange={(e) => updateWeatherSlot(slot.id, 'graphics', e.target.value)}
+                        onChange={(e) =>
+                          updateWeatherSlot(slot.sectionKey, 'graphics', e.target.value)
+                        }
                       >
                         {weatherOptions.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
+                          <option key={opt.code} value={opt.code}>
+                            {opt.name}
                           </option>
                         ))}
                       </select>
@@ -300,7 +346,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                           max="50"
                           value={slot.baseTemp}
                           onChange={(e) =>
-                            updateWeatherSlot(slot.id, 'baseTemp', parseInt(e.target.value))
+                            updateWeatherSlot(slot.sectionKey, 'baseTemp', parseInt(e.target.value))
                           }
                         />
                         <input
@@ -310,7 +356,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                           max="20"
                           value={slot.tempVar}
                           onChange={(e) =>
-                            updateWeatherSlot(slot.id, 'tempVar', parseInt(e.target.value))
+                            updateWeatherSlot(slot.sectionKey, 'tempVar', parseInt(e.target.value))
                           }
                         />
                       </div>
@@ -332,7 +378,7 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                           max="60"
                           value={slot.roadTemp}
                           onChange={(e) =>
-                            updateWeatherSlot(slot.id, 'roadTemp', parseInt(e.target.value))
+                            updateWeatherSlot(slot.sectionKey, 'roadTemp', parseInt(e.target.value))
                           }
                         />
                         <input
@@ -342,64 +388,26 @@ export default function ConditionsTab({ config, updateConfigValue, loadTabDefaul
                           max="20"
                           value={slot.roadTempVar}
                           onChange={(e) =>
-                            updateWeatherSlot(slot.id, 'roadTempVar', parseInt(e.target.value))
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    {/* Wind Speed */}
-                    <div className="flex items-center gap-4">
-                      <label className="label whitespace-nowrap min-w-[10rem]">
-                        Wind:{' '}
-                        <span className="font-semibold text-blue-600 dark:text-blue-400">
-                          {slot.windSpeed} km/h
-                        </span>
-                      </label>
-                      <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
-                        <input
-                          type="range"
-                          className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                          min="0"
-                          max="100"
-                          value={slot.windSpeed}
-                          onChange={(e) =>
-                            updateWeatherSlot(slot.id, 'windSpeed', parseInt(e.target.value))
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    {/* Wind Direction Variation */}
-                    <div className="flex items-center gap-4">
-                      <label className="label whitespace-nowrap min-w-[10rem]">
-                        Wind direction variation:{' '}
-                        <span className="font-semibold text-blue-600 dark:text-blue-400">
-                          {slot.windDir}°
-                        </span>
-                      </label>
-                      <div className="flex-1 relative min-w-0" style={{ top: '-7px' }}>
-                        <input
-                          type="range"
-                          className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                          min="0"
-                          max="360"
-                          value={slot.windDir}
-                          onChange={(e) =>
-                            updateWeatherSlot(slot.id, 'windDir', parseInt(e.target.value))
+                            updateWeatherSlot(
+                              slot.sectionKey,
+                              'roadTempVar',
+                              parseInt(e.target.value)
+                            )
                           }
                         />
                       </div>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => deleteWeatherSlot(slot.id)}
-                    className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                  >
-                    Delete
-                  </button>
+                  {weatherSlots.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => deleteWeatherSlot(slot.sectionKey)}
+                      className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

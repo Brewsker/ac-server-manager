@@ -88,12 +88,31 @@ router.get('/presets', async (req, res, next) => {
 });
 
 // Save current config as preset
+// Accepts either { name, description } (uses working config)
+// or { name, description, config } (saves provided config)
 router.post('/presets', async (req, res, next) => {
   try {
-    const { name, description } = req.body;
-    const preset = await presetService.savePreset(name, description);
+    const { name, description, config } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Preset name is required' });
+    }
+
+    console.log(`[POST /presets] Saving preset: ${name}`);
+    if (config) {
+      const configKeys = Object.keys(config);
+      const carSections = configKeys.filter((k) => k.startsWith('CAR_'));
+      console.log(
+        `[POST /presets] Config provided with ${configKeys.length} sections, ${carSections.length} CAR entries`
+      );
+    } else {
+      console.log(`[POST /presets] No config provided, will use working config`);
+    }
+
+    const preset = await presetService.savePreset(name, config || null, description || '');
     res.json({ message: 'Preset saved', preset });
   } catch (error) {
+    console.error('[POST /presets] Error:', error);
     next(error);
   }
 });
