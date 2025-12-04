@@ -10,7 +10,14 @@ export default function EntryListTab({
   const [entries, setEntries] = useState([]);
 
   // Sync entries with selectedCars - add new cars, remove deleted cars
+  // But only if content is actually available (cars.length > 0)
   useEffect(() => {
+    // If no content available, show empty state regardless of config
+    if (!cars || cars.length === 0) {
+      setEntries([]);
+      return;
+    }
+
     if (!selectedCars || selectedCars.length === 0) {
       setEntries([]);
       return;
