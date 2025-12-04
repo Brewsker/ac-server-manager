@@ -1,9 +1,8 @@
 # Development Procedure
 
 # User Notes
-1. ssh sleep during troubleshooting. max time = 10sec 
-2. always bash a during and install to monitor unless take time priority
-3. TERM
+- SSH sleeps during troubleshooting. max time = 10sec 
+- Always bash a during and install to monitor unless take time priority
 
 ## ⭐ Preferred Workflow
 

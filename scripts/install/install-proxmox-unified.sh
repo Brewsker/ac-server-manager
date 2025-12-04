@@ -622,6 +622,7 @@ enable_ssh_password_auth() {
             sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
             sed -i 's/^#\\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
             systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null || true
+            sleep 2  # Wait for sshd to fully restart and release port
             echo 'SSH configured'
         else
             echo 'sshd_config not found'
@@ -640,8 +641,12 @@ enable_ssh_password_auth() {
 inject_ssh_key() {
     debug "Injecting SSH public key into container $CTID"
     
-    # Try to find SSH public key
-    local ssh_key=""
+    # Create .ssh directory in container
+    pct exec "$CTID" -- bash -c "mkdir -p /root/.ssh && chmod 700 /root/.ssh" >> "$LOG_FILE" 2>&1
+    
+    local keys_added=0
+    
+    # Try to find SSH public keys from standard locations
     local key_locations=(
         "$HOME/.ssh/id_rsa.pub"
         "$HOME/.ssh/id_ed25519.pub"
@@ -650,23 +655,47 @@ inject_ssh_key() {
     
     for key_file in "${key_locations[@]}"; do
         if [ -f "$key_file" ]; then
-            ssh_key=$(cat "$key_file")
+            local ssh_key=$(cat "$key_file")
             debug "Found SSH public key: $key_file"
-            break
+            pct exec "$CTID" -- bash -c "echo '$ssh_key' >> /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
+            ((keys_added++))
+            break  # Only add one key from standard locations
         fi
     done
     
-    if [ -z "$ssh_key" ]; then
-        print_warning "No SSH public key found - password authentication will be required"
-        print_info "Generate key with: ssh-keygen -t ed25519"
-        return 0
+    # Also check for additional keys in /root/.ssh/additional_keys.pub or EXTRA_SSH_KEYS env
+    # This allows dev machines to have their keys auto-added
+    local extra_keys_file="/root/.ssh/additional_keys.pub"
+    if [ -f "$extra_keys_file" ]; then
+        debug "Found additional keys file: $extra_keys_file"
+        while IFS= read -r extra_key || [ -n "$extra_key" ]; do
+            if [ -n "$extra_key" ] && [[ "$extra_key" == ssh-* ]]; then
+                pct exec "$CTID" -- bash -c "echo '$extra_key' >> /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
+                ((keys_added++))
+                debug "Added extra key from file"
+            fi
+        done < "$extra_keys_file"
     fi
     
-    # Create .ssh directory in container
-    pct exec "$CTID" -- bash -c "mkdir -p /root/.ssh && chmod 700 /root/.ssh" >> "$LOG_FILE" 2>&1
+    # Support EXTRA_SSH_KEYS environment variable (newline or comma separated)
+    if [ -n "$EXTRA_SSH_KEYS" ]; then
+        debug "Processing EXTRA_SSH_KEYS environment variable"
+        echo "$EXTRA_SSH_KEYS" | tr ',' '\n' | while IFS= read -r extra_key; do
+            extra_key=$(echo "$extra_key" | xargs)  # Trim whitespace
+            if [ -n "$extra_key" ] && [[ "$extra_key" == ssh-* ]]; then
+                pct exec "$CTID" -- bash -c "echo '$extra_key' >> /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
+                ((keys_added++))
+                debug "Added extra key from environment"
+            fi
+        done
+    fi
     
-    # Add public key to authorized_keys
-    pct exec "$CTID" -- bash -c "echo '$ssh_key' >> /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
+    if [ $keys_added -eq 0 ]; then
+        print_warning "No SSH public key found - password authentication will be required"
+        print_info "Generate key with: ssh-keygen -t ed25519"
+        print_info "Or set EXTRA_SSH_KEYS env var with your public key"
+        return 0
+    fi
     
     # Set correct permissions
     pct exec "$CTID" -- bash -c "chmod 600 /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
@@ -674,7 +703,7 @@ inject_ssh_key() {
     # Remove duplicates
     pct exec "$CTID" -- bash -c "sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1
     
-    print_success "SSH key injected - password-less SSH enabled"
+    print_success "SSH key(s) injected - password-less SSH enabled"
 }
 
 setup_inter_container_ssh() {
@@ -1088,11 +1117,21 @@ deploy_main_app() {
     # Clone or copy entire repository
     if [ "$USE_GIT_CACHE" = true ]; then
         print_info "Copying repository from git-cache..."
-        pct push $GIT_CACHE_CTID /opt/git-cache/ac-server-manager $CTID:$APP_DIR >> "$LOG_FILE" 2>&1
         
-        # Verify the copy was successful by checking for package.json
-        if pct exec $CTID -- test -f $APP_DIR/backend/package.json; then
-            debug "Repository copied successfully from git-cache"
+        # Use rsync over SSH from git-cache container to app container
+        # First ensure rsync is available in the target container
+        pct exec $CTID -- apt-get install -y rsync >> "$LOG_FILE" 2>&1 || true
+        
+        # Copy from git-cache using rsync (requires SSH working between containers)
+        if pct exec $CTID -- rsync -a --delete root@${GIT_CACHE_IP}:/opt/git-cache/ac-server-manager/ $APP_DIR/ >> "$LOG_FILE" 2>&1; then
+            # Verify the copy was successful by checking for package.json
+            if pct exec $CTID -- test -f $APP_DIR/backend/package.json; then
+                debug "Repository copied successfully from git-cache via rsync"
+            else
+                print_warning "Copy succeeded but package.json missing, falling back to GitHub clone"
+                USE_GIT_CACHE=false
+                pct exec $CTID -- rm -rf $APP_DIR >> "$LOG_FILE" 2>&1
+            fi
         else
             print_warning "Failed to copy repository from git-cache, falling back to GitHub clone"
             USE_GIT_CACHE=false
