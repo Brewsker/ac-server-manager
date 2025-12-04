@@ -679,6 +679,7 @@ setup_inter_container_ssh() {
     print_section "Setting up SSH for inter-container communication"
     
     local git_cache_ip="192.168.1.70"
+    local git_cache_ctid="998"  # Git-cache container ID
     
     # Generate SSH keypair in container if it doesn't exist
     debug "Generating SSH keypair in container..."
@@ -700,12 +701,18 @@ setup_inter_container_ssh() {
     container_pubkey=$(pct exec "$CTID" -- cat /root/.ssh/id_ed25519.pub 2>/dev/null || echo "")
     
     if [ -n "$container_pubkey" ]; then
-        # Add container's key to git-cache server's authorized_keys
-        debug "Adding container key to git-cache server..."
-        if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@$git_cache_ip "echo '$container_pubkey' >> /root/.ssh/authorized_keys; sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1; then
+        # Add container's key to git-cache server using pct exec (more reliable than SSH)
+        debug "Adding container key to git-cache server (container $git_cache_ctid)..."
+        if pct exec "$git_cache_ctid" -- bash -c "mkdir -p /root/.ssh; echo '$container_pubkey' >> /root/.ssh/authorized_keys; sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys; chmod 600 /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1; then
             print_success "Inter-container SSH configured"
         else
-            print_warning "Could not configure git-cache SSH access - SteamService cache may not work"
+            # Fallback: try SSH if pct exec fails (git-cache might not be a container)
+            debug "pct exec failed, trying SSH..."
+            if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@$git_cache_ip "mkdir -p /root/.ssh; echo '$container_pubkey' >> /root/.ssh/authorized_keys; sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1; then
+                print_success "Inter-container SSH configured (via SSH)"
+            else
+                print_warning "Could not configure git-cache SSH access - SteamService cache may not work"
+            fi
         fi
     else
         print_warning "Could not get container public key"
