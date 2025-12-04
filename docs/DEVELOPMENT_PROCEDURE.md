@@ -22,8 +22,23 @@
 4. Sync git-cache server: `ssh root@192.168.1.70 'cd /opt/git-cache/ac-server-manager && git pull'`
 5. Deploy: `.\scripts\deploy-to-proxmox.ps1` (builds frontend, uploads, restarts PM2)
 6. Refresh browser at http://192.168.1.71:3001
-7. Test unified installer for correct operation (see [Installer Integration Check](#-mandatory-installer-integration-check))
-8. Iterate as needed (return to step 1)
+7. Iterate as needed (return to step 1)
+
+### When to Update the Unified Installer
+
+The installer (`install.ps1`) pulls code from git-cache, so **most changes flow automatically**.
+
+**Update installer ONLY when changing:**
+
+- Dependencies (new npm packages, system requirements)
+- File/folder structure (new directories, renamed paths)
+- Configuration (new env vars, ports, service configs)
+- Build process (how frontend/backend are built or started)
+
+**No installer update needed for:**
+
+- Bug fixes, new features, UI changes, API changes
+- Any code changes within existing structure
 
 ### Version Management (Automatic)
 

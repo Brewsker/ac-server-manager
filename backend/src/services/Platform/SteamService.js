@@ -195,23 +195,29 @@ export async function isSteamCMDInstalled() {
 
 /**
  * Install SteamCMD (requires sudo)
+ * Works on Debian (no multiverse repo) and Ubuntu
  * @returns {Promise<Object>}
  */
 export async function installSteamCMD() {
   try {
     console.log('[SteamService] Installing SteamCMD...');
 
-    // Add multiverse repository (needed for steamcmd)
-    await execAsync('sudo add-apt-repository multiverse -y');
+    // Add i386 architecture (required for SteamCMD)
     await execAsync('sudo dpkg --add-architecture i386');
     await execAsync('sudo apt-get update');
 
-    // Accept Steam license
+    // Accept Steam license non-interactively
     await execAsync('echo steam steam/question select "I AGREE" | sudo debconf-set-selections');
     await execAsync('echo steam steam/license note "" | sudo debconf-set-selections');
 
-    // Install SteamCMD
-    await execAsync('sudo apt-get install -y steamcmd');
+    // Install SteamCMD and required 32-bit libs
+    // Note: On Debian, steamcmd is in main repo (contrib/non-free may be needed)
+    // On Ubuntu, it's in multiverse - but we skip add-apt-repository as it may not exist
+    await execAsync('sudo apt-get install -y steamcmd lib32gcc-s1 || sudo apt-get install -y steamcmd lib32gcc1');
+
+    // Initialize SteamCMD to create required directories
+    console.log('[SteamService] Initializing SteamCMD...');
+    await execAsync('/usr/games/steamcmd +quit || true');
 
     return {
       success: true,
