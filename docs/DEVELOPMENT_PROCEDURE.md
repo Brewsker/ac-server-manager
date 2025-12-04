@@ -1,5 +1,10 @@
 # Development Procedure
 
+# User Notes
+1. ssh sleep during troubleshooting. max time = 10sec 
+2. always bash a during and install to monitor unless take time priority
+3. TERM
+
 ## ⭐ Preferred Workflow
 
 **CRITICAL**: Follow this workflow for all development iterations. Each step is mandatory.

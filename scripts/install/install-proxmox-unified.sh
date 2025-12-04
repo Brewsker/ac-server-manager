@@ -614,24 +614,26 @@ update_ssh_keys() {
 enable_ssh_password_auth() {
     debug "Enabling SSH password and pubkey authentication"
     
-    # Use direct filesystem access instead of pct exec (avoid segfaults)
-    # Containers are mounted at /var/lib/lxc/<ctid>/rootfs
-    local rootfs="/var/lib/lxc/$CTID/rootfs"
-    local sshd_config="$rootfs/etc/ssh/sshd_config"
+    # Use pct exec to configure SSH (works with both directory and LVM storage)
+    set +e
+    pct exec "$CTID" -- bash -c "
+        if [ -f /etc/ssh/sshd_config ]; then
+            sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+            sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+            sed -i 's/^#\\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+            systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null || true
+            echo 'SSH configured'
+        else
+            echo 'sshd_config not found'
+        fi
+    " >> "$LOG_FILE" 2>&1
+    local result=$?
+    set -e
     
-    if [ -f "$sshd_config" ]; then
-        sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' "$sshd_config"
-        sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' "$sshd_config"
-        sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' "$sshd_config"
-        
-        # Restart SSH using pct exec with error handling
-        set +e
-        pct exec "$CTID" -- systemctl restart sshd >> "$LOG_FILE" 2>&1
-        set -e
-        
+    if [ $result -eq 0 ]; then
         debug "SSH password and pubkey authentication enabled"
     else
-        print_warning "Could not find sshd_config, SSH may need manual configuration"
+        print_warning "Could not configure SSH, may need manual setup"
     fi
 }
 
@@ -680,10 +682,12 @@ setup_inter_container_ssh() {
     
     local git_cache_ip="192.168.1.70"
     local git_cache_ctid="998"  # Git-cache container ID
+    local temp_key="/tmp/container_${CTID}_key.pub"
     
     # Generate SSH keypair in container if it doesn't exist
     debug "Generating SSH keypair in container..."
     pct exec "$CTID" -- bash -c "
+        mkdir -p /root/.ssh
         if [ ! -f /root/.ssh/id_ed25519 ]; then
             ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -N '' -q
         fi
@@ -692,31 +696,48 @@ setup_inter_container_ssh() {
     # Add git-cache server host key to known_hosts
     debug "Adding git-cache server to known_hosts..."
     pct exec "$CTID" -- bash -c "
-        mkdir -p /root/.ssh
         ssh-keyscan -H $git_cache_ip >> /root/.ssh/known_hosts 2>/dev/null
     " >> "$LOG_FILE" 2>&1
     
-    # Get container's public key
-    local container_pubkey
-    container_pubkey=$(pct exec "$CTID" -- cat /root/.ssh/id_ed25519.pub 2>/dev/null || echo "")
-    
-    if [ -n "$container_pubkey" ]; then
-        # Add container's key to git-cache server using pct exec (more reliable than SSH)
-        debug "Adding container key to git-cache server (container $git_cache_ctid)..."
-        if pct exec "$git_cache_ctid" -- bash -c "mkdir -p /root/.ssh; echo '$container_pubkey' >> /root/.ssh/authorized_keys; sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys; chmod 600 /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1; then
-            print_success "Inter-container SSH configured"
-        else
-            # Fallback: try SSH if pct exec fails (git-cache might not be a container)
-            debug "pct exec failed, trying SSH..."
-            if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@$git_cache_ip "mkdir -p /root/.ssh; echo '$container_pubkey' >> /root/.ssh/authorized_keys; sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1; then
-                print_success "Inter-container SSH configured (via SSH)"
+    # Get container's public key using pct pull (avoids truncation issues)
+    debug "Getting container public key via file transfer..."
+    if pct pull "$CTID" /root/.ssh/id_ed25519.pub "$temp_key" >> "$LOG_FILE" 2>&1; then
+        if [ -f "$temp_key" ] && [ -s "$temp_key" ]; then
+            # Verify key looks valid (should start with ssh-ed25519)
+            if grep -q "^ssh-ed25519" "$temp_key"; then
+                debug "Valid key retrieved: $(cat "$temp_key")"
+                
+                # Add container's key to git-cache server using pct push/exec
+                debug "Adding container key to git-cache server (container $git_cache_ctid)..."
+                if pct push "$git_cache_ctid" "$temp_key" "$temp_key" >> "$LOG_FILE" 2>&1; then
+                    if pct exec "$git_cache_ctid" -- bash -c "cat $temp_key >> /root/.ssh/authorized_keys; sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys; chmod 600 /root/.ssh/authorized_keys; rm -f $temp_key" >> "$LOG_FILE" 2>&1; then
+                        print_success "Inter-container SSH configured"
+                        rm -f "$temp_key"
+                        return 0
+                    fi
+                fi
+                
+                # Fallback: try SSH if pct push fails
+                debug "pct push failed, trying SSH..."
+                if scp -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$temp_key" root@$git_cache_ip:/tmp/ >> "$LOG_FILE" 2>&1; then
+                    if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@$git_cache_ip "cat /tmp/$(basename $temp_key) >> /root/.ssh/authorized_keys; sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys; chmod 600 /root/.ssh/authorized_keys" >> "$LOG_FILE" 2>&1; then
+                        print_success "Inter-container SSH configured (via SSH)"
+                        rm -f "$temp_key"
+                        return 0
+                    fi
+                fi
             else
-                print_warning "Could not configure git-cache SSH access - SteamService cache may not work"
+                print_warning "Invalid key format retrieved"
             fi
+        else
+            print_warning "Key file empty or not retrieved"
         fi
+        rm -f "$temp_key" 2>/dev/null
     else
-        print_warning "Could not get container public key"
+        print_warning "Could not retrieve container public key via pct pull"
     fi
+    
+    print_warning "Could not configure git-cache SSH access - SteamService cache may not work"
 }
 
 get_container_ip() {
