@@ -1,0 +1,115 @@
+#!/bin/sh
+# =============================================================================
+# COMMIT-MSG HOOK - Automatic Version Bumping Based on Commit Type
+# =============================================================================
+# Automatically bumps version numbers based on conventional commit types:
+#   feat!:    -> MAJOR bump (0.21.0 -> 1.0.0) - Breaking change
+#   feat:     -> MINOR bump (0.21.0 -> 0.22.0) - New feature
+#   fix:      -> PATCH bump (0.21.0 -> 0.21.1) - Bug fix
+#   refactor: -> PATCH bump - Code refactoring
+#   perf:     -> PATCH bump - Performance improvement
+#   chore/docs/style/test/ci/build: -> NO bump
+# =============================================================================
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(head -1 "$COMMIT_MSG_FILE")
+
+# Skip if this is a merge, amend, or version bump commit
+case "$COMMIT_MSG" in
+    Merge*|chore:\ Bump\ version*|chore:\ bump\ version*)
+        exit 0
+        ;;
+esac
+
+# Determine bump type from commit message
+BUMP_TYPE=""
+case "$COMMIT_MSG" in
+    feat!:*|feature!:*|BREAKING\ CHANGE:*)
+        BUMP_TYPE="major"
+        ;;
+    feat:*|feature:*)
+        BUMP_TYPE="minor"
+        ;;
+    fix:*|refactor:*|perf:*)
+        BUMP_TYPE="patch"
+        ;;
+    *)
+        # No version bump for other types (chore, docs, style, test, ci, build, etc.)
+        exit 0
+        ;;
+esac
+
+# Run version bump via PowerShell
+powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "
+    \$ErrorActionPreference = 'Stop'
+    
+    try {
+        # Read current version from backend (source of truth)
+        \$backendPath = './backend/package.json'
+        \$frontendPath = './frontend/package.json'
+        \$cursorPath = './.cursorrules'
+        
+        \$backendPkg = Get-Content \$backendPath -Raw | ConvertFrom-Json
+        \$currentVersion = \$backendPkg.version
+        
+        # Parse version
+        \$parts = \$currentVersion.Split('.')
+        \$major = [int]\$parts[0]
+        \$minor = [int]\$parts[1]
+        \$patch = [int]\$parts[2]
+        
+        # Apply bump based on type
+        switch ('$BUMP_TYPE') {
+            'major' { 
+                \$major++
+                \$minor = 0
+                \$patch = 0
+                \$bumpLabel = 'MAJOR (breaking change)'
+            }
+            'minor' { 
+                \$minor++
+                \$patch = 0
+                \$bumpLabel = 'MINOR (new feature)'
+            }
+            'patch' { 
+                \$patch++
+                \$bumpLabel = 'PATCH (fix/refactor)'
+            }
+        }
+        
+        \$newVersion = \"\$major.\$minor.\$patch\"
+        
+        Write-Host ''
+        Write-Host '=== VERSION BUMP ===' -ForegroundColor Cyan
+        Write-Host \"  \$currentVersion -> \$newVersion (\$bumpLabel)\" -ForegroundColor Green
+        Write-Host ''
+        
+        # Update backend package.json
+        \$backendPkg.version = \$newVersion
+        \$backendPkg | ConvertTo-Json -Depth 100 | Set-Content \$backendPath -Encoding UTF8
+        
+        # Update frontend package.json
+        \$frontendPkg = Get-Content \$frontendPath -Raw | ConvertFrom-Json
+        \$frontendPkg.version = \$newVersion
+        \$frontendPkg | ConvertTo-Json -Depth 100 | Set-Content \$frontendPath -Encoding UTF8
+        
+        # Update .cursorrules (find and replace version pattern)
+        if (Test-Path \$cursorPath) {
+            \$cursorContent = Get-Content \$cursorPath -Raw
+            \$cursorContent = \$cursorContent -replace 'Current version:\s*\*\*[\d\.]+\*\*', \"Current version: **\$newVersion**\"
+            Set-Content \$cursorPath \$cursorContent -NoNewline -Encoding UTF8
+        }
+        
+        # Stage the updated version files (amend them into the current commit)
+        git add \$backendPath \$frontendPath \$cursorPath 2>\$null
+        
+        exit 0
+    }
+    catch {
+        Write-Host \"[VERSION ERROR] \$(\$_.Exception.Message)\" -ForegroundColor Red
+        # Don't fail the commit, just log the error
+        exit 0
+    }
+"
+
+exit 0
