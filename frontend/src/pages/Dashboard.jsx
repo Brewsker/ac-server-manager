@@ -1504,7 +1504,7 @@ function EditorView() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden pb-14">
+    <div className="h-full flex flex-col overflow-hidden pb-14 relative">
       {/* Header - Minimal, just title/info */}
       <div className="px-4 py-3 border-b border-gray-700 bg-gray-800/50 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -1620,8 +1620,8 @@ function EditorView() {
         </Suspense>
       </div>
 
-      {/* Fixed Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 shadow-lg z-10">
+      {/* Bottom Action Bar - Constrained to Editor */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 shadow-lg z-10">
         <div className="px-4 py-3">
           <div className="flex gap-2 flex-wrap items-center">
             {/* Folder Button */}
