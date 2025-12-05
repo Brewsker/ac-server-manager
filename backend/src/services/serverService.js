@@ -282,6 +282,9 @@ export async function getSystemStats() {
         formatted: uptimeStr,
       },
       hostname,
+      platform: os.platform(),
+      arch: os.arch(),
+      nodeVersion: process.version,
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
@@ -292,6 +295,9 @@ export async function getSystemStats() {
       storage: { usage: 0, used: 0, total: 0, usedGiB: '0', totalGiB: '0' },
       uptime: { seconds: 0, formatted: '0m' },
       hostname: 'unknown',
+      platform: 'unknown',
+      arch: 'unknown',
+      nodeVersion: 'unknown',
       error: error.message,
       timestamp: new Date().toISOString(),
     };

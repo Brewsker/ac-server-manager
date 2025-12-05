@@ -1,24 +1,52 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useTheme } from '../contexts/ThemeContext';
+import FolderBrowserModal from '../components/FolderBrowserModal';
 
 // ============================================================================
 // PROXMOX-STYLE DASHBOARD
 // Three-column layout: Resource Tree | Context Menu | Content Panel
 // ============================================================================
 
+// Helper to get initial state from sessionStorage or defaults
+const getInitialSelection = () => {
+  try {
+    const saved = sessionStorage.getItem('dashboard_selection');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    // Ignore parse errors
+  }
+  // Default to AC Server Manager summary
+  return { item: { type: 'app', id: 'acsm' }, view: 'summary' };
+};
+
 function Dashboard() {
   // State Management
   const [loading, setLoading] = useState(true);
   const [runningServers, setRunningServers] = useState([]);
-  const [selectedItem, setSelectedItem] = useState({ type: 'host', id: null });
-  const [selectedView, setSelectedView] = useState('summary');
+  const initialSelection = getInitialSelection();
+  const [selectedItem, setSelectedItem] = useState(initialSelection.item);
+  const [selectedView, setSelectedView] = useState(initialSelection.view);
   const [monitoringData, setMonitoringData] = useState({
     players: [],
     session: null,
     logs: [],
   });
   const isMountedRef = useRef(true);
+
+  // Persist selection to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem(
+      'dashboard_selection',
+      JSON.stringify({
+        item: selectedItem,
+        view: selectedView,
+      })
+    );
+  }, [selectedItem, selectedView]);
 
   // Fetch running servers periodically
   useEffect(() => {
@@ -342,7 +370,7 @@ function ContentPanel({
 }
 
 // ============================================================================
-// HOST VIEW (System-level stats)
+// HOST VIEW (System-level stats - Container/Host information)
 // ============================================================================
 
 function HostView({ view, servers }) {
@@ -376,10 +404,6 @@ function HostView({ view, servers }) {
   }, []);
 
   if (view === 'summary') {
-    const runningCount = servers.length;
-    const stoppedCount = 0; // Would come from presets not running
-    const totalPlayers = servers.reduce((sum, s) => sum + (s.players || 0), 0);
-
     // Use real stats or fallback
     const cpuUsage = systemStats?.cpu?.usage ?? 0;
     const cpuCores = systemStats?.cpu?.cores ?? 1;
@@ -391,16 +415,30 @@ function HostView({ view, servers }) {
     const storageTotal = systemStats?.storage?.totalGiB ?? '0';
     const uptime = systemStats?.uptime?.formatted ?? '--';
     const hostname = systemStats?.hostname ?? 'ac-server';
+    const platform = systemStats?.platform ?? 'linux';
+    const arch = systemStats?.arch ?? 'x64';
+    const nodeVersion = systemStats?.nodeVersion ?? '--';
 
     return (
       <div className="p-4 overflow-y-auto h-full">
-        {/* Health + Guests Row - side by side on wide, stacked on narrow */}
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <span className="text-3xl">🖧</span>
+          <div>
+            <h1 className="text-xl font-semibold text-white">{hostname}</h1>
+            <span className="text-sm text-gray-400">
+              Container Host • {platform} ({arch})
+            </span>
+          </div>
+        </div>
+
+        {/* Status + System Info Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          {/* Health Section */}
-          <SectionPanel title="Health">
+          {/* Status Section */}
+          <SectionPanel title="Status">
             <div className="flex items-center justify-around py-4">
               <div className="text-center">
-                <div className="text-sm text-gray-400 mb-2">Status</div>
+                <div className="text-sm text-gray-400 mb-2">Health</div>
                 <div
                   className={`w-12 h-12 rounded-full ${
                     statsLoading ? 'bg-yellow-500' : 'bg-emerald-500'
@@ -425,21 +463,190 @@ function HostView({ view, servers }) {
                   )}
                 </div>
                 <div className="text-xs text-gray-400 mt-2">
-                  {statsLoading ? 'Connecting...' : 'Server Manager Online'}
+                  {statsLoading ? 'Connecting...' : 'Online'}
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-sm text-gray-400 mb-3">Nodes</div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-emerald-400">✓</span>
-                  <span className="text-gray-300">Online</span>
-                  <span className="text-white font-medium ml-2">1</span>
+                <div className="text-sm text-gray-400 mb-3">Uptime</div>
+                <div className="text-xl font-medium text-white">{uptime}</div>
+                <div className="text-xs text-gray-400 mt-1">Since last restart</div>
+              </div>
+            </div>
+          </SectionPanel>
+
+          {/* System Info Section */}
+          <SectionPanel title="System Info">
+            <div className="p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Hostname</span>
+                <span className="text-gray-200">{hostname}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Platform</span>
+                <span className="text-gray-200">{platform}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Architecture</span>
+                <span className="text-gray-200">{arch}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Node.js</span>
+                <span className="text-gray-200">{nodeVersion}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">CPU Cores</span>
+                <span className="text-gray-200">{cpuCores}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Total Memory</span>
+                <span className="text-gray-200">{memoryTotal} GiB</span>
+              </div>
+            </div>
+          </SectionPanel>
+        </div>
+
+        {/* Resources Section */}
+        <SectionPanel title="Resources" className="mb-4">
+          <div className="flex flex-wrap items-center justify-around py-6 gap-8">
+            <CircularGauge
+              label="CPU"
+              value={cpuUsage}
+              subtitle={`of ${cpuCores} CPU(s)`}
+              color="blue"
+            />
+            <CircularGauge
+              label="Memory"
+              value={memoryUsage}
+              subtitle={`${memoryUsed} GiB of ${memoryTotal} GiB`}
+              color="blue"
+            />
+            <CircularGauge
+              label="Storage"
+              value={storageUsage}
+              subtitle={`${storageUsed} GiB of ${storageTotal} GiB`}
+              color="blue"
+            />
+          </div>
+        </SectionPanel>
+
+        {/* Storage Details */}
+        <SectionPanel title="Storage">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-400 border-b border-gray-700">
+                  <th className="px-3 py-2 font-medium">Path</th>
+                  <th className="px-3 py-2 font-medium">Type</th>
+                  <th className="px-3 py-2 font-medium">Used</th>
+                  <th className="px-3 py-2 font-medium">Total</th>
+                  <th className="px-3 py-2 font-medium">Usage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="hover:bg-gray-800/50">
+                  <td className="px-3 py-2 text-gray-200">/</td>
+                  <td className="px-3 py-2 text-gray-300">Root</td>
+                  <td className="px-3 py-2 text-gray-300">{storageUsed} GiB</td>
+                  <td className="px-3 py-2 text-gray-300">{storageTotal} GiB</td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-2 bg-gray-700 rounded overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-500 ${
+                            storageUsage > 90
+                              ? 'bg-red-500'
+                              : storageUsage > 70
+                              ? 'bg-yellow-500'
+                              : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${storageUsage}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-gray-300 text-xs">{storageUsage}%</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </SectionPanel>
+      </div>
+    );
+  }
+
+  // Placeholder views
+  return (
+    <div className="p-4">
+      <h2 className="text-lg font-semibold text-white mb-4 capitalize">{view}</h2>
+      <div className="bg-gray-800 rounded-lg p-8 text-center text-gray-500">
+        {view} view coming soon
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// APP VIEW (AC Server Manager level)
+// ============================================================================
+
+function AppView({ view, servers }) {
+  const runningCount = servers.length;
+  const stoppedCount = 0; // Would come from presets not running
+  const totalPlayers = servers.reduce((sum, s) => sum + (s.players || 0), 0);
+  const [currentVersion, setCurrentVersion] = React.useState('--');
+
+  React.useEffect(() => {
+    const loadVersion = async () => {
+      try {
+        const data = await api.getCurrentVersion();
+        setCurrentVersion(data.version);
+      } catch (error) {
+        setCurrentVersion('Unknown');
+      }
+    };
+    loadVersion();
+  }, []);
+
+  if (view === 'summary') {
+    return (
+      <div className="p-4 overflow-y-auto h-full">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <span className="text-3xl">🏎️</span>
+          <div>
+            <h1 className="text-xl font-semibold text-white">AC Server Manager</h1>
+            <span className="text-sm text-gray-400">Assetto Corsa Dedicated Server</span>
+          </div>
+        </div>
+
+        {/* Health + Guests Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          {/* Health Section */}
+          <SectionPanel title="Health">
+            <div className="flex items-center justify-around py-4">
+              <div className="text-center">
+                <div className="text-sm text-gray-400 mb-2">Status</div>
+                <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center mx-auto">
+                  <svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
                 </div>
-                <div className="flex items-center gap-2 text-sm mt-1">
-                  <span className="text-red-400">✗</span>
-                  <span className="text-gray-300">Offline</span>
-                  <span className="text-white font-medium ml-2">0</span>
-                </div>
+                <div className="text-xs text-gray-400 mt-2">Server Manager Online</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm text-gray-400 mb-3">Version</div>
+                <div className="text-xl font-medium text-white">{currentVersion}</div>
+                <div className="text-xs text-gray-400 mt-1">Current</div>
               </div>
             </div>
           </SectionPanel>
@@ -472,161 +679,6 @@ function HostView({ view, servers }) {
                   <span className="text-gray-300">Spectators</span>
                   <span className="text-white font-medium ml-2">0</span>
                 </div>
-              </div>
-            </div>
-          </SectionPanel>
-        </div>
-
-        {/* Resources Section */}
-        <SectionPanel title="Resources" className="mb-4">
-          <div className="flex flex-wrap items-center justify-around py-6 gap-8">
-            <CircularGauge
-              label="CPU"
-              value={cpuUsage}
-              subtitle={`of ${cpuCores} CPU(s)`}
-              color="blue"
-            />
-            <CircularGauge
-              label="Memory"
-              value={memoryUsage}
-              subtitle={`${memoryUsed} GiB of ${memoryTotal} GiB`}
-              color="blue"
-            />
-            <CircularGauge
-              label="Storage"
-              value={storageUsage}
-              subtitle={`${storageUsed} GiB of ${storageTotal} GiB`}
-              color="blue"
-            />
-          </div>
-        </SectionPanel>
-
-        {/* Nodes Table */}
-        <SectionPanel title="Nodes">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-400 border-b border-gray-700">
-                  <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">ID</th>
-                  <th className="px-3 py-2 font-medium">Online</th>
-                  <th className="px-3 py-2 font-medium">Server Address</th>
-                  <th className="px-3 py-2 font-medium">CPU usage</th>
-                  <th className="px-3 py-2 font-medium">Memory usage</th>
-                  <th className="px-3 py-2 font-medium">Uptime</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="hover:bg-gray-800/50">
-                  <td className="px-3 py-2 text-gray-200">{hostname}</td>
-                  <td className="px-3 py-2 text-gray-300">999</td>
-                  <td className="px-3 py-2">
-                    <span className="text-emerald-400">✓</span>
-                  </td>
-                  <td className="px-3 py-2 text-gray-300">192.168.1.71</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-2 bg-gray-700 rounded overflow-hidden">
-                        <div
-                          className="h-full bg-blue-500 transition-all duration-500"
-                          style={{ width: `${cpuUsage}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-gray-300 text-xs">{cpuUsage}%</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-2 bg-gray-700 rounded overflow-hidden">
-                        <div
-                          className="h-full bg-blue-500 transition-all duration-500"
-                          style={{ width: `${memoryUsage}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-gray-300 text-xs">{memoryUsage}%</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-gray-300">{uptime}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </SectionPanel>
-      </div>
-    );
-  }
-
-  // Placeholder views
-  return (
-    <div className="p-4">
-      <h2 className="text-lg font-semibold text-white mb-4 capitalize">{view}</h2>
-      <div className="bg-gray-800 rounded-lg p-8 text-center text-gray-500">
-        {view} view coming soon
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// APP VIEW (AC Server Manager level)
-// ============================================================================
-
-function AppView({ view, servers }) {
-  const runningCount = servers.length;
-  const totalPlayers = servers.reduce((sum, s) => sum + (s.players || 0), 0);
-
-  if (view === 'summary') {
-    return (
-      <div className="p-4 overflow-y-auto h-full">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-3xl">🏎️</span>
-          <div>
-            <h1 className="text-xl font-semibold text-white">AC Server Manager</h1>
-            <span className="text-sm text-gray-400">Assetto Corsa Dedicated Server</span>
-          </div>
-        </div>
-
-        {/* Status Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          <SectionPanel title="Status">
-            <div className="flex items-center justify-around py-4">
-              <div className="text-center">
-                <div className="text-sm text-gray-400 mb-2">Application</div>
-                <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center mx-auto">
-                  <svg
-                    className="w-8 h-8 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <div className="text-xs text-gray-400 mt-2">Running</div>
-              </div>
-              <div className="text-center">
-                <div className="text-sm text-gray-400 mb-3">Version</div>
-                <div className="text-xl font-medium text-white">0.16.0</div>
-                <div className="text-xs text-gray-400 mt-1">Latest</div>
-              </div>
-            </div>
-          </SectionPanel>
-
-          <SectionPanel title="Server Instances">
-            <div className="flex items-center justify-around py-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white">{runningCount}</div>
-                <div className="text-sm text-gray-400">Running</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white">{totalPlayers}</div>
-                <div className="text-sm text-gray-400">Total Players</div>
               </div>
             </div>
           </SectionPanel>
@@ -683,13 +735,285 @@ function AppView({ view, servers }) {
     return <SetupView />;
   }
 
-  // Placeholder views for servers/presets
+  if (view === 'presets') {
+    return <PresetsView />;
+  }
+
+  // Placeholder views for servers
   return (
     <div className="p-4">
       <h2 className="text-lg font-semibold text-white mb-4 capitalize">{view}</h2>
       <div className="bg-gray-800 rounded-lg p-8 text-center text-gray-500">
         {view} view coming soon
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// PRESETS VIEW (Preset Management)
+// ============================================================================
+
+function PresetsView() {
+  const navigate = useNavigate();
+  const [presets, setPresets] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [serverStatuses, setServerStatuses] = React.useState({});
+  const [selectedPresetId, setSelectedPresetId] = React.useState(null);
+  const [showFolderBrowser, setShowFolderBrowser] = React.useState(false);
+  const [folderPath, setFolderPath] = React.useState('');
+
+  React.useEffect(() => {
+    fetchPresets();
+    checkAllServerStatuses();
+
+    // Poll server statuses
+    const interval = setInterval(checkAllServerStatuses, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchPresets = async () => {
+    try {
+      const data = await api.getPresets();
+      setPresets(data.presets || []);
+    } catch (error) {
+      console.error('Failed to fetch presets:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkAllServerStatuses = async () => {
+    try {
+      const statuses = await api.getAllServerStatuses();
+      const statusMap = {};
+      statuses.servers.forEach((server) => {
+        statusMap[server.presetId] = { running: server.running, pid: server.pid };
+      });
+      setServerStatuses(statusMap);
+    } catch (error) {
+      // Silently fail
+    }
+  };
+
+  const handleLoadPreset = async (presetId) => {
+    try {
+      setSelectedPresetId(presetId);
+      await api.loadPreset(presetId);
+      navigate('/config', { state: { presetLoaded: true, timestamp: Date.now() } });
+    } catch (error) {
+      console.error('Failed to load preset:', error);
+    }
+  };
+
+  const handleNewPreset = async () => {
+    try {
+      setSelectedPresetId(null);
+      await api.loadDefaultConfig();
+      const defaultConfig = await api.getConfig();
+
+      const baseNewName = 'AC_Server';
+      let newName = `${baseNewName}_0`;
+      let counter = 0;
+
+      while (presets.some((p) => p.name === newName)) {
+        counter++;
+        newName = `${baseNewName}_${counter}`;
+      }
+
+      const updatedConfig = {
+        ...defaultConfig,
+        SERVER: {
+          ...defaultConfig.SERVER,
+          NAME: newName,
+        },
+      };
+
+      await api.updateConfig(updatedConfig);
+      await api.savePreset(newName, 'Newly created preset from defaults');
+      await fetchPresets();
+
+      const updatedPresets = await api.getPresets();
+      const newPreset = updatedPresets.presets.find((p) => p.name === newName);
+
+      if (newPreset) {
+        await api.loadPreset(newPreset.id);
+        navigate('/config', { state: { presetLoaded: true, timestamp: Date.now() } });
+      }
+    } catch (error) {
+      console.error('Failed to create new preset:', error);
+    }
+  };
+
+  const handleStartServer = async (presetId, e) => {
+    e.stopPropagation();
+    try {
+      await api.startServerInstance(presetId);
+    } catch (error) {
+      console.error('Failed to start server:', error);
+      alert('Failed to start server: ' + (error.response?.data?.error?.message || error.message));
+    }
+  };
+
+  const handleStopServer = async (presetId, e) => {
+    e.stopPropagation();
+    try {
+      await api.stopServerInstance(presetId);
+    } catch (error) {
+      console.error('Failed to stop server:', error);
+    }
+  };
+
+  const handleOpenFolder = async () => {
+    try {
+      const result = await api.openPresetsFolder();
+      setFolderPath(result.path);
+      setShowFolderBrowser(true);
+    } catch (error) {
+      console.error('Failed to open folder:', error);
+      alert('Failed to open presets folder');
+    }
+  };
+
+  return (
+    <div className="p-4 overflow-y-auto h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">📁</span>
+          <div>
+            <h1 className="text-xl font-semibold text-white">Presets</h1>
+            <span className="text-sm text-gray-400">Manage server configurations</span>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleOpenFolder}
+            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors flex items-center gap-2"
+            title="Open presets folder"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+              />
+            </svg>
+            Folder
+          </button>
+          <button
+            onClick={fetchPresets}
+            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+            title="Refresh preset list"
+          >
+            ↻
+          </button>
+          <button
+            onClick={handleNewPreset}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors flex items-center gap-2"
+          >
+            <span>+</span>
+            New Preset
+          </button>
+        </div>
+      </div>
+
+      {/* Presets Table */}
+      <SectionPanel title={`Server Presets (${presets.length})`}>
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="p-8 text-center text-gray-400">Loading presets...</div>
+          ) : presets.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              No presets yet. Click "New Preset" to create your first server configuration.
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-400 border-b border-gray-700">
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Name</th>
+                  <th className="px-4 py-3 font-medium">Description</th>
+                  <th className="px-4 py-3 font-medium">Modified</th>
+                  <th className="px-4 py-3 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {presets.map((preset) => {
+                  const isRunning = serverStatuses[preset.id]?.running;
+                  const isSelected = selectedPresetId === preset.id;
+                  return (
+                    <tr
+                      key={preset.id}
+                      onClick={() => handleLoadPreset(preset.id)}
+                      className={`border-b border-gray-700/50 cursor-pointer transition-colors ${
+                        isSelected ? 'bg-blue-600/20' : 'hover:bg-gray-800/50'
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <span
+                          className={`flex items-center gap-2 ${
+                            isRunning ? 'text-emerald-400' : 'text-gray-500'
+                          }`}
+                        >
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'
+                            }`}
+                          ></span>
+                          {isRunning ? 'Running' : 'Stopped'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-200 font-medium">{preset.name}</td>
+                      <td className="px-4 py-3 text-gray-400">{preset.description || '-'}</td>
+                      <td className="px-4 py-3 text-gray-400">
+                        {preset.updatedAt ? new Date(preset.updatedAt).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {isRunning ? (
+                            <button
+                              onClick={(e) => handleStopServer(preset.id, e)}
+                              className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-xs rounded transition-colors"
+                              title="Stop server"
+                            >
+                              Stop
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => handleStartServer(preset.id, e)}
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded transition-colors"
+                              title="Start server"
+                            >
+                              Start
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLoadPreset(preset.id);
+                            }}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded transition-colors"
+                            title="Edit in config editor"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </SectionPanel>
+
+      {/* Folder Browser Modal */}
+      {showFolderBrowser && (
+        <FolderBrowserModal folderPath={folderPath} onClose={() => setShowFolderBrowser(false)} />
+      )}
     </div>
   );
 }

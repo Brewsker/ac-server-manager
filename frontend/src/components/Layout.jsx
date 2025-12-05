@@ -1,15 +1,10 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 
 function Layout({ children }) {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [presets, setPresets] = useState([]);
-  const [loadingPresets, setLoadingPresets] = useState(true);
-  const [selectedPresetId, setSelectedPresetId] = useState(null);
-  const [serverStatuses, setServerStatuses] = useState({}); // { presetId: { running: bool, pid: number } }
   const [appVersion, setAppVersion] = useState('...');
 
   const navItems = [
@@ -64,59 +59,8 @@ function Layout({ children }) {
   ];
 
   useEffect(() => {
-    fetchPresets();
-    checkAllServerStatuses(); // Initial check
-    fetchAppVersion(); // Fetch version
-
-    // Poll server statuses every 3 seconds
-    const interval = setInterval(checkAllServerStatuses, 3000);
-    return () => clearInterval(interval);
+    fetchAppVersion();
   }, []);
-
-  // Refresh presets when navigating to config page (after potential preset changes)
-  useEffect(() => {
-    if (location.pathname === '/config') {
-      fetchPresets();
-    }
-  }, [location.pathname]);
-
-  // Also refresh when window regains focus (catches saves from modals)
-  useEffect(() => {
-    const handleFocus = () => {
-      fetchPresets();
-    };
-
-    const handlePresetSaved = () => {
-      console.log('[Layout] Preset saved event received, refreshing list');
-      fetchPresets();
-    };
-
-    const handlePresetSelected = (event) => {
-      console.log('[Layout] Preset selected event received:', event.detail.presetId);
-      setSelectedPresetId(event.detail.presetId);
-    };
-
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('presetSaved', handlePresetSaved);
-    window.addEventListener('presetSelected', handlePresetSelected);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('presetSaved', handlePresetSaved);
-      window.removeEventListener('presetSelected', handlePresetSelected);
-    };
-  }, []);
-
-  const fetchPresets = async () => {
-    try {
-      const data = await api.getPresets();
-      setPresets(data.presets || []);
-    } catch (error) {
-      console.error('Failed to fetch presets:', error);
-    } finally {
-      setLoadingPresets(false);
-    }
-  };
 
   const fetchAppVersion = async () => {
     try {
@@ -125,96 +69,6 @@ function Layout({ children }) {
     } catch (error) {
       console.error('Failed to fetch version:', error);
       setAppVersion('0.16.0'); // Fallback
-    }
-  };
-
-  const checkAllServerStatuses = async () => {
-    try {
-      const statuses = await api.getAllServerStatuses();
-      // Convert array to object keyed by presetId
-      const statusMap = {};
-      statuses.servers.forEach((server) => {
-        statusMap[server.presetId] = { running: server.running, pid: server.pid };
-      });
-      setServerStatuses(statusMap);
-    } catch (error) {
-      // Silently fail - don't spam console on polling
-    }
-  };
-
-  const handleLoadPreset = async (presetId) => {
-    try {
-      setSelectedPresetId(presetId);
-      await api.loadPreset(presetId);
-      navigate('/config', { state: { presetLoaded: true, timestamp: Date.now() } });
-    } catch (error) {
-      console.error('Failed to load preset:', error);
-    }
-  };
-
-  const handleNewPreset = async () => {
-    try {
-      // Clear selection since we're loading default config (not a preset)
-      setSelectedPresetId(null);
-
-      // First, load default config to working state
-      await api.loadDefaultConfig();
-
-      // Get the default config that was just loaded
-      const defaultConfig = await api.getConfig();
-
-      // Generate a unique name for the new preset
-      const baseNewName = 'AC_Server';
-      let newName = `${baseNewName}_0`;
-      let counter = 0;
-
-      // Find a unique name by checking existing presets
-      while (presets.some((p) => p.name === newName)) {
-        counter++;
-        newName = `${baseNewName}_${counter}`;
-      }
-
-      // Update the SERVER.NAME to match the preset name
-      const updatedConfig = {
-        ...defaultConfig,
-        SERVER: {
-          ...defaultConfig.SERVER,
-          NAME: newName,
-        },
-      };
-
-      // Save the updated config to working state
-      await api.updateConfig(updatedConfig);
-
-      // Save as a new preset
-      await api.savePreset(newName, 'Newly created preset from defaults');
-      console.log('[Layout] Created new preset:', newName);
-
-      // Refresh preset list to show the new preset
-      await fetchPresets();
-
-      // Load the newly created preset into the editor
-      const updatedPresets = await api.getPresets();
-      const newPreset = updatedPresets.presets.find((p) => p.name === newName);
-
-      if (newPreset) {
-        await api.loadPreset(newPreset.id);
-        navigate('/config', { state: { presetLoaded: true, timestamp: Date.now() } });
-      }
-    } catch (error) {
-      console.error('Failed to create new preset:', error);
-    }
-  };
-
-  const handleStartServer = async (presetId, e) => {
-    e.stopPropagation(); // Prevent preset selection when clicking start button
-    try {
-      await api.startServerInstance(presetId);
-      console.log('[Layout] Started server for preset:', presetId);
-      // Status will update via polling
-    } catch (error) {
-      console.error('Failed to start server:', error);
-      alert('Failed to start server: ' + (error.response?.data?.error?.message || error.message));
     }
   };
 
@@ -233,7 +87,7 @@ function Layout({ children }) {
           </div>
         </div>
 
-        <nav className="mt-6">
+        <nav className="mt-6 flex-1">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -250,72 +104,9 @@ function Layout({ children }) {
           ))}
         </nav>
 
-        {/* Presets Section */}
-        <div className="mt-6 px-6 pb-6 flex-1 flex flex-col border-t border-gray-800 dark:border-gray-900 pt-4 overflow-hidden">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Presets
-            </h3>
-            <div className="flex gap-1">
-              <button
-                onClick={fetchPresets}
-                className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
-                title="Refresh preset list"
-              >
-                ↻
-              </button>
-              <button
-                onClick={handleNewPreset}
-                className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                title="Load default config to create new preset"
-              >
-                + New
-              </button>
-            </div>
-          </div>
-
-          {/* Preset List */}
-          <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
-            {loadingPresets ? (
-              <div className="text-xs text-gray-500 text-center py-4">Loading...</div>
-            ) : presets.length === 0 ? (
-              <div className="text-xs text-gray-500 text-center py-4">No presets yet</div>
-            ) : (
-              presets.map((preset) => {
-                const isRunning = serverStatuses[preset.id]?.running;
-                return (
-                  <button
-                    key={preset.id}
-                    onClick={() => handleLoadPreset(preset.id)}
-                    className={`w-full text-left px-3 py-2 text-sm rounded transition-colors truncate flex items-center gap-2 ${
-                      selectedPresetId === preset.id
-                        ? 'bg-blue-600 text-white font-medium'
-                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                    }`}
-                    title={`Load ${preset.name} into editor${isRunning ? ' (Server Running)' : ''}`}
-                  >
-                    <span className={`text-xs ${isRunning ? 'text-green-400' : 'text-gray-400'}`}>
-                      <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 8 8">
-                        <circle cx="4" cy="4" r="3" />
-                      </svg>
-                    </span>
-                    <span className="flex-1 truncate">{preset.name}</span>
-                    {!isRunning && (
-                      <button
-                        onClick={(e) => handleStartServer(preset.id, e)}
-                        className="text-green-500 hover:text-green-400 hover:bg-gray-700 rounded px-1.5 py-0.5 transition-colors flex items-center"
-                        title="Start this server instance"
-                      >
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </button>
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
+        {/* Quick tip at bottom */}
+        <div className="px-6 py-4 border-t border-gray-800 text-xs text-gray-500">
+          <p>Manage presets in Dashboard → AC Server Manager → Presets</p>
         </div>
       </aside>
 
