@@ -421,19 +421,19 @@ export default function EntryListTab({
                       <div className="flex gap-2">
                         <button
                           onClick={() => randomizeSkin(entry)}
-                          className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                          className="text-xs px-2 py-1 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors"
                         >
                           Random skin
                         </button>
                         <button
                           onClick={() => cloneEntry(entry)}
-                          className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                          className="text-xs px-2 py-1 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors"
                         >
                           Clone
                         </button>
                         <button
                           onClick={() => deleteEntryAtIndex(index)}
-                          className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                          className="text-xs px-2 py-1 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors"
                         >
                           Delete
                         </button>

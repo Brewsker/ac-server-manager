@@ -53,4 +53,14 @@ router.get('/logs', async (req, res, next) => {
   }
 });
 
+// Get system/container resource stats
+router.get('/system-stats', async (req, res, next) => {
+  try {
+    const stats = await serverService.getSystemStats();
+    res.json(stats);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

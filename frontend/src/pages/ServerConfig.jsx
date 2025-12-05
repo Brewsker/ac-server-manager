@@ -415,8 +415,22 @@ function ServerConfig() {
       await api.savePreset(ui.presetName, configToSave);
       console.log('Configuration saved as preset:', ui.presetName);
 
-      // Dispatch event to refresh preset list in sidebar
+      // Refresh presets list and find the newly saved preset
+      const presetsData = await api.getPresets();
+      const savedPreset = presetsData.presets?.find((p) => p.name === ui.presetName);
+
+      // Update state with new preset ID
+      updateData({
+        presets: presetsData.presets || [],
+        currentPresetId: savedPreset?.id || null,
+        config: configToSave,
+      });
+
+      // Dispatch events to refresh preset list and selection in sidebar
       window.dispatchEvent(new CustomEvent('presetSaved'));
+      window.dispatchEvent(
+        new CustomEvent('presetSelected', { detail: { presetId: savedPreset?.id || null } })
+      );
 
       updateModals({ showSave: false });
       updateUi({ presetName: '' });
@@ -443,24 +457,54 @@ function ServerConfig() {
   };
 
   const handleClonePreset = async () => {
-    if (!data.currentPresetId) return;
+    if (!data.config) return;
 
-    const currentPreset = data.presets.find((p) => p.id === data.currentPresetId);
-    const defaultName = currentPreset ? `${currentPreset.name} (Copy)` : 'Cloned Preset';
+    const currentName = data.config?.SERVER?.NAME || 'Preset';
+    const defaultName = `${currentName} (Copy)`;
 
-    const name = prompt(`Clone "${currentPreset?.name || 'this preset'}" as:`, defaultName);
+    const name = prompt(`Clone "${currentName}" as:`, defaultName);
     if (!name) return;
 
     try {
-      await api.duplicatePreset(data.currentPresetId, name);
+      if (data.currentPresetId) {
+        // Clone via API if we have a preset ID
+        await api.duplicatePreset(data.currentPresetId, name);
+      } else {
+        // Save current config as new preset
+        const configToSave = {
+          ...data.config,
+          SERVER: {
+            ...data.config.SERVER,
+            NAME: name,
+            CARS: data.selectedCars.join(';'),
+          },
+        };
+        await api.savePreset(name, configToSave);
+      }
       console.log('Preset cloned:', name);
 
-      // Refresh presets list
+      // Refresh presets list and find the cloned preset
       const presetsData = await api.getPresets();
-      updateData({ presets: presetsData.presets || [] });
+      const clonedPreset = presetsData.presets?.find((p) => p.name === name);
 
-      // Dispatch event to refresh sidebar
-      window.dispatchEvent(new CustomEvent('presetSaved'));
+      // Load the cloned preset into the editor
+      if (clonedPreset) {
+        await api.loadPreset(clonedPreset.id);
+        const configData = await api.getConfig();
+
+        updateData({
+          presets: presetsData.presets || [],
+          currentPresetId: clonedPreset.id,
+          config: configData,
+          selectedCars: configData?.SERVER?.CARS?.split(';').filter(Boolean) || [],
+        });
+
+        // Dispatch events to refresh preset list and selection in sidebar
+        window.dispatchEvent(new CustomEvent('presetSaved'));
+        window.dispatchEvent(
+          new CustomEvent('presetSelected', { detail: { presetId: clonedPreset.id } })
+        );
+      }
 
       updateModals({ showClone: false });
     } catch (error) {
@@ -469,31 +513,55 @@ function ServerConfig() {
   };
 
   const handleRenamePreset = async () => {
-    if (!data.currentPresetId) return;
+    if (!data.config) return;
 
-    const currentPreset = data.presets.find((p) => p.id === data.currentPresetId);
-    const newName = prompt('Rename preset to:', currentPreset?.name || '');
-    if (!newName || newName === currentPreset?.name) return;
+    const currentName = data.config?.SERVER?.NAME || '';
+    const newName = prompt('Rename preset to:', currentName);
+    if (!newName || newName === currentName) return;
 
     try {
-      await api.renamePreset(data.currentPresetId, newName);
-      console.log('Preset renamed:', newName);
-
       // Update local state with new name
-      updateData({
-        config: {
-          ...data.config,
-          SERVER: { ...data.config.SERVER, NAME: newName },
+      const updatedConfig = {
+        ...data.config,
+        SERVER: { ...data.config.SERVER, NAME: newName },
+      };
+
+      // Build config to save
+      const configToSave = {
+        ...updatedConfig,
+        SERVER: {
+          ...updatedConfig.SERVER,
+          CARS: data.selectedCars.join(';'),
         },
-        presets: data.presets.map((p) =>
-          p.id === data.currentPresetId ? { ...p, name: newName } : p
-        ),
+      };
+
+      if (data.currentPresetId) {
+        // Rename via API if we have a preset ID
+        await api.renamePreset(data.currentPresetId, newName);
+      }
+
+      // Save the config (creates new if no preset, or updates via working state + savePreset)
+      await api.updateConfig(configToSave);
+      await api.savePreset(newName, configToSave);
+
+      // Refresh presets list
+      const presetsData = await api.getPresets();
+      const renamedPreset = presetsData.presets?.find((p) => p.name === newName);
+
+      updateData({
+        config: updatedConfig,
+        presets: presetsData.presets || [],
+        currentPresetId: renamedPreset?.id || null,
       });
 
-      // Dispatch event to refresh sidebar
+      // Dispatch events to refresh sidebar
       window.dispatchEvent(new CustomEvent('presetSaved'));
+      window.dispatchEvent(
+        new CustomEvent('presetSelected', { detail: { presetId: renamedPreset?.id || null } })
+      );
 
       updateModals({ showRename: false });
+      console.log('Preset renamed:', newName);
     } catch (error) {
       console.error('Failed to rename preset:', error);
       alert('Failed to rename preset');
@@ -501,49 +569,85 @@ function ServerConfig() {
   };
 
   const handleDeletePreset = async () => {
-    if (!data.currentPresetId) return;
+    if (!data.config) return;
 
     try {
-      // Find the index of the current preset in the list
-      const currentIndex = data.presets.findIndex((p) => p.id === data.currentPresetId);
+      // If we have a saved preset, delete it from disk
+      if (data.currentPresetId) {
+        // Find the index of the current preset in the list
+        const currentIndex = data.presets.findIndex((p) => p.id === data.currentPresetId);
 
-      // Delete the preset
-      await api.deletePreset(data.currentPresetId);
-      console.log('Preset deleted');
+        // Delete the preset
+        await api.deletePreset(data.currentPresetId);
+        console.log('Preset deleted');
 
-      // Get updated presets list
-      const presetsData = await api.getPresets();
-      const updatedPresets = presetsData.presets || [];
+        // Get updated presets list
+        const presetsData = await api.getPresets();
+        const updatedPresets = presetsData.presets || [];
 
-      // Determine which preset to load next
-      let nextPreset = null;
+        // Determine which preset to load next
+        let nextPreset = null;
 
-      if (updatedPresets.length > 0) {
-        // Try to load the preset that took the deleted preset's position
-        if (currentIndex < updatedPresets.length) {
-          nextPreset = updatedPresets[currentIndex];
+        if (updatedPresets.length > 0) {
+          // Try to load the preset that took the deleted preset's position
+          if (currentIndex < updatedPresets.length) {
+            nextPreset = updatedPresets[currentIndex];
+          } else {
+            // If we deleted the last one, load the new last one
+            nextPreset = updatedPresets[updatedPresets.length - 1];
+          }
+        }
+
+        if (nextPreset) {
+          // Load the next preset
+          await api.loadPreset(nextPreset.id);
+          await fetchData();
+
+          // Dispatch events to update sidebar
+          window.dispatchEvent(new CustomEvent('presetSaved'));
+          window.dispatchEvent(
+            new CustomEvent('presetSelected', { detail: { presetId: nextPreset.id } })
+          );
         } else {
-          // If we deleted the last one, load the new last one
-          nextPreset = updatedPresets[updatedPresets.length - 1];
+          // No presets left, clear config to show empty state
+          updateData({
+            config: null,
+            selectedCars: [],
+            currentPresetId: null,
+            presets: [],
+          });
+
+          // Dispatch events to update sidebar (no selection)
+          window.dispatchEvent(new CustomEvent('presetSaved'));
+          window.dispatchEvent(new CustomEvent('presetSelected', { detail: { presetId: null } }));
+        }
+      } else {
+        // Unsaved config - just clear it and load another preset or show empty state
+        console.log('Discarding unsaved config');
+
+        if (data.presets.length > 0) {
+          // Load the first available preset
+          const firstPreset = data.presets[0];
+          await api.loadPreset(firstPreset.id);
+          await fetchData();
+
+          // Dispatch events to update sidebar
+          window.dispatchEvent(new CustomEvent('presetSaved'));
+          window.dispatchEvent(
+            new CustomEvent('presetSelected', { detail: { presetId: firstPreset.id } })
+          );
+        } else {
+          // No presets, clear to empty state
+          updateData({
+            config: null,
+            selectedCars: [],
+            currentPresetId: null,
+          });
+
+          // Dispatch event to clear sidebar selection
+          window.dispatchEvent(new CustomEvent('presetSelected', { detail: { presetId: null } }));
         }
       }
-
-      if (nextPreset) {
-        // Load the next preset
-        await api.loadPreset(nextPreset.id);
-        await fetchData();
-      } else {
-        // No presets left, clear config to show empty state
-        updateData({
-          config: null,
-          selectedCars: [],
-          currentPresetId: null,
-          presets: [],
-        });
-      }
-
-      // Dispatch event to refresh sidebar
-      window.dispatchEvent(new CustomEvent('presetSaved'));
 
       updateModals({ showDelete: false });
     } catch (error) {
@@ -988,8 +1092,8 @@ function ServerConfig() {
 
         {/* Action Buttons - CM Style - Fixed at Bottom */}
         <div className="fixed bottom-0 left-64 right-0 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-700 shadow-lg z-10">
-          <div className="max-w-7xl mx-auto px-8 py-4">
-            <div className="flex gap-2">
+          <div className="px-4 py-3">
+            <div className="flex gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={handleOpenFolder}
@@ -1024,8 +1128,8 @@ function ServerConfig() {
               </button>
               <button
                 type="button"
-                onClick={() => data.currentPresetId && updateModals({ showClone: true })}
-                disabled={!data.currentPresetId}
+                onClick={() => data.config && updateModals({ showClone: true })}
+                disabled={!data.config}
                 className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 title="Clone this preset"
               >
@@ -1042,7 +1146,7 @@ function ServerConfig() {
               <button
                 type="button"
                 onClick={handleRenamePreset}
-                disabled={!data.currentPresetId}
+                disabled={!data.config}
                 className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 title="Rename this preset"
               >
@@ -1059,7 +1163,7 @@ function ServerConfig() {
               <button
                 type="button"
                 onClick={handleSaveConfig}
-                disabled={!data.currentPresetId}
+                disabled={!data.config}
                 className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 title="Save configuration (Ctrl+S)"
               >
@@ -1075,9 +1179,9 @@ function ServerConfig() {
               </button>
               <button
                 type="button"
-                onClick={() => data.currentPresetId && updateModals({ showDelete: true })}
-                disabled={!data.currentPresetId}
-                className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                onClick={() => data.config && updateModals({ showDelete: true })}
+                disabled={!data.config}
+                className="px-4 py-2 bg-red-700 dark:bg-red-800 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 title="Delete this preset"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1091,7 +1195,8 @@ function ServerConfig() {
                 Delete
               </button>
 
-              <div className="flex-1"></div>
+              {/* Separator */}
+              <div className="w-px h-8 bg-gray-600 dark:bg-gray-500 mx-1 self-center"></div>
 
               {!data.serverStatus?.running ? (
                 <button
@@ -1207,8 +1312,12 @@ function ServerConfig() {
 
         {modals.showDelete && (
           <ConfirmModal
-            title="Delete Preset"
-            message={`Are you sure you want to delete "${data.config?.SERVER?.NAME}"? This action cannot be undone. The default configuration will be loaded after deletion.`}
+            title={data.currentPresetId ? 'Delete Preset' : 'Discard Configuration'}
+            message={
+              data.currentPresetId
+                ? `Are you sure you want to delete "${data.config?.SERVER?.NAME}"? This action cannot be undone. The default configuration will be loaded after deletion.`
+                : `Discard changes to "${data.config?.SERVER?.NAME}"? This will load the default configuration.`
+            }
             onConfirm={handleDeletePreset}
             onClose={() => updateModals({ showDelete: false })}
           />

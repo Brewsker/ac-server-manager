@@ -39,6 +39,11 @@ export const getServerLogs = async (lines = 100) => {
   return response.data;
 };
 
+export const getSystemStats = async () => {
+  const response = await client.get('/server/system-stats');
+  return response.data;
+};
+
 // Content status endpoint
 export const getContentStatus = async () => {
   const response = await client.get('/content/status');
@@ -434,6 +439,7 @@ export default {
   stopServer,
   restartServer,
   getServerLogs,
+  getSystemStats,
   getConfig,
   updateConfig,
   applyConfig,
