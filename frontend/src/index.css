@@ -3,12 +3,16 @@
 @tailwind utilities;
 
 @layer base {
-  html {
-    overflow-y: auto;
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
   }
 
   body {
-    @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors;
+    @apply bg-gray-900 text-gray-100;
   }
 
   /* Hide scrollbar but maintain scrollability */

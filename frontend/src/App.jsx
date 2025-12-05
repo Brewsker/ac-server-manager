@@ -35,7 +35,9 @@ function App() {
   // Dashboard is now the entire app
   return (
     <ThemeProvider>
-      <Dashboard />
+      <div className="h-screen w-screen overflow-hidden bg-gray-900">
+        <Dashboard />
+      </div>
     </ThemeProvider>
   );
 }
