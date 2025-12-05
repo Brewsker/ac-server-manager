@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import { useTheme } from '../contexts/ThemeContext';
 import FolderBrowserModal from '../components/FolderBrowserModal';
@@ -320,6 +319,7 @@ function Dashboard() {
           <ContentPanel
             selectedItem={selectedItem}
             selectedView={selectedView}
+            setSelectedView={setSelectedView}
             selectedServer={selectedServer}
             runningServers={runningServers}
             monitoringData={monitoringData}
@@ -346,6 +346,7 @@ function Dashboard() {
 function ContentPanel({
   selectedItem,
   selectedView,
+  setSelectedView,
   selectedServer,
   runningServers,
   monitoringData,
@@ -359,7 +360,7 @@ function ContentPanel({
 
   // App Views (AC Server Manager level)
   if (selectedItem.type === 'app') {
-    return <AppView view={selectedView} servers={runningServers} />;
+    return <AppView view={selectedView} servers={runningServers} setSelectedView={setSelectedView} />;
   }
 
   // Server Views
@@ -602,7 +603,7 @@ function HostView({ view, servers }) {
 // APP VIEW (AC Server Manager level)
 // ============================================================================
 
-function AppView({ view, servers }) {
+function AppView({ view, servers, setSelectedView }) {
   const runningCount = servers.length;
   const stoppedCount = 0; // Would come from presets not running
   const totalPlayers = servers.reduce((sum, s) => sum + (s.players || 0), 0);
@@ -749,7 +750,7 @@ function AppView({ view, servers }) {
   }
 
   if (view === 'presets') {
-    return <PresetsView />;
+    return <PresetsView setSelectedView={setSelectedView} />;
   }
 
   if (view === 'editor') {
@@ -771,8 +772,7 @@ function AppView({ view, servers }) {
 // PRESETS VIEW (Preset Management)
 // ============================================================================
 
-function PresetsView() {
-  const navigate = useNavigate();
+function PresetsView({ setSelectedView }) {
   const [presets, setPresets] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [serverStatuses, setServerStatuses] = React.useState({});
@@ -817,7 +817,7 @@ function PresetsView() {
     try {
       setSelectedPresetId(presetId);
       await api.loadPreset(presetId);
-      navigate('/config', { state: { presetLoaded: true, timestamp: Date.now() } });
+      setSelectedView('editor');
     } catch (error) {
       console.error('Failed to load preset:', error);
     }
@@ -855,7 +855,7 @@ function PresetsView() {
 
       if (newPreset) {
         await api.loadPreset(newPreset.id);
-        navigate('/config', { state: { presetLoaded: true, timestamp: Date.now() } });
+        setSelectedView('editor');
       }
     } catch (error) {
       console.error('Failed to create new preset:', error);
@@ -1040,7 +1040,6 @@ function PresetsView() {
 // ============================================================================
 
 function EditorView() {
-  const navigate = useNavigate();
   const isMountedRef = React.useRef(true);
 
   // Editor state
@@ -1493,12 +1492,7 @@ function EditorView() {
     return (
       <div className="p-4 flex flex-col items-center justify-center h-full">
         <div className="text-gray-500 mb-4">No configuration loaded</div>
-        <button
-          onClick={() => navigate('/config')}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors"
-        >
-          Go to Full Editor
-        </button>
+        <p className="text-gray-600 text-sm">Select a preset from the Presets view to edit</p>
       </div>
     );
   }
