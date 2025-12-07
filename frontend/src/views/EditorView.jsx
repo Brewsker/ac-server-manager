@@ -130,7 +130,7 @@ function EditorView() {
           ...configData?.SERVER,
           SUN_ANGLE: configData?.SERVER?.SUN_ANGLE ?? 960,
           TIME_OF_DAY_MULT: configData?.SERVER?.TIME_OF_DAY_MULT ?? 1,
-          REGISTER_TO_LOBBY: configData?.SERVER?.REGISTER_TO_LOBBY ?? 1,
+          REGISTER_TO_LOBBY: configData?.SERVER?.REGISTER_TO_LOBBY ?? 0,
           ADMIN_PASSWORD: configData?.SERVER?.ADMIN_PASSWORD ?? 'mypassword',
           MAX_CLIENTS: configData?.SERVER?.MAX_CLIENTS ?? 18,
         },
@@ -186,7 +186,15 @@ function EditorView() {
 
     // If we already have a preset loaded, save directly without showing modal
     if (data.currentPresetId) {
-      await confirmSavePreset(false);
+      // Get preset name from current preset
+      const currentPreset = data.presets.find((p) => p.id === data.currentPresetId);
+      const presetName = currentPreset?.name || data.config?.SERVER?.NAME || '';
+      
+      // Update UI state for potential future use
+      updateUi({ presetName });
+      
+      // Save directly with the preset name
+      await confirmSavePreset(false, presetName);
     } else {
       // First-time save: show modal to get preset name
       updateUi({ presetName: data.config?.SERVER?.NAME || '' });
@@ -194,15 +202,16 @@ function EditorView() {
     }
   };
 
-  const confirmSavePreset = async (applyToServer = false) => {
-    if (!ui.presetName.trim()) return;
+  const confirmSavePreset = async (applyToServer = false, presetNameOverride = null) => {
+    const presetName = presetNameOverride || ui.presetName;
+    if (!presetName.trim()) return;
 
     try {
       const configToSave = {
         ...data.config,
         SERVER: {
           ...data.config.SERVER,
-          NAME: ui.presetName,
+          NAME: presetName,
           CARS: data.selectedCars.join(';'),
         },
       };
@@ -211,18 +220,18 @@ function EditorView() {
 
       // Check if we're renaming an existing preset
       const currentPreset = data.presets.find((p) => p.id === data.currentPresetId);
-      const isRename = currentPreset && currentPreset.name !== ui.presetName.trim();
+      const isRename = currentPreset && currentPreset.name !== presetName.trim();
 
       let result;
       if (isRename) {
         // Rename the existing preset and save the updated config
-        result = await api.renamePreset(data.currentPresetId, ui.presetName.trim());
+        result = await api.renamePreset(data.currentPresetId, presetName.trim());
         // Save the config to the renamed preset
-        await api.savePreset(ui.presetName, configToSave);
-        console.log('Preset renamed and saved:', currentPreset.name, '→', ui.presetName);
+        await api.savePreset(presetName, configToSave);
+        console.log('Preset renamed and saved:', currentPreset.name, '→', presetName);
       } else {
         // Save as new or update existing preset with same name
-        result = await api.savePreset(ui.presetName, configToSave);
+        result = await api.savePreset(presetName, configToSave);
       }
 
       if (applyToServer) {
@@ -231,17 +240,17 @@ function EditorView() {
 
       // Refresh presets
       const presetsData = await api.getPresets();
-      const savedPreset = presetsData.presets?.find((p) => p.name === ui.presetName);
+      const savedPreset = presetsData.presets?.find((p) => p.name === presetName);
 
       updateData({
-        config: { ...data.config, SERVER: { ...data.config.SERVER, NAME: ui.presetName } },
+        config: { ...data.config, SERVER: { ...data.config.SERVER, NAME: presetName } },
         presets: presetsData.presets || [],
         currentPresetId:
           savedPreset?.id || result?.preset?.id || result?.id || data.currentPresetId,
       });
 
       updateModals({ showSave: false });
-      console.log('Preset saved:', ui.presetName);
+      console.log('Preset saved:', presetName);
     } catch (error) {
       console.error('Failed to save preset:', error);
       alert('Failed to save: ' + error.message);
