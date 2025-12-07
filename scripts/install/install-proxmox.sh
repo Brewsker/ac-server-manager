@@ -466,10 +466,10 @@ EOF
 # Make executable
 chmod +x /opt/assetto-corsa-server/acServer
 
-# Update .env with AC paths
+# Update .env with AC paths (directory paths, not full executable paths)
 cd /opt/ac-server-manager/backend
-sed -i 's|AC_SERVER_PATH=.*|AC_SERVER_PATH=/opt/assetto-corsa-server/acServer|' .env
-sed -i 's|AC_SERVER_CONFIG_PATH=.*|AC_SERVER_CONFIG_PATH=/opt/assetto-corsa-server/cfg/server_cfg.ini|' .env
+sed -i 's|AC_SERVER_PATH=.*|AC_SERVER_PATH=/opt/assetto-corsa-server|' .env
+sed -i 's|AC_SERVER_CONFIG_PATH=.*|AC_SERVER_CONFIG_PATH=/opt/assetto-corsa-server/cfg|' .env
 sed -i 's|AC_ENTRY_LIST_PATH=.*|AC_ENTRY_LIST_PATH=/opt/assetto-corsa-server/cfg/entry_list.ini|' .env
 sed -i 's|AC_CONTENT_PATH=.*|AC_CONTENT_PATH=/opt/assetto-corsa-server/content|' .env
 

@@ -1239,11 +1239,12 @@ deploy_main_app() {
     debug "Frontend built"
     
     # Create .env file with pre-configured paths for SteamCMD/AC installation
+    # Note: PM2 uses ecosystem.config.cjs for env vars, but .env acts as fallback
     print_info "Creating default configuration..."
     pct exec $CTID -- bash -c "cat > $APP_DIR/backend/.env << 'ENVEOF'
 NODE_ENV=production
 PORT=3001
-AC_SERVER_PATH=/opt/acserver/acServer
+AC_SERVER_PATH=/opt/acserver
 AC_SERVER_CONFIG_PATH=/opt/acserver/cfg
 AC_ENTRY_LIST_PATH=/opt/acserver/cfg/entry_list.ini
 AC_CONTENT_PATH=/opt/acserver/content

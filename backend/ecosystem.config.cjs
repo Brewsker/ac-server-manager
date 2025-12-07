@@ -9,7 +9,9 @@ module.exports = {
     max_memory_restart: '500M',
     env: {
       NODE_ENV: 'production',
-      PORT: 3001
+      PORT: 3001,
+      AC_SERVER_PATH: '/opt/acserver',
+      AC_CONTENT_PATH: '/opt/acserver/content'
     },
     error_file: '/opt/ac-server-manager/backend/logs/error.log',
     out_file: '/opt/ac-server-manager/backend/logs/out.log',
