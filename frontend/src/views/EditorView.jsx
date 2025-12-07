@@ -6,6 +6,7 @@ import CMPackImportModal from '../components/CMPackImportModal';
 // Lazy load heavy config editor components
 const CarSelectionModal = lazy(() => import('../components/CarSelectionModal'));
 const TrackSelectionModal = lazy(() => import('../components/TrackSelectionModal'));
+const CSPOptionsModal = lazy(() => import('../components/modals/CSPOptionsModal'));
 const MainTab = lazy(() => import('../components/config/MainTab'));
 const RulesTab = lazy(() => import('../components/config/RulesTab'));
 const ConditionsTab = lazy(() => import('../components/config/ConditionsTab'));
@@ -50,7 +51,6 @@ function EditorView() {
   // UI state
   const [ui, setUi] = React.useState({
     presetName: '',
-    cspOptionsInput: '',
     showPassword: false,
     showAdminPassword: false,
     activeTab: localStorage.getItem('dashboardEditorActiveTab') || 'MAIN',
@@ -279,6 +279,7 @@ function EditorView() {
   };
 
   const handleTrackSelect = (trackId, trackConfig) => {
+    console.log('Track selected:', trackId);
     updateConfigValue('SERVER', 'TRACK', trackId);
     if (trackConfig) {
       updateConfigValue('SERVER', 'CONFIG_TRACK', trackConfig);
@@ -392,18 +393,29 @@ function EditorView() {
         ...data.config,
         SERVER: { ...data.config.SERVER, NAME: newName.trim() },
       };
-      await api.savePreset(newName.trim(), clonedConfig);
+
+      // Save the cloned preset
+      const result = await api.savePreset(newName.trim(), clonedConfig);
+
+      // Refresh presets and select the new clone
       const presetsData = await api.getPresets();
       const newPreset = presetsData.presets?.find((p) => p.name === newName.trim());
-      updateData({
-        config: clonedConfig,
-        presets: presetsData.presets || [],
-        currentPresetId: newPreset?.id || null,
-      });
+
+      if (newPreset) {
+        // Load the cloned preset to switch to it
+        await api.loadPreset(newPreset.id);
+        updateData({
+          config: clonedConfig,
+          presets: presetsData.presets || [],
+          currentPresetId: newPreset.id,
+        });
+        console.log('Preset cloned successfully:', newName);
+      }
+
       updateModals({ showClone: false });
     } catch (error) {
       console.error('Failed to clone preset:', error);
-      alert('Failed to clone: ' + error.message);
+      alert('Failed to clone preset: ' + error.message);
     }
   };
 
@@ -411,35 +423,49 @@ function EditorView() {
   const handleRenamePreset = async (newName) => {
     if (!newName?.trim() || !data.config || !data.currentPresetId) return;
     try {
+      // Use proper rename API to preserve preset ID
+      await api.renamePreset(data.currentPresetId, newName.trim());
+
+      // Update config with new name and save it
       const renamedConfig = {
         ...data.config,
         SERVER: { ...data.config.SERVER, NAME: newName.trim() },
       };
-      // Delete old preset then save with new name
-      await api.deletePreset(data.currentPresetId);
       await api.savePreset(newName.trim(), renamedConfig);
+
+      // Refresh presets list
       const presetsData = await api.getPresets();
-      const newPreset = presetsData.presets?.find((p) => p.name === newName.trim());
       updateData({
         config: renamedConfig,
         presets: presetsData.presets || [],
-        currentPresetId: newPreset?.id || null,
+        // Keep the same preset ID since we renamed it
+        currentPresetId: data.currentPresetId,
       });
       updateModals({ showRename: false });
+      console.log('Preset renamed successfully:', newName);
     } catch (error) {
       console.error('Failed to rename preset:', error);
-      alert('Failed to rename: ' + error.message);
+      alert('Failed to rename preset: ' + error.message);
     }
   };
 
   // Delete preset handler
   const handleDeletePreset = async () => {
     if (!data.currentPresetId) return;
+
+    const presetName = data.config?.SERVER?.NAME || 'this preset';
+
     try {
       await api.deletePreset(data.currentPresetId);
+      console.log('Preset deleted successfully:', presetName);
+
+      // Refresh presets list
       const presetsData = await api.getPresets();
+
       // Load default config after delete
+      await api.loadDefaultConfig();
       const configData = await api.getConfig();
+
       updateData({
         config: configData,
         presets: presetsData.presets || [],
@@ -448,14 +474,37 @@ function EditorView() {
       updateModals({ showDelete: false });
     } catch (error) {
       console.error('Failed to delete preset:', error);
-      alert('Failed to delete: ' + error.message);
+      alert(`Failed to delete preset "${presetName}": ${error.message}`);
     }
   };
 
   // Server control handlers
   const handleRunServer = async () => {
     if (!data.currentPresetId) return;
+
+    // Validate track is selected
+    if (!data.config?.SERVER?.TRACK) {
+      alert('Please select a track before starting the server.');
+      return;
+    }
+
+    // Validate at least one car is selected
+    if (!data.selectedCars || data.selectedCars.length === 0) {
+      alert('Please select at least one car before starting the server.');
+      return;
+    }
+
     try {
+      // Save the preset before starting to ensure changes are applied
+      const presetName = data.config?.SERVER?.NAME || ui.presetName;
+      if (!presetName) {
+        alert('Please enter a preset name before starting the server.');
+        return;
+      }
+
+      await api.savePreset(presetName, data.config);
+
+      // Start the server
       await api.startServerInstance(data.currentPresetId);
       const status = await api.getServerInstanceStatus(data.currentPresetId);
       updateData({ serverStatus: status.running ? { running: true, pid: status.pid } : null });
@@ -478,7 +527,26 @@ function EditorView() {
 
   const handleRestartServer = async () => {
     if (!data.currentPresetId) return;
+
+    // Validate track is selected
+    if (!data.config?.SERVER?.TRACK) {
+      alert('Please select a track before restarting the server.');
+      return;
+    }
+
+    // Validate at least one car is selected
+    if (!data.selectedCars || data.selectedCars.length === 0) {
+      alert('Please select at least one car before restarting the server.');
+      return;
+    }
+
     try {
+      // Save the preset before restarting to ensure changes are applied
+      const presetName = data.config?.SERVER?.NAME || ui.presetName;
+      if (presetName) {
+        await api.savePreset(presetName, data.config);
+      }
+
       await api.restartServerInstance(data.currentPresetId);
       const status = await api.getServerInstanceStatus(data.currentPresetId);
       updateData({ serverStatus: status.running ? { running: true, pid: status.pid } : null });
@@ -752,9 +820,20 @@ function EditorView() {
               <button
                 type="button"
                 onClick={handleRunServer}
-                disabled={!data.currentPresetId}
+                disabled={
+                  !data.currentPresetId ||
+                  !data.config?.SERVER?.TRACK ||
+                  !data.selectedCars ||
+                  data.selectedCars.length === 0
+                }
                 className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-500 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                title="Start server instance"
+                title={
+                  !data.config?.SERVER?.TRACK
+                    ? 'Select a track first'
+                    : !data.selectedCars || data.selectedCars.length === 0
+                    ? 'Select at least one car first'
+                    : 'Start server instance'
+                }
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
@@ -815,6 +894,16 @@ function EditorView() {
             selectedCars={data.selectedCars}
             onUpdate={handleCarsUpdate}
             onClose={() => updateModals({ showCar: false })}
+          />
+        </Suspense>
+      )}
+
+      {modals.showCspOptions && (
+        <Suspense fallback={null}>
+          <CSPOptionsModal
+            currentValue={data.config?.SERVER?.CSP_EXTRA_OPTIONS || ''}
+            onSave={(options) => updateConfigValue('SERVER', 'CSP_EXTRA_OPTIONS', options)}
+            onClose={() => updateModals({ showCspOptions: false })}
           />
         </Suspense>
       )}

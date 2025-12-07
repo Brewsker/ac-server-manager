@@ -873,6 +873,30 @@ function PresetsView({ setSelectedView }) {
 
   const handleStartServer = async (presetId, e) => {
     e.stopPropagation();
+
+    // Find the preset to validate
+    const preset = presets.find((p) => p.id === presetId);
+    if (!preset) {
+      alert('Preset not found');
+      return;
+    }
+
+    // Validate track is selected
+    if (!preset.track || preset.track === 'Unknown') {
+      alert(
+        `Cannot start "${preset.name}": No track selected. Please edit the preset and select a track.`
+      );
+      return;
+    }
+
+    // Validate at least one car is selected
+    if (!preset.cars || preset.cars === 0) {
+      alert(
+        `Cannot start "${preset.name}": No cars selected. Please edit the preset and select at least one car.`
+      );
+      return;
+    }
+
     try {
       await api.startServerInstance(presetId);
     } catch (error) {
@@ -1031,8 +1055,20 @@ function PresetsView({ setSelectedView }) {
                           ) : (
                             <button
                               onClick={(e) => handleStartServer(preset.id, e)}
-                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded transition-colors"
-                              title="Start server"
+                              disabled={
+                                !preset.track ||
+                                preset.track === 'Unknown' ||
+                                !preset.cars ||
+                                preset.cars === 0
+                              }
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={
+                                !preset.track || preset.track === 'Unknown'
+                                  ? 'No track selected - edit preset first'
+                                  : !preset.cars || preset.cars === 0
+                                  ? 'No cars selected - edit preset first'
+                                  : 'Start server'
+                              }
                             >
                               Start
                             </button>

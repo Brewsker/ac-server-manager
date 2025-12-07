@@ -1,12 +1,18 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { useKeyboardNav } from '../hooks/useKeyboardNav';
 
-function TrackSelectionModal({ tracks, selectedTrack, onConfirm, onClose }) {
+function TrackSelectionModal({ tracks, currentTrack, onSelect, onClose }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [tempSelectedTrack, setTempSelectedTrack] = useState(selectedTrack || '');
+  const [tempSelectedTrack, setTempSelectedTrack] = useState(currentTrack || '');
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState(null); // 'kunos', 'new', or null
   const [countryFilter, setCountryFilter] = useState(null); // selected country or null
+
+  // Debug: Verify onSelect is a function
+  if (typeof onSelect !== 'function') {
+    console.error('TrackSelectionModal: onSelect is not a function!', typeof onSelect);
+  }
 
   const filterTabs = [
     { id: 'ALL', label: 'All', icon: '🌐' },
@@ -116,11 +122,13 @@ function TrackSelectionModal({ tracks, selectedTrack, onConfirm, onClose }) {
   });
 
   const handleConfirm = () => {
+    console.log('Confirm clicked, tempSelectedTrack:', tempSelectedTrack);
     if (!tempSelectedTrack) {
       alert('Please select a track');
       return;
     }
-    onConfirm(tempSelectedTrack);
+    console.log('Calling onSelect with:', tempSelectedTrack);
+    onSelect(tempSelectedTrack);
   };
 
   const { selectedIndex, buttonRefs } = useKeyboardNav(
@@ -357,6 +365,10 @@ function TrackSelectionModal({ tracks, selectedTrack, onConfirm, onClose }) {
                   <div
                     key={track.id}
                     onClick={() => setTempSelectedTrack(track.id)}
+                    onDoubleClick={() => {
+                      setTempSelectedTrack(track.id);
+                      onSelect(track.id);
+                    }}
                     className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
                       tempSelectedTrack === track.id
                         ? 'border-blue-500 ring-2 ring-blue-300 dark:ring-blue-700'
@@ -451,5 +463,12 @@ function TrackSelectionModal({ tracks, selectedTrack, onConfirm, onClose }) {
     </div>
   );
 }
+
+TrackSelectionModal.propTypes = {
+  tracks: PropTypes.array.isRequired,
+  currentTrack: PropTypes.string,
+  onSelect: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+};
 
 export default TrackSelectionModal;
