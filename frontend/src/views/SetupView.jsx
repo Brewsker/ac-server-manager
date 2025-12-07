@@ -137,7 +137,7 @@ function SetupView() {
     setDownloadingACServer(true);
     setSteamMessage(null);
     try {
-      const result = await api.downloadACServer(acServerPath, steamUser, steamPass, '');
+      const result = await api.downloadACServer(acServerPath, steamUser, steamPass, steamGuardCode);
       if (result.success) {
         setSteamMessage({
           type: 'success',
@@ -536,6 +536,18 @@ function SetupView() {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Steam Guard Code (Optional)</label>
+                <input
+                  type="text"
+                  value={steamGuardCode}
+                  onChange={(e) => setSteamGuardCode(e.target.value)}
+                  placeholder="Enter code if Steam Guard is enabled"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">Leave blank if not using Steam Guard</p>
               </div>
 
               <button
