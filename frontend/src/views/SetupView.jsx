@@ -33,7 +33,7 @@ function SetupView() {
   const [steamVerified, setSteamVerified] = React.useState(false);
   const [verifyingCreds, setVerifyingCreds] = React.useState(false);
   const [verifyMessage, setVerifyMessage] = React.useState(null);
-  
+
   // Collapsible section states
   const [steamCmdExpanded, setSteamCmdExpanded] = React.useState(false);
   const [acServerExpanded, setAcServerExpanded] = React.useState(false);
@@ -753,7 +753,12 @@ function SetupView() {
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 )}
               </div>
@@ -769,9 +774,13 @@ function SetupView() {
                     disabled
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm cursor-not-allowed opacity-75"
                   >
-                    <option value="/usr/games/steamcmd">/usr/games/steamcmd (System Package)</option>
+                    <option value="/usr/games/steamcmd">
+                      /usr/games/steamcmd (System Package)
+                    </option>
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">SteamCMD is installed via system package manager</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    SteamCMD is installed via system package manager
+                  </p>
                 </div>
 
                 <button
@@ -815,17 +824,23 @@ function SetupView() {
                   </span>
                 </div>
                 {!acServerInstalled?.installed ? (
-                  <div className="relative group">
+                  <div className="relative group flex items-center gap-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         if (!steamVerified) {
-                          setSteamMessage({ type: 'error', text: 'Please verify your Steam credentials first' });
+                          setSteamMessage({
+                            type: 'error',
+                            text: 'Please verify your Steam credentials first',
+                          });
                           setAcServerExpanded(true);
                           return;
                         }
                         if (!acServerPath.trim()) {
-                          setSteamMessage({ type: 'error', text: 'Please select installation path' });
+                          setSteamMessage({
+                            type: 'error',
+                            text: 'Please select installation path',
+                          });
                           return;
                         }
                         handleDownloadACServer();
@@ -841,6 +856,21 @@ function SetupView() {
                         ⚠️ Steam credentials not verified. Click to expand and verify credentials.
                       </div>
                     )}
+                    <svg
+                      className={`w-5 h-5 text-gray-400 transition-transform ${
+                        acServerExpanded ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
                   </div>
                 ) : (
                   <svg
@@ -851,7 +881,12 @@ function SetupView() {
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 )}
               </div>
