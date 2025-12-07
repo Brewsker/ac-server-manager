@@ -772,6 +772,7 @@ function PresetsView({ setSelectedView }) {
   const [selectedPresetId, setSelectedPresetId] = React.useState(null);
   const [showFolderBrowser, setShowFolderBrowser] = React.useState(false);
   const [folderPath, setFolderPath] = React.useState('');
+  const [deleteConfirmPreset, setDeleteConfirmPreset] = React.useState(null);
 
   React.useEffect(() => {
     fetchPresets();
@@ -871,6 +872,28 @@ function PresetsView({ setSelectedView }) {
       await api.stopServerInstance(presetId);
     } catch (error) {
       console.error('Failed to stop server:', error);
+    }
+  };
+
+  const handleDeletePreset = async (preset, e) => {
+    e.stopPropagation();
+    setDeleteConfirmPreset(preset);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmPreset) return;
+
+    try {
+      await api.deletePreset(deleteConfirmPreset.id);
+      setDeleteConfirmPreset(null);
+      await fetchPresets();
+      // Clear selection if the deleted preset was selected
+      if (selectedPresetId === deleteConfirmPreset.id) {
+        setSelectedPresetId(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete preset:', error);
+      alert('Failed to delete preset: ' + (error.response?.data?.error?.message || error.message));
     }
   };
 
@@ -1009,6 +1032,14 @@ function PresetsView({ setSelectedView }) {
                           >
                             Edit
                           </button>
+                          <button
+                            onClick={(e) => handleDeletePreset(preset, e)}
+                            disabled={isRunning}
+                            className="px-3 py-1 bg-gray-700 hover:bg-red-600 text-white text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-700"
+                            title={isRunning ? 'Stop server before deleting' : 'Delete preset'}
+                          >
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1023,6 +1054,35 @@ function PresetsView({ setSelectedView }) {
       {/* Folder Browser Modal */}
       {showFolderBrowser && (
         <FolderBrowserModal folderPath={folderPath} onClose={() => setShowFolderBrowser(false)} />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmPreset && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+              Delete Preset
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Are you sure you want to delete the preset &quot;{deleteConfirmPreset.name}&quot;?
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirmPreset(null)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
