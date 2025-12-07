@@ -658,7 +658,7 @@ function SetupView() {
                     }`}
                   ></span>
                   <span className="text-sm text-gray-300">
-                    {verifyingCreds ? 'Verifying...' : steamVerified ? 'Verified' : 'Not Verified'}
+                    {verifyingCreds ? 'Logging in...' : steamVerified ? 'Logged In' : 'Not Logged In'}
                   </span>
                 </div>
                 {!steamVerified ? (
@@ -670,7 +670,7 @@ function SetupView() {
                     disabled={verifyingCreds || !steamUser || !steamPass}
                     className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
                   >
-                    {verifyingCreds ? 'Verifying...' : 'Verify'}
+                    {verifyingCreds ? 'Logging in...' : 'Login'}
                   </button>
                 ) : (
                   <svg
@@ -704,7 +704,7 @@ function SetupView() {
                       onClick={handleClearCredentials}
                       className="px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
                     >
-                      Clear & Re-verify
+                      Clear & Re-login
                     </button>
                   )}
                 </div>

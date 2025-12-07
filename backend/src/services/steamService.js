@@ -6,6 +6,64 @@ import path from 'path';
 const execAsync = promisify(exec);
 
 /**
+ * Check if a valid Steam session exists for the given username
+ * @param {string} steamUser - Steam username to check
+ * @returns {Promise<boolean>} True if session exists and is valid
+ */
+async function hasCachedSteamSession(steamUser) {
+  try {
+    // Find SteamCMD binary
+    let steamcmdPath = '/usr/games/steamcmd';
+    try {
+      const { stdout } = await execAsync('which steamcmd');
+      steamcmdPath = stdout.trim();
+    } catch (error) {
+      const altPaths = ['/usr/games/steamcmd', '/usr/lib/games/steam/steamcmd'];
+      for (const testPath of altPaths) {
+        try {
+          await fs.access(testPath);
+          steamcmdPath = testPath;
+          break;
+        } catch (e) {
+          // Continue checking
+        }
+      }
+    }
+
+    // Quick test: try to login with just username (will use cached session if exists)
+    const scriptPath = '/tmp/test_session.txt';
+    const scriptContent = `@ShutdownOnFailedCommand 1
+@NoPromptForPassword 1
+login ${steamUser}
+quit
+`;
+
+    await fs.writeFile(scriptPath, scriptContent);
+
+    try {
+      const { stdout } = await execAsync(`${steamcmdPath} +runscript ${scriptPath}`, {
+        maxBuffer: 1024 * 1024,
+        timeout: 15000,
+      });
+
+      await fs.unlink(scriptPath).catch(() => {});
+
+      // If we see "Logged in OK" without providing password, session is valid
+      return stdout.includes('Logged in OK') || stdout.includes('Waiting for user info');
+    } catch (error) {
+      await fs.unlink(scriptPath).catch(() => {});
+      const output = (error.stdout || '') + (error.stderr || '');
+      
+      // Session is invalid if we get password prompt or login failure
+      return false;
+    }
+  } catch (error) {
+    console.warn('[SteamService] Session check failed:', error.message);
+    return false;
+  }
+}
+
+/**
  * Verify Steam credentials by attempting a quick login
  * @param {string} steamUser - Steam username
  * @param {string} steamPass - Steam password
@@ -45,13 +103,16 @@ export async function verifySteamCredentials(steamUser, steamPass = '', steamGua
     const scriptPath = '/tmp/verify_steam.txt';
     let scriptContent = `@ShutdownOnFailedCommand 1
 @NoPromptForPassword 1
-login ${steamUser} ${steamPass}`;
+`;
 
+    // Set Steam Guard code BEFORE login if provided
     if (steamGuardCode && steamGuardCode.trim()) {
-      scriptContent += ` ${steamGuardCode.trim()}`;
+      scriptContent += `set_steam_guard_code ${steamGuardCode.trim()}\n`;
     }
 
-    scriptContent += `\nquit\n`;
+    scriptContent += `login ${steamUser} ${steamPass}
+quit
+`;
 
     await fs.writeFile(scriptPath, scriptContent);
 
@@ -145,10 +206,13 @@ login ${steamUser} ${steamPass}`;
 
     // Check for successful login
     if (output.includes('Logged in OK') || output.includes('Waiting for user info')) {
+      // Steam session is now cached in ~/.steam/ directory
+      // This session persists and can be reused for future operations without guard code
       return {
         success: true,
-        message: 'Steam credentials verified successfully',
+        message: 'Steam credentials verified successfully. Session saved for future downloads.',
         username: steamUser,
+        sessionCached: true,
       };
     }
 
@@ -630,21 +694,33 @@ export async function downloadACBaseGame(installPath, steamUser, steamPass, stea
     // Create install directory
     await fs.mkdir(installPath, { recursive: true });
 
+    // Check if we have a valid cached session
+    const hasSession = await hasCachedSteamSession(steamUser);
+    
     // Create SteamCMD script for base game (App ID 244210)
     const scriptPath = '/tmp/install_ac_basegame.txt';
-    // NOTE: SteamCMD scripts are NOT shell scripts - they're read directly by SteamCMD
-    // Do NOT escape the password or it will be interpreted literally with backslashes
     let scriptContent = `@ShutdownOnFailedCommand 1
 @NoPromptForPassword 1
 force_install_dir ${installPath}
-login ${steamUser} ${steamPass}`;
+`;
 
-    if (steamGuardCode && steamGuardCode.trim()) {
-      scriptContent += ` ${steamGuardCode.trim()}`;
+    if (hasSession) {
+      // Use cached session - no password or guard code needed
+      console.log(`[SteamService] Using cached Steam session for ${steamUser}`);
+      scriptContent += `login ${steamUser}\n`;
+    } else {
+      // Fresh login with credentials
+      console.log(`[SteamService] No cached session, using provided credentials`);
+      
+      // Set Steam Guard code BEFORE login if provided
+      if (steamGuardCode && steamGuardCode.trim()) {
+        scriptContent += `set_steam_guard_code ${steamGuardCode.trim()}\n`;
+      }
+      
+      scriptContent += `login ${steamUser} ${steamPass}\n`;
     }
 
-    scriptContent += `
-app_update 244210 validate
+    scriptContent += `app_update 244210 validate
 quit
 `;
 
@@ -710,10 +786,12 @@ quit
     if (
       fullError.includes('Two-factor') ||
       fullError.includes('Steam Guard') ||
-      fullError.includes('GUARD')
+      fullError.includes('GUARD') ||
+      fullError.includes('Account Logon Denied') ||
+      fullError.includes('Please login with valid credentials')
     ) {
       throw new Error(
-        `🔐 Steam Guard Issue: Please verify:\n1. Steam Guard code is current (refreshes every 30s)\n2. You're using the correct type (email vs mobile app)`
+        `🔐 Steam session expired or invalid. Please re-verify your Steam credentials in the Setup → Server tab.`
       );
     }
     if (
@@ -722,15 +800,8 @@ quit
       error.code === 5 ||
       error.code === 8
     ) {
-      if (!steamGuardCode || steamGuardCode.trim() === '') {
-        throw new Error(
-          `❌ Steam Login Failed: Invalid credentials or Steam Guard required.\n\nError code: ${
-            error.code || 'unknown'
-          }`
-        );
-      }
       throw new Error(
-        `❌ Steam Login Failed: Credentials rejected.\n\nPossible issues:\n1. Password is incorrect\n2. Steam Guard code expired\n3. Wrong Steam Guard type\n\nError code: ${
+        `❌ Steam login failed. Please re-verify your Steam credentials in the Setup → Server tab.\n\nError code: ${
           error.code || 'unknown'
         }`
       );

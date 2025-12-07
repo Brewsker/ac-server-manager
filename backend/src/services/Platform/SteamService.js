@@ -6,6 +6,64 @@ import path from 'path';
 const execAsync = promisify(exec);
 
 /**
+ * Check if a valid Steam session exists for the given username
+ * @param {string} steamUser - Steam username to check
+ * @returns {Promise<boolean>} True if session exists and is valid
+ */
+async function hasCachedSteamSession(steamUser) {
+  try {
+    // Find SteamCMD binary
+    let steamcmdPath = '/usr/games/steamcmd';
+    try {
+      const { stdout } = await execAsync('which steamcmd');
+      steamcmdPath = stdout.trim();
+    } catch (error) {
+      const altPaths = ['/usr/games/steamcmd', '/usr/lib/games/steam/steamcmd'];
+      for (const testPath of altPaths) {
+        try {
+          await fs.access(testPath);
+          steamcmdPath = testPath;
+          break;
+        } catch (e) {
+          // Continue checking
+        }
+      }
+    }
+
+    // Quick test: try to login with just username (will use cached session if exists)
+    const scriptPath = '/tmp/test_session.txt';
+    const scriptContent = `@ShutdownOnFailedCommand 1
+@NoPromptForPassword 1
+login ${steamUser}
+quit
+`;
+
+    await fs.writeFile(scriptPath, scriptContent);
+
+    try {
+      const { stdout } = await execAsync(`${steamcmdPath} +runscript ${scriptPath}`, {
+        maxBuffer: 1024 * 1024,
+        timeout: 15000,
+      });
+
+      await fs.unlink(scriptPath).catch(() => {});
+
+      // If we see "Logged in OK" without providing password, session is valid
+      return stdout.includes('Logged in OK') || stdout.includes('Waiting for user info');
+    } catch (error) {
+      await fs.unlink(scriptPath).catch(() => {});
+      const output = (error.stdout || '') + (error.stderr || '');
+      
+      // Session is invalid if we get password prompt or login failure
+      return false;
+    }
+  } catch (error) {
+    console.warn('[SteamService] Session check failed:', error.message);
+    return false;
+  }
+}
+
+/**
  * Verify Steam credentials by attempting a quick login
  * @param {string} steamUser - Steam username
  * @param {string} steamPass - Steam password
@@ -35,8 +93,8 @@ export async function verifySteamCredentials(steamUser, steamPass = '', steamGua
       if (!found) {
         return {
           success: false,
-          error: 'steamcmd_not_installed',
-          message: 'SteamCMD not installed. Please install it first',
+          error: 'SteamCMD not installed',
+          message: 'Please install SteamCMD first',
         };
       }
     }
@@ -45,13 +103,16 @@ export async function verifySteamCredentials(steamUser, steamPass = '', steamGua
     const scriptPath = '/tmp/verify_steam.txt';
     let scriptContent = `@ShutdownOnFailedCommand 1
 @NoPromptForPassword 1
-login ${steamUser} ${steamPass}`;
+`;
 
+    // Set Steam Guard code BEFORE login if provided
     if (steamGuardCode && steamGuardCode.trim()) {
-      scriptContent += ` ${steamGuardCode.trim()}`;
+      scriptContent += `set_steam_guard_code ${steamGuardCode.trim()}\n`;
     }
 
-    scriptContent += `\nquit\n`;
+    scriptContent += `login ${steamUser} ${steamPass}
+quit
+`;
 
     await fs.writeFile(scriptPath, scriptContent);
 
@@ -145,10 +206,13 @@ login ${steamUser} ${steamPass}`;
 
     // Check for successful login
     if (output.includes('Logged in OK') || output.includes('Waiting for user info')) {
+      // Steam session is now cached in ~/.steam/ directory
+      // This session persists and can be reused for future operations without guard code
       return {
         success: true,
-        message: 'Steam credentials verified successfully',
+        message: 'Steam credentials verified successfully. Session saved for future downloads.',
         username: steamUser,
+        sessionCached: true,
       };
     }
 
@@ -333,6 +397,9 @@ quit
     const errorStderr = error.stderr || '';
     const fullError = errorOutput + '\n' + errorStderr;
 
+    // Log full error for server-side debugging
+    console.error('[SteamService] Full SteamCMD output:', fullError.substring(0, 2000));
+
     if (fullError.includes('No subscription')) {
       throw new Error(
         'Steam account does not own Assetto Corsa. You must own the game to download the dedicated server.'
@@ -362,25 +429,28 @@ quit
     if (
       fullError.includes('Login Failure') ||
       fullError.includes('Invalid Password') ||
-      error.code === 5
+      error.code === 5 ||
+      error.code === 8
     ) {
+      // Exit code 8 typically means authentication failure
       // Check if it might be Steam Guard related even if not explicitly mentioned
       if (!steamGuardCode || steamGuardCode.trim() === '') {
         throw new Error(
-          `❌ Steam Login Failed: Invalid password or Steam Guard required.\n\nPlease:\n1. Verify your password is correct (use the eye icon)\n2. If you have Steam Guard enabled, enter your current code and try again`
+          `❌ Steam Login Failed: Invalid credentials or Steam Guard required.\n\nPlease:\n1. Verify your password is correct (use the eye icon)\n2. If you have Steam Guard enabled, enter your current code\n3. For anonymous login, use username "anonymous" with empty password\n\nError code: ${
+            error.code || 'unknown'
+          }`
         );
       }
       throw new Error(
-        `❌ Steam Login Failed: Credentials rejected.\n\nPossible issues:\n1. Password is incorrect\n2. Steam Guard code expired (get a fresh one)\n3. Wrong type of Steam Guard code (email vs mobile)\n\nSteam output: ${errorOutput.substring(
-          0,
-          500
-        )}`
+        `❌ Steam Login Failed: Credentials rejected.\n\nPossible issues:\n1. Password is incorrect\n2. Steam Guard code expired (get a fresh one - they refresh every 30s)\n3. Wrong type of Steam Guard code (email vs mobile app)\n4. Account has restrictions\n\nError code: ${
+          error.code || 'unknown'
+        }\nSteam output: ${errorOutput.substring(0, 800)}`
       );
     }
 
     // Return detailed error for debugging
     throw new Error(
-      `SteamCMD failed (code ${error.code || 'unknown'}): ${errorOutput.substring(0, 500)}`
+      `SteamCMD failed (code ${error.code || 'unknown'}): ${errorOutput.substring(0, 1000)}`
     );
   }
 }
@@ -624,21 +694,33 @@ export async function downloadACBaseGame(installPath, steamUser, steamPass, stea
     // Create install directory
     await fs.mkdir(installPath, { recursive: true });
 
+    // Check if we have a valid cached session
+    const hasSession = await hasCachedSteamSession(steamUser);
+    
     // Create SteamCMD script for base game (App ID 244210)
     const scriptPath = '/tmp/install_ac_basegame.txt';
-    // NOTE: SteamCMD scripts are NOT shell scripts - they're read directly by SteamCMD
-    // Do NOT escape the password or it will be interpreted literally with backslashes
     let scriptContent = `@ShutdownOnFailedCommand 1
 @NoPromptForPassword 1
 force_install_dir ${installPath}
-login ${steamUser} ${steamPass}`;
+`;
 
-    if (steamGuardCode && steamGuardCode.trim()) {
-      scriptContent += ` ${steamGuardCode.trim()}`;
+    if (hasSession) {
+      // Use cached session - no password or guard code needed
+      console.log(`[SteamService] Using cached Steam session for ${steamUser}`);
+      scriptContent += `login ${steamUser}\n`;
+    } else {
+      // Fresh login with credentials
+      console.log(`[SteamService] No cached session, using provided credentials`);
+      
+      // Set Steam Guard code BEFORE login if provided
+      if (steamGuardCode && steamGuardCode.trim()) {
+        scriptContent += `set_steam_guard_code ${steamGuardCode.trim()}\n`;
+      }
+      
+      scriptContent += `login ${steamUser} ${steamPass}\n`;
     }
 
-    scriptContent += `
-app_update 244210 validate
+    scriptContent += `app_update 244210 validate
 quit
 `;
 
@@ -690,6 +772,9 @@ quit
     const errorStderr = error.stderr || '';
     const fullError = errorOutput + '\n' + errorStderr;
 
+    // Log full error for server-side debugging
+    console.error('[SteamService] Full SteamCMD output (base game):', fullError.substring(0, 2000));
+
     if (fullError.includes('No subscription')) {
       throw new Error(
         'Steam account does not own Assetto Corsa. You must purchase the game to download content.'
@@ -701,21 +786,32 @@ quit
     if (
       fullError.includes('Two-factor') ||
       fullError.includes('Steam Guard') ||
-      fullError.includes('GUARD')
+      fullError.includes('GUARD') ||
+      fullError.includes('Account Logon Denied') ||
+      fullError.includes('Please login with valid credentials')
     ) {
       throw new Error(
-        `🔐 Steam Guard Issue: Please verify your Steam Guard code is current (refreshes every 30s)`
+        `🔐 Steam session expired or invalid. Please re-verify your Steam credentials in the Setup → Server tab.`
       );
     }
     if (
       fullError.includes('Login Failure') ||
       fullError.includes('Invalid Password') ||
-      error.code === 5
+      error.code === 5 ||
+      error.code === 8
     ) {
-      throw new Error(`❌ Steam Login Failed: Invalid credentials or expired Steam Guard code`);
+      throw new Error(
+        `❌ Steam login failed. Please re-verify your Steam credentials in the Setup → Server tab.\n\nError code: ${
+          error.code || 'unknown'
+        }`
+      );
     }
 
-    throw new Error(`SteamCMD failed to download AC base game: ${errorOutput.substring(0, 500)}`);
+    throw new Error(
+      `SteamCMD failed to download AC base game (code ${
+        error.code || 'unknown'
+      }): ${errorOutput.substring(0, 1000)}`
+    );
   }
 }
 
@@ -833,5 +929,163 @@ export async function cleanupACBaseGame(gameInstallPath) {
   } catch (error) {
     console.error('[SteamService] Failed to cleanup AC base game:', error);
     throw new Error(`Failed to cleanup: ${error.message}`);
+  }
+}
+
+/**
+ * Uninstall SteamCMD
+ * @returns {Promise<Object>}
+ */
+export async function uninstallSteamCMD() {
+  try {
+    console.log('[SteamService] Uninstalling SteamCMD...');
+
+    // Remove SteamCMD package
+    await execAsync('sudo apt-get remove -y steamcmd');
+    await execAsync('sudo apt-get autoremove -y');
+
+    // Remove Steam directories
+    const steamDirs = ['/root/Steam', '/root/.steam', '/root/.local/share/Steam'];
+    for (const dir of steamDirs) {
+      try {
+        await fs.rm(dir, { recursive: true, force: true });
+        console.log(`[SteamService] Removed ${dir}`);
+      } catch (error) {
+        // Directory might not exist, that's okay
+        console.log(`[SteamService] Skipped ${dir} (doesn't exist)`);
+      }
+    }
+
+    return {
+      success: true,
+      message: 'SteamCMD uninstalled successfully',
+    };
+  } catch (error) {
+    console.error('[SteamService] Failed to uninstall SteamCMD:', error);
+    throw new Error(`Failed to uninstall SteamCMD: ${error.message}`);
+  }
+}
+
+/**
+ * Uninstall AC Dedicated Server
+ * @param {string} installPath - Path where AC server is installed
+ * @returns {Promise<Object>}
+ */
+export async function uninstallACServer(installPath) {
+  try {
+    console.log(`[SteamService] Uninstalling AC Dedicated Server from ${installPath}...`);
+
+    // Safety check - don't delete if path looks suspicious
+    if (installPath === '/' || installPath === '/opt' || installPath.length < 5) {
+      throw new Error(`Refusing to delete suspicious path: ${installPath}`);
+    }
+
+    // Check if directory exists
+    try {
+      await fs.access(installPath);
+    } catch {
+      return {
+        success: false,
+        message: `Directory does not exist: ${installPath}`,
+      };
+    }
+
+    // Get size before deletion
+    let size = 'Unknown';
+    try {
+      const { stdout: sizeOutput } = await execAsync(`du -sh ${installPath} 2>/dev/null`);
+      size = sizeOutput.split('\t')[0];
+    } catch {
+      // Size check failed, continue anyway
+    }
+
+    // Remove directory
+    await fs.rm(installPath, { recursive: true, force: true });
+
+    console.log(`[SteamService] Uninstalled AC server, freed ${size}`);
+
+    return {
+      success: true,
+      message: `AC Dedicated Server uninstalled (freed ${size})`,
+      freedSpace: size,
+    };
+  } catch (error) {
+    console.error('[SteamService] Failed to uninstall AC server:', error);
+    throw new Error(`Failed to uninstall AC server: ${error.message}`);
+  }
+}
+
+/**
+ * Delete AC content folders (cars, tracks, or both)
+ * @param {string} contentPath - Path to AC server content folder
+ * @param {string} type - 'cars', 'tracks', or 'both'
+ * @returns {Promise<Object>}
+ */
+export async function deleteACContent(contentPath, type = 'both') {
+  try {
+    console.log(`[SteamService] Deleting ${type} from ${contentPath}...`);
+
+    // Safety check
+    if (contentPath === '/' || contentPath.length < 5) {
+      throw new Error(`Refusing to delete suspicious path: ${contentPath}`);
+    }
+
+    const results = {};
+    const foldersToDelete = [];
+
+    if (type === 'cars' || type === 'both') {
+      foldersToDelete.push(path.join(contentPath, 'cars'));
+    }
+    if (type === 'tracks' || type === 'both') {
+      foldersToDelete.push(path.join(contentPath, 'tracks'));
+    }
+
+    for (const folder of foldersToDelete) {
+      try {
+        await fs.access(folder);
+
+        // Get size before deletion
+        let size = 'Unknown';
+        try {
+          const { stdout: sizeOutput } = await execAsync(`du -sh ${folder} 2>/dev/null`);
+          size = sizeOutput.split('\t')[0];
+        } catch {
+          // Continue anyway
+        }
+
+        // Count items
+        const items = await fs.readdir(folder);
+        const count = items.length;
+
+        // Remove folder
+        await fs.rm(folder, { recursive: true, force: true });
+
+        // Recreate empty folder
+        await fs.mkdir(folder, { recursive: true });
+
+        results[path.basename(folder)] = {
+          deleted: count,
+          freedSpace: size,
+        };
+
+        console.log(`[SteamService] Deleted ${count} items from ${folder}, freed ${size}`);
+      } catch (error) {
+        console.log(`[SteamService] Skipped ${folder}: ${error.message}`);
+        results[path.basename(folder)] = {
+          deleted: 0,
+          freedSpace: '0',
+          error: error.message,
+        };
+      }
+    }
+
+    return {
+      success: true,
+      message: `Deleted ${type} content successfully`,
+      results,
+    };
+  } catch (error) {
+    console.error('[SteamService] Failed to delete content:', error);
+    throw new Error(`Failed to delete content: ${error.message}`);
   }
 }
