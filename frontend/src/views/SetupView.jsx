@@ -28,6 +28,11 @@ function SetupView() {
   const [steamMessage, setSteamMessage] = React.useState(null);
   const [cacheStatus, setCacheStatus] = React.useState(null);
   const [copyingFromCache, setCopyingFromCache] = React.useState(false);
+  
+  // Steam credentials verification
+  const [steamVerified, setSteamVerified] = React.useState(false);
+  const [verifyingCreds, setVerifyingCreds] = React.useState(false);
+  const [verifyMessage, setVerifyMessage] = React.useState(null);
 
   // Content states
   const [contentStatus, setContentStatus] = React.useState(null);
@@ -51,9 +56,11 @@ function SetupView() {
     checkContentStatus();
     checkAcServerStatus();
 
-    // Load saved username
-    const saved = localStorage.getItem('steamUsername');
-    if (saved) setSteamUser(saved);
+    // Load saved credentials
+    const savedUser = localStorage.getItem('steamUsername');
+    const savedVerified = localStorage.getItem('steamVerified');
+    if (savedUser) setSteamUser(savedUser);
+    if (savedVerified === 'true') setSteamVerified(true);
   }, []);
 
   const loadCurrentVersion = async () => {
@@ -244,8 +251,8 @@ function SetupView() {
   };
 
   const handleDownloadBaseGame = async () => {
-    if (!steamUser.trim() || !steamPass.trim()) {
-      setBaseGameMessage({ type: 'error', text: 'Steam credentials are required' });
+    if (!steamVerified) {
+      setBaseGameMessage({ type: 'error', text: 'Please verify your Steam credentials first' });
       return;
     }
 
@@ -461,14 +468,14 @@ function SetupView() {
       if (result.success) {
         const { results } = result;
         let message = `Deleted ${typeLabel} successfully!\n`;
-        
+
         if (results.cars) {
           message += `\nCars: ${results.cars.deleted} items, freed ${results.cars.freedSpace}`;
         }
         if (results.tracks) {
           message += `\nTracks: ${results.tracks.deleted} items, freed ${results.tracks.freedSpace}`;
         }
-        
+
         setUploadMessage({ type: 'success', text: message });
         await checkContentStatus();
       } else {
@@ -521,6 +528,118 @@ function SetupView() {
       {/* Server Tab */}
       {activeTab === 'server' && (
         <div className="space-y-4">
+          {/* Steam Credentials Section */}
+          <SectionPanel title="Steam Credentials">
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-gray-400">
+                  Verify your Steam credentials before installing servers or content
+                </p>
+                {steamVerified && (
+                  <button
+                    onClick={handleClearCredentials}
+                    className="px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Steam Username</label>
+                  <input
+                    type="text"
+                    value={steamUser}
+                    onChange={(e) => {
+                      setSteamUser(e.target.value);
+                      setSteamVerified(false);
+                      localStorage.removeItem('steamVerified');
+                    }}
+                    disabled={steamVerified}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder="your_steam_username"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Steam Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={steamPass}
+                      onChange={(e) => {
+                        setSteamPass(e.target.value);
+                        setSteamVerified(false);
+                        localStorage.removeItem('steamVerified');
+                      }}
+                      disabled={steamVerified}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm pr-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="••••••••"
+                    />
+                    {!steamVerified && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                      >
+                        {showPassword ? '🙈' : '👁️'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Steam Guard Code (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={steamGuardCode}
+                  onChange={(e) => {
+                    setSteamGuardCode(e.target.value);
+                    setSteamVerified(false);
+                    localStorage.removeItem('steamVerified');
+                  }}
+                  disabled={steamVerified}
+                  placeholder="Enter code if Steam Guard is enabled"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Required if your account has Steam Guard enabled. Get code from Steam app or email.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleVerifyCredentials}
+                  disabled={verifyingCreds || steamVerified || !steamUser || !steamPass}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                >
+                  {verifyingCreds ? 'Verifying...' : steamVerified ? '✓ Verified' : 'Verify Credentials'}
+                </button>
+                {steamVerified && (
+                  <span className="flex items-center gap-2 text-emerald-400 text-sm">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Credentials verified
+                  </span>
+                )}
+              </div>
+
+              {verifyMessage && (
+                <div
+                  className={`p-3 rounded text-sm ${
+                    verifyMessage.type === 'success'
+                      ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700'
+                      : 'bg-red-900/50 text-red-300 border border-red-700'
+                  }`}
+                >
+                  {verifyMessage.text}
+                </div>
+              )}
+            </div>
+          </SectionPanel>
+
           {/* SteamCMD Status */}
           <SectionPanel title="SteamCMD">
             <div className="p-4">
@@ -626,54 +745,18 @@ function SetupView() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Steam Username</label>
-                  <input
-                    type="text"
-                    value={steamUser}
-                    onChange={(e) => setSteamUser(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                  />
+              {!steamVerified && (
+                <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded text-sm text-yellow-300">
+                  ⚠️ Please verify your Steam credentials in the section above before downloading
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Steam Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={steamPass}
-                      onChange={(e) => setSteamPass(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                    >
-                      {showPassword ? '🙈' : '👁️'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">
-                  Steam Guard Code (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={steamGuardCode}
-                  onChange={(e) => setSteamGuardCode(e.target.value)}
-                  placeholder="Enter code if Steam Guard is enabled"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                />
-                <p className="text-xs text-gray-500 mt-1">Leave blank if not using Steam Guard</p>
-              </div>
+              )}
 
               <div className="flex gap-2">
                 <button
                   onClick={handleDownloadACServer}
-                  disabled={downloadingACServer || !steamcmdInstalled || acServerInstalled?.installed}
+                  disabled={
+                    downloadingACServer || !steamcmdInstalled || acServerInstalled?.installed || !steamVerified
+                  }
                   className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
                 >
                   {downloadingACServer ? 'Downloading...' : 'Download AC Server'}
@@ -731,7 +814,7 @@ function SetupView() {
               ) : (
                 <div className="text-gray-500 text-center py-4">No content status available</div>
               )}
-              
+
               {/* Delete Content Buttons */}
               {contentStatus && (contentStatus.trackCount > 0 || contentStatus.carCount > 0) && (
                 <div className="flex gap-2 pt-2 border-t border-gray-700">
@@ -819,52 +902,21 @@ function SetupView() {
                 Requires owning Assetto Corsa on Steam.
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Steam Username</label>
-                  <input
-                    type="text"
-                    value={steamUser}
-                    onChange={(e) => setSteamUser(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                    placeholder="Your Steam username"
-                  />
+              {!steamVerified && (
+                <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded text-sm text-yellow-300">
+                  ⚠️ Please verify your Steam credentials in the Server tab before downloading
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Steam Password</label>
-                  <input
-                    type="password"
-                    value={steamPass}
-                    onChange={(e) => setSteamPass(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                    placeholder="Your Steam password"
-                  />
-                </div>
-              </div>
+              )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Steam Guard Code (if 2FA enabled)
-                  </label>
-                  <input
-                    type="text"
-                    value={steamGuardCode}
-                    onChange={(e) => setSteamGuardCode(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                    placeholder="Leave empty if not needed"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Download Path</label>
-                  <input
-                    type="text"
-                    value={baseGamePath}
-                    onChange={(e) => setBaseGamePath(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                    placeholder="/tmp/ac-basegame"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Download Path</label>
+                <input
+                  type="text"
+                  value={baseGamePath}
+                  onChange={(e) => setBaseGamePath(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  placeholder="/tmp/ac-basegame"
+                />
               </div>
 
               <div className="flex items-center gap-2">
@@ -883,7 +935,7 @@ function SetupView() {
               <div className="flex gap-3">
                 <button
                   onClick={handleDownloadBaseGame}
-                  disabled={downloadingBaseGame || extractingContent || cleaningUpBaseGame}
+                  disabled={downloadingBaseGame || extractingContent || cleaningUpBaseGame || !steamVerified}
                   className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
                 >
                   {downloadingBaseGame

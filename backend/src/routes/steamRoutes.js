@@ -306,4 +306,33 @@ router.post('/delete-content', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/steam/verify-credentials
+ * Verify Steam credentials before downloads
+ * Body: { username, password, guardCode }
+ */
+router.post('/verify-credentials', async (req, res) => {
+  try {
+    const { username, password, guardCode } = req.body;
+
+    if (!username) {
+      return res.status(400).json({
+        success: false,
+        error: 'missing_username',
+        message: 'Steam username is required',
+      });
+    }
+
+    const result = await steamService.verifySteamCredentials(username, password || '', guardCode || '');
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error verifying credentials:', error);
+    res.status(500).json({
+      success: false,
+      error: 'exception',
+      message: error.message || 'Failed to verify credentials',
+    });
+  }
+});
+
 export default router;

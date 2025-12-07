@@ -6,6 +6,151 @@ import path from 'path';
 const execAsync = promisify(exec);
 
 /**
+ * Verify Steam credentials by attempting a quick login
+ * @param {string} steamUser - Steam username
+ * @param {string} steamPass - Steam password
+ * @param {string} steamGuardCode - Steam Guard code (if enabled)
+ * @returns {Promise<Object>} Verification result
+ */
+export async function verifySteamCredentials(steamUser, steamPass = '', steamGuardCode = '') {
+  try {
+    // Find SteamCMD binary
+    let steamcmdPath = '/usr/games/steamcmd';
+    try {
+      const { stdout } = await execAsync('which steamcmd');
+      steamcmdPath = stdout.trim();
+    } catch (error) {
+      const altPaths = ['/usr/games/steamcmd', '/usr/lib/games/steam/steamcmd'];
+      let found = false;
+      for (const testPath of altPaths) {
+        try {
+          await fs.access(testPath);
+          steamcmdPath = testPath;
+          found = true;
+          break;
+        } catch (e) {
+          // Continue checking
+        }
+      }
+      if (!found) {
+        return {
+          success: false,
+          error: 'steamcmd_not_installed',
+          message: 'SteamCMD not installed. Please install it first'
+        };
+      }
+    }
+
+    // Create temporary script for login test
+    const scriptPath = '/tmp/verify_steam.txt';
+    let scriptContent = `@ShutdownOnFailedCommand 1
+@NoPromptForPassword 1
+login ${steamUser} ${steamPass}`;
+
+    if (steamGuardCode && steamGuardCode.trim()) {
+      scriptContent += ` ${steamGuardCode.trim()}`;
+    }
+
+    scriptContent += `\nquit\n`;
+
+    await fs.writeFile(scriptPath, scriptContent);
+
+    // Run SteamCMD with timeout
+    const { stdout, stderr } = await execAsync(`${steamcmdPath} +runscript ${scriptPath}`, {
+      maxBuffer: 1024 * 1024,
+      timeout: 30000, // 30 second timeout
+    });
+
+    // Clean up
+    await fs.unlink(scriptPath).catch(() => {});
+
+    const output = stdout + stderr;
+
+    // Check for various error conditions
+    if (output.includes('FAILED login with result code Invalid Password')) {
+      return {
+        success: false,
+        error: 'invalid_password',
+        message: 'Invalid Steam password'
+      };
+    }
+
+    if (output.includes('FAILED login with result code Invalid Login Auth Code')) {
+      return {
+        success: false,
+        error: 'invalid_guard_code',
+        message: 'Invalid or expired Steam Guard code'
+      };
+    }
+
+    if (output.includes('FAILED login with result code Expired Login Auth Code')) {
+      return {
+        success: false,
+        error: 'expired_guard_code',
+        message: 'Steam Guard code has expired. Please generate a new code'
+      };
+    }
+
+    if (output.includes('FAILED login with result code Two Factor Code Mismatch')) {
+      return {
+        success: false,
+        error: 'guard_code_required',
+        message: 'Steam Guard code required but not provided or incorrect'
+      };
+    }
+
+    if (output.includes('FAILED login with result code Rate Limit Exceeded')) {
+      return {
+        success: false,
+        error: 'rate_limit',
+        message: 'Too many login attempts. Please wait a few minutes and try again'
+      };
+    }
+
+    if (output.includes('FAILED login')) {
+      return {
+        success: false,
+        error: 'login_failed',
+        message: 'Login failed. Please check your credentials'
+      };
+    }
+
+    // Check for successful login
+    if (output.includes('Logged in OK') || output.includes('Waiting for user info')) {
+      return {
+        success: true,
+        message: 'Steam credentials verified successfully',
+        username: steamUser
+      };
+    }
+
+    // If we get here, something unexpected happened
+    return {
+      success: false,
+      error: 'unknown',
+      message: 'Unable to verify credentials. Please try again'
+    };
+
+  } catch (error) {
+    console.error('[SteamService] Credential verification error:', error);
+    
+    if (error.killed) {
+      return {
+        success: false,
+        error: 'timeout',
+        message: 'Verification timed out. Please check your internet connection'
+      };
+    }
+
+    return {
+      success: false,
+      error: 'exception',
+      message: error.message || 'Failed to verify credentials'
+    };
+  }
+}
+
+/**
  * Download Assetto Corsa Dedicated Server via SteamCMD
  * @param {string} installPath - Where to install AC server
  * @param {string} steamUser - Steam username (can be 'anonymous')

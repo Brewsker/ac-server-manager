@@ -529,6 +529,7 @@ export default {
   uninstallSteamCMD,
   uninstallACServer,
   deleteACContent,
+  verifySteamCredentials,
   checkForUpdates,
   getUpdateStatus,
   applyUpdate,
