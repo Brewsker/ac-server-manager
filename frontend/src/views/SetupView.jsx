@@ -33,6 +33,10 @@ function SetupView() {
   const [steamVerified, setSteamVerified] = React.useState(false);
   const [verifyingCreds, setVerifyingCreds] = React.useState(false);
   const [verifyMessage, setVerifyMessage] = React.useState(null);
+  
+  // Collapsible section states
+  const [steamCmdExpanded, setSteamCmdExpanded] = React.useState(false);
+  const [acServerExpanded, setAcServerExpanded] = React.useState(false);
 
   // Content states
   const [contentStatus, setContentStatus] = React.useState(null);
@@ -705,16 +709,23 @@ function SetupView() {
           </SectionPanel>
 
           {/* SteamCMD Status */}
-          <SectionPanel title="SteamCMD">
-            <div className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
+          <div className="border border-gray-700 rounded-lg overflow-hidden">
+            {/* Collapsed Header */}
+            <button
+              onClick={() => setSteamCmdExpanded(!steamCmdExpanded)}
+              className="w-full px-4 py-3 flex items-center justify-between bg-gray-800 hover:bg-gray-750 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-orange-400 font-medium">SteamCMD</span>
+              </div>
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`w-3 h-3 rounded-full ${
+                    className={`w-2.5 h-2.5 rounded-full ${
                       steamcmdInstalled ? 'bg-emerald-500' : 'bg-red-500'
                     }`}
                   ></span>
-                  <span className="text-gray-300">
+                  <span className="text-sm text-gray-300">
                     {checkingSteamCmd
                       ? 'Checking...'
                       : steamcmdInstalled
@@ -722,58 +733,72 @@ function SetupView() {
                       : 'Not Installed'}
                   </span>
                 </div>
-                <button
-                  onClick={checkSteamCMDStatus}
-                  disabled={checkingSteamCmd}
-                  className="px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
-                  title="Refresh status"
-                >
-                  ↻
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Installation Path</label>
-                <select
-                  value="/usr/games/steamcmd"
-                  disabled
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm cursor-not-allowed opacity-75"
-                >
-                  <option value="/usr/games/steamcmd">/usr/games/steamcmd (System Package)</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">SteamCMD is installed via system package manager</p>
-              </div>
-
-              <div className="flex gap-2">
                 {!steamcmdInstalled ? (
                   <button
-                    onClick={handleInstallSteamCMD}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleInstallSteamCMD();
+                    }}
                     disabled={installingSteamCmd}
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
                   >
                     {installingSteamCmd ? 'Installing...' : 'Install SteamCMD'}
                   </button>
                 ) : (
-                  <button
-                    onClick={handleUninstallSteamCMD}
-                    disabled={installingSteamCmd}
-                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                  <svg
+                    className={`w-5 h-5 text-gray-400 transition-transform ${
+                      steamCmdExpanded ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    {installingSteamCmd ? 'Uninstalling...' : 'Uninstall SteamCMD'}
-                  </button>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 )}
               </div>
-            </div>
-          </SectionPanel>
+            </button>
+
+            {/* Expanded Details */}
+            {steamCmdExpanded && steamcmdInstalled && (
+              <div className="p-4 space-y-4 bg-gray-800/50 border-t border-gray-700">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Installation Path</label>
+                  <select
+                    value="/usr/games/steamcmd"
+                    disabled
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm cursor-not-allowed opacity-75"
+                  >
+                    <option value="/usr/games/steamcmd">/usr/games/steamcmd (System Package)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">SteamCMD is installed via system package manager</p>
+                </div>
+
+                <button
+                  onClick={handleUninstallSteamCMD}
+                  disabled={installingSteamCmd}
+                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                >
+                  {installingSteamCmd ? 'Uninstalling...' : 'Uninstall SteamCMD'}
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* AC Server Download */}
-          <SectionPanel title="AC Dedicated Server">
-            <div className="p-4 space-y-4">
-              {/* Installation Status */}
-              <div className="flex items-center justify-between">
+          <div className="border border-gray-700 rounded-lg overflow-hidden">
+            {/* Collapsed Header */}
+            <button
+              onClick={() => setAcServerExpanded(!acServerExpanded)}
+              className="w-full px-4 py-3 flex items-center justify-between bg-gray-800 hover:bg-gray-750 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-orange-400 font-medium">AC Dedicated Server</span>
+              </div>
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`w-3 h-3 rounded-full ${
+                    className={`w-2.5 h-2.5 rounded-full ${
                       checkingAcServer
                         ? 'bg-yellow-500'
                         : acServerInstalled?.installed
@@ -781,71 +806,113 @@ function SetupView() {
                         : 'bg-red-500'
                     }`}
                   ></span>
-                  <span className="text-gray-300">
+                  <span className="text-sm text-gray-300">
                     {checkingAcServer
                       ? 'Checking...'
                       : acServerInstalled?.installed
-                      ? `Installed${
-                          acServerInstalled.version ? ` (v${acServerInstalled.version})` : ''
-                        }`
+                      ? 'Installed'
                       : 'Not Installed'}
                   </span>
                 </div>
-                <button
-                  onClick={checkAcServerStatus}
-                  disabled={checkingAcServer}
-                  className="px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
-                  title="Refresh status"
-                >
-                  ↻
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Installation Path</label>
-                <select
-                  value={acServerPath}
-                  onChange={(e) => setAcServerPath(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                >
-                  <option value="/opt/acserver">/opt/acserver (Recommended)</option>
-                  <option value="/home/acserver">/home/acserver</option>
-                  <option value="/usr/local/acserver">/usr/local/acserver</option>
-                  <option value="/srv/acserver">/srv/acserver</option>
-                </select>
-              </div>
-
-              {!steamVerified && (
-                <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded text-sm text-yellow-300">
-                  ⚠️ Please verify your Steam credentials in the section above before downloading
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <button
-                  onClick={handleDownloadACServer}
-                  disabled={
-                    downloadingACServer ||
-                    !steamcmdInstalled ||
-                    acServerInstalled?.installed ||
-                    !steamVerified
-                  }
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
-                >
-                  {downloadingACServer ? 'Downloading...' : 'Download AC Server'}
-                </button>
-                {acServerInstalled?.installed && (
+                {!acServerInstalled?.installed ? (
                   <button
-                    onClick={handleUninstallACServer}
-                    disabled={downloadingACServer}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!steamVerified) {
+                        setSteamMessage({ type: 'error', text: 'Please verify your Steam credentials first' });
+                        return;
+                      }
+                      if (!acServerPath.trim()) {
+                        setSteamMessage({ type: 'error', text: 'Please select installation path' });
+                        return;
+                      }
+                      handleDownloadACServer();
+                    }}
+                    disabled={downloadingACServer || !steamcmdInstalled || !steamVerified}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
                   >
-                    {downloadingACServer ? 'Uninstalling...' : 'Uninstall'}
+                    {downloadingACServer ? 'Downloading...' : 'Download AC Server'}
                   </button>
+                ) : (
+                  <svg
+                    className={`w-5 h-5 text-gray-400 transition-transform ${
+                      acServerExpanded ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 )}
               </div>
+            </button>
 
-              {steamMessage && (
+            {/* Expanded Details */}
+            {acServerExpanded && acServerInstalled?.installed && (
+              <div className="p-4 space-y-4 bg-gray-800/50 border-t border-gray-700">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-400">Version</span>
+                    <span className="text-sm text-gray-300">
+                      {acServerInstalled.version || 'Unknown'}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Installation Path</label>
+                  <select
+                    value={acServerPath}
+                    onChange={(e) => setAcServerPath(e.target.value)}
+                    disabled
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm cursor-not-allowed opacity-75"
+                  >
+                    <option value="/opt/acserver">/opt/acserver (Recommended)</option>
+                    <option value="/home/acserver">/home/acserver</option>
+                    <option value="/usr/local/acserver">/usr/local/acserver</option>
+                    <option value="/srv/acserver">/srv/acserver</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={handleUninstallACServer}
+                  disabled={downloadingACServer}
+                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                >
+                  {downloadingACServer ? 'Uninstalling...' : 'Uninstall'}
+                </button>
+              </div>
+            )}
+
+            {/* Path selector when not installed */}
+            {!acServerInstalled?.installed && (
+              <div className="p-4 space-y-3 bg-gray-800/50 border-t border-gray-700">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Installation Path</label>
+                  <select
+                    value={acServerPath}
+                    onChange={(e) => setAcServerPath(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                  >
+                    <option value="/opt/acserver">/opt/acserver (Recommended)</option>
+                    <option value="/home/acserver">/home/acserver</option>
+                    <option value="/usr/local/acserver">/usr/local/acserver</option>
+                    <option value="/srv/acserver">/srv/acserver</option>
+                  </select>
+                </div>
+
+                {!steamVerified && (
+                  <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded text-sm text-yellow-300">
+                    ⚠️ Please verify your Steam credentials in the section above before downloading
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Steam messages */}
+            {steamMessage && (
+              <div className="p-4 bg-gray-800/50 border-t border-gray-700">
                 <div
                   className={`p-3 rounded text-sm ${
                     steamMessage.type === 'success'
@@ -855,9 +922,9 @@ function SetupView() {
                 >
                   {steamMessage.text}
                 </div>
-              )}
-            </div>
-          </SectionPanel>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -153,7 +153,7 @@ function TrackSelectionModal({ tracks, currentTrack, onSelect, onClose }) {
         style={{ maxWidth: '1200px' }}
       >
         <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-          Select Track
+          Select Track (v2)
         </h3>
 
         {/* Filter Tabs */}
