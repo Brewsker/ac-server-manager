@@ -66,7 +66,7 @@ function getComprehensiveDefaults() {
       WELCOME_MESSAGE: '',
       CLIENT_SEND_INTERVAL_HZ: 18,
       NUM_THREADS: 2,
-      REGISTER_TO_LOBBY: 1,
+      REGISTER_TO_LOBBY: 0,
       CSP_PHYSICS_LEVEL: 0,
       CSP_USE_RAIN_CLOUDS: 0,
       CSP_RAIN_CLOUDS_CONTROL: 0,
