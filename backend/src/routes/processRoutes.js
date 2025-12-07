@@ -32,6 +32,9 @@ router.post('/start/:presetId', async (req, res, next) => {
     await presetService.loadPreset(presetId);
     const config = await configStateManager.getWorkingConfig();
 
+    // Apply config to AC server INI files before starting
+    await configStateManager.applyWorkingConfig();
+
     // Start the server
     const result = await serverProcessManager.startServer(presetId, config);
 
@@ -67,6 +70,9 @@ router.post('/restart/:presetId', async (req, res, next) => {
     // Load the preset configuration
     await presetService.loadPreset(presetId);
     const config = await configStateManager.getWorkingConfig();
+
+    // Apply config to AC server INI files before restarting
+    await configStateManager.applyWorkingConfig();
 
     // Restart the server
     const result = await serverProcessManager.restartServer(presetId, config);
