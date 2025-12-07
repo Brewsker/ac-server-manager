@@ -8,7 +8,7 @@
 - Always bash a during and install to monitor unless other tasks take time priority
 - Keep debug content enabled in the unified installer. I like to see all the stuff hehe
 - Command Notes:
-  - curl -s http://192.168.1.71:3001/api/server/status :: commands like this generally result in a URL prompt in the terminal and thhat prompt is always cancelled. Generally a waster of time.
+  - curl -s http://192.168.1.71:3001/api/server/status :: commands like this generally result in a URL prompt in the terminal and that prompt is always cancelled. Generally a waster of time.
 
 ## ⭐ Preferred Workflow
 

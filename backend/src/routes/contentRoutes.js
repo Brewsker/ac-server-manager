@@ -19,41 +19,65 @@ router.get('/status', async (req, res, next) => {
     let carCount = 0;
     let trackCount = 0;
 
-    // Check cars directory
+    // Check cars directory - only count cars with actual content
     try {
       await fs.access(carsPath);
       const carFolders = await fs.readdir(carsPath);
-      const carStats = await Promise.all(
+      const validCars = await Promise.all(
         carFolders.map(async (folder) => {
           try {
-            const stat = await fs.stat(path.join(carsPath, folder));
-            return stat.isDirectory();
+            const carPath = path.join(carsPath, folder);
+            const stat = await fs.stat(carPath);
+            if (!stat.isDirectory()) return false;
+
+            // Check if car has essential content (data folder, ui folder, or skins folder)
+            const dataPath = path.join(carPath, 'data');
+            const uiPath = path.join(carPath, 'ui');
+            const skinsPath = path.join(carPath, 'skins');
+
+            const hasData = fsSync.existsSync(dataPath);
+            const hasUi = fsSync.existsSync(uiPath);
+            const hasSkins = fsSync.existsSync(skinsPath);
+
+            return hasData || hasUi || hasSkins;
           } catch {
             return false;
           }
         })
       );
-      carCount = carStats.filter(Boolean).length;
+      carCount = validCars.filter(Boolean).length;
     } catch (error) {
       // Cars directory doesn't exist
       carCount = 0;
     }
 
-    // Check tracks directory
+    // Check tracks directory - only count tracks with actual content
     try {
       await fs.access(tracksPath);
       const trackFolders = await fs.readdir(tracksPath);
-      const trackStats = await Promise.all(
+      const validTracks = await Promise.all(
         trackFolders.map(async (folder) => {
           try {
-            const stat = await fs.stat(path.join(tracksPath, folder));
-            return stat.isDirectory();
+            const trackPath = path.join(tracksPath, folder);
+            const stat = await fs.stat(trackPath);
+            if (!stat.isDirectory()) return false;
+
+            // Check if track has essential content (models folder, ui folder, or data folder)
+            const modelsPath = path.join(trackPath, 'models');
+            const uiPath = path.join(trackPath, 'ui');
+            const dataPath = path.join(trackPath, 'data');
+
+            const hasModels = fsSync.existsSync(modelsPath);
+            const hasUi = fsSync.existsSync(uiPath);
+            const hasData = fsSync.existsSync(dataPath);
+
+            return hasModels || hasUi || hasData;
           } catch {
             return false;
           }
         })
       );
-      trackCount = trackStats.filter(Boolean).length;
+      trackCount = validTracks.filter(Boolean).length;
     } catch (error) {
       // Tracks directory doesn't exist
       trackCount = 0;

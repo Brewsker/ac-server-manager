@@ -20,7 +20,9 @@ function SetupView() {
   const [acServerPath, setAcServerPath] = React.useState('/opt/acserver');
   const [acServerInstalled, setAcServerInstalled] = React.useState(null);
   const [checkingAcServer, setCheckingAcServer] = React.useState(false);
-  const [steamUser, setSteamUser] = React.useState(() => localStorage.getItem('steamUsername') || '');
+  const [steamUser, setSteamUser] = React.useState(
+    () => localStorage.getItem('steamUsername') || ''
+  );
   const [steamPass, setSteamPass] = React.useState('');
   const [steamGuardCode, setSteamGuardCode] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
@@ -30,7 +32,9 @@ function SetupView() {
   const [copyingFromCache, setCopyingFromCache] = React.useState(false);
 
   // Steam credentials verification
-  const [steamVerified, setSteamVerified] = React.useState(() => localStorage.getItem('steamVerified') === 'true');
+  const [steamVerified, setSteamVerified] = React.useState(
+    () => localStorage.getItem('steamVerified') === 'true'
+  );
   const [verifyingCreds, setVerifyingCreds] = React.useState(false);
   const [verifyMessage, setVerifyMessage] = React.useState(null);
 
