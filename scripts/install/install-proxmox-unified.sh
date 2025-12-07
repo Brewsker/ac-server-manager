@@ -617,7 +617,7 @@ enable_ssh_password_auth() {
     # Use pct exec to configure SSH (works with both directory and LVM storage)
     # Stop SSH first, modify config, then start - avoids "Address already in use" race
     set +e
-    pct exec "$CTID" -- bash -c "
+    timeout 30 pct exec "$CTID" -- bash -c "
         if [ -f /etc/ssh/sshd_config ]; then
             # Stop both possible SSH service names to ensure port is freed
             systemctl stop sshd 2>/dev/null || true
@@ -634,9 +634,9 @@ enable_ssh_password_auth() {
             sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
             sed -i 's/^#\\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
             
-            # Start SSH service with retry logic
+            # Start SSH service with timeout per attempt
             for i in 1 2 3; do
-                systemctl start sshd 2>/dev/null || systemctl start ssh 2>/dev/null || true
+                timeout 5 systemctl start sshd 2>/dev/null || timeout 5 systemctl start ssh 2>/dev/null || true
                 sleep 2
                 
                 if systemctl is-active --quiet sshd 2>/dev/null || systemctl is-active --quiet ssh 2>/dev/null; then
@@ -646,11 +646,12 @@ enable_ssh_password_auth() {
                 
                 echo \"SSH start attempt \$i failed, retrying...\"
                 pkill -9 sshd 2>/dev/null || true
-                sleep 2
+                sleep 1
             done
             
-            echo 'SSH failed to start after 3 attempts'
-            exit 1
+            # If we get here, SSH didn't start, but don't block installation
+            echo 'SSH failed to start after 3 attempts, continuing anyway'
+            exit 0
         else
             echo 'sshd_config not found'
             exit 1
@@ -660,9 +661,9 @@ enable_ssh_password_auth() {
     set -e
     
     if [ $result -eq 0 ]; then
-        debug "SSH password and pubkey authentication enabled"
+        debug "SSH configuration completed"
     else
-        print_warning "Could not configure SSH, may need manual setup"
+        print_warning "SSH configuration had issues, but continuing installation"
     fi
 }
 
