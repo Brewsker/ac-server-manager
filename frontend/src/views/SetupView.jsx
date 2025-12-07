@@ -152,17 +152,20 @@ function SetupView() {
 
     try {
       const result = await api.verifySteamCredentials(steamUser, steamPass, steamGuardCode);
-      
+
       if (result.success) {
         setSteamVerified(true);
         localStorage.setItem('steamUsername', steamUser);
         localStorage.setItem('steamVerified', 'true');
-        setVerifyMessage({ type: 'success', text: result.message || 'Credentials verified successfully!' });
+        setVerifyMessage({
+          type: 'success',
+          text: result.message || 'Credentials verified successfully!',
+        });
       } else {
         setSteamVerified(false);
         localStorage.removeItem('steamVerified');
         setVerifyMessage({ type: 'error', text: result.message || 'Verification failed' });
-        
+
         // Clear guard code if it was invalid
         if (result.error?.includes('guard')) {
           setSteamGuardCode('');
@@ -703,8 +706,8 @@ function SetupView() {
 
           {/* SteamCMD Status */}
           <SectionPanel title="SteamCMD">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span
                     className={`w-3 h-3 rounded-full ${
@@ -719,25 +722,46 @@ function SetupView() {
                       : 'Not Installed'}
                   </span>
                 </div>
-                <div className="flex gap-2">
-                  {!steamcmdInstalled ? (
-                    <button
-                      onClick={handleInstallSteamCMD}
-                      disabled={installingSteamCmd}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
-                    >
-                      {installingSteamCmd ? 'Installing...' : 'Install SteamCMD'}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleUninstallSteamCMD}
-                      disabled={installingSteamCmd}
-                      className="px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
-                    >
-                      {installingSteamCmd ? 'Uninstalling...' : 'Uninstall SteamCMD'}
-                    </button>
-                  )}
-                </div>
+                <button
+                  onClick={checkSteamCMDStatus}
+                  disabled={checkingSteamCmd}
+                  className="px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
+                  title="Refresh status"
+                >
+                  ↻
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Installation Path</label>
+                <select
+                  value="/usr/games/steamcmd"
+                  disabled
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm cursor-not-allowed opacity-75"
+                >
+                  <option value="/usr/games/steamcmd">/usr/games/steamcmd (System Package)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">SteamCMD is installed via system package manager</p>
+              </div>
+
+              <div className="flex gap-2">
+                {!steamcmdInstalled ? (
+                  <button
+                    onClick={handleInstallSteamCMD}
+                    disabled={installingSteamCmd}
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                  >
+                    {installingSteamCmd ? 'Installing...' : 'Install SteamCMD'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleUninstallSteamCMD}
+                    disabled={installingSteamCmd}
+                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                  >
+                    {installingSteamCmd ? 'Uninstalling...' : 'Uninstall SteamCMD'}
+                  </button>
+                )}
               </div>
             </div>
           </SectionPanel>
@@ -777,33 +801,18 @@ function SetupView() {
                 </button>
               </div>
 
-              {cacheStatus?.exists && (
-                <div className="flex items-center justify-between p-3 bg-emerald-900/30 border border-emerald-700 rounded">
-                  <div>
-                    <span className="text-emerald-400 font-medium">Cache Available</span>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Version: {cacheStatus.version || 'Unknown'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleCopyFromCache}
-                    disabled={copyingFromCache}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
-                  >
-                    {copyingFromCache ? 'Copying...' : 'Use Cache'}
-                  </button>
-                </div>
-              )}
-
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Installation Path</label>
-                <input
-                  type="text"
+                <select
                   value={acServerPath}
                   onChange={(e) => setAcServerPath(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                  placeholder="/opt/acserver"
-                />
+                >
+                  <option value="/opt/acserver">/opt/acserver (Recommended)</option>
+                  <option value="/home/acserver">/home/acserver</option>
+                  <option value="/usr/local/acserver">/usr/local/acserver</option>
+                  <option value="/srv/acserver">/srv/acserver</option>
+                </select>
               </div>
 
               {!steamVerified && (
