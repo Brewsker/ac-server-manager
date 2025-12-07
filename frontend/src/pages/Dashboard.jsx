@@ -856,8 +856,7 @@ function PresetsView({ setSelectedView }) {
         },
       };
 
-      await api.updateConfig(updatedConfig);
-      await api.savePreset(newName, null, 'Newly created preset from defaults');
+      await api.savePreset(newName, updatedConfig, 'Newly created preset from defaults');
       await fetchPresets();
 
       const updatedPresets = await api.getPresets();
