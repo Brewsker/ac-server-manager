@@ -117,6 +117,9 @@ quit
     const errorStderr = error.stderr || '';
     const fullError = errorOutput + '\n' + errorStderr;
 
+    // Log full error for server-side debugging
+    console.error('[SteamService] Full SteamCMD output:', fullError.substring(0, 2000));
+
     if (fullError.includes('No subscription')) {
       throw new Error(
         'Steam account does not own Assetto Corsa. You must own the game to download the dedicated server.'
@@ -146,25 +149,27 @@ quit
     if (
       fullError.includes('Login Failure') ||
       fullError.includes('Invalid Password') ||
-      error.code === 5
+      error.code === 5 ||
+      error.code === 8
     ) {
+      // Exit code 8 typically means authentication failure
       // Check if it might be Steam Guard related even if not explicitly mentioned
       if (!steamGuardCode || steamGuardCode.trim() === '') {
         throw new Error(
-          `❌ Steam Login Failed: Invalid password or Steam Guard required.\n\nPlease:\n1. Verify your password is correct (use the eye icon)\n2. If you have Steam Guard enabled, enter your current code and try again`
+          `❌ Steam Login Failed: Invalid credentials or Steam Guard required.\n\nPlease:\n1. Verify your password is correct (use the eye icon)\n2. If you have Steam Guard enabled, enter your current code\n3. For anonymous login, use username "anonymous" with empty password\n\nError code: ${error.code || 'unknown'}`
         );
       }
       throw new Error(
-        `❌ Steam Login Failed: Credentials rejected.\n\nPossible issues:\n1. Password is incorrect\n2. Steam Guard code expired (get a fresh one)\n3. Wrong type of Steam Guard code (email vs mobile)\n\nSteam output: ${errorOutput.substring(
+        `❌ Steam Login Failed: Credentials rejected.\n\nPossible issues:\n1. Password is incorrect\n2. Steam Guard code expired (get a fresh one - they refresh every 30s)\n3. Wrong type of Steam Guard code (email vs mobile app)\n4. Account has restrictions\n\nError code: ${error.code || 'unknown'}\nSteam output: ${errorOutput.substring(
           0,
-          500
+          800
         )}`
       );
     }
 
     // Return detailed error for debugging
     throw new Error(
-      `SteamCMD failed (code ${error.code || 'unknown'}): ${errorOutput.substring(0, 500)}`
+      `SteamCMD failed (code ${error.code || 'unknown'}): ${errorOutput.substring(0, 1000)}`
     );
   }
 }
@@ -474,6 +479,9 @@ quit
     const errorStderr = error.stderr || '';
     const fullError = errorOutput + '\n' + errorStderr;
 
+    // Log full error for server-side debugging
+    console.error('[SteamService] Full SteamCMD output (base game):', fullError.substring(0, 2000));
+
     if (fullError.includes('No subscription')) {
       throw new Error(
         'Steam account does not own Assetto Corsa. You must purchase the game to download content.'
@@ -488,18 +496,26 @@ quit
       fullError.includes('GUARD')
     ) {
       throw new Error(
-        `🔐 Steam Guard Issue: Please verify your Steam Guard code is current (refreshes every 30s)`
+        `🔐 Steam Guard Issue: Please verify:\n1. Steam Guard code is current (refreshes every 30s)\n2. You're using the correct type (email vs mobile app)`
       );
     }
     if (
       fullError.includes('Login Failure') ||
       fullError.includes('Invalid Password') ||
-      error.code === 5
+      error.code === 5 ||
+      error.code === 8
     ) {
-      throw new Error(`❌ Steam Login Failed: Invalid credentials or expired Steam Guard code`);
+      if (!steamGuardCode || steamGuardCode.trim() === '') {
+        throw new Error(
+          `❌ Steam Login Failed: Invalid credentials or Steam Guard required.\n\nError code: ${error.code || 'unknown'}`
+        );
+      }
+      throw new Error(
+        `❌ Steam Login Failed: Credentials rejected.\n\nPossible issues:\n1. Password is incorrect\n2. Steam Guard code expired\n3. Wrong Steam Guard type\n\nError code: ${error.code || 'unknown'}`
+      );
     }
 
-    throw new Error(`SteamCMD failed to download AC base game: ${errorOutput.substring(0, 500)}`);
+    throw new Error(`SteamCMD failed to download AC base game (code ${error.code || 'unknown'}): ${errorOutput.substring(0, 1000)}`);
   }
 }
 
