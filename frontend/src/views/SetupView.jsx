@@ -337,6 +337,17 @@ function SetupView() {
       return;
     }
 
+    // Validate credentials are still available
+    if (!steamUser || !steamPass) {
+      setBaseGameMessage({
+        type: 'error',
+        text: 'Steam credentials missing. Please re-verify your credentials.',
+      });
+      setSteamVerified(false);
+      localStorage.removeItem('steamVerified');
+      return;
+    }
+
     setDownloadingBaseGame(true);
     setBaseGameMessage(null);
 
