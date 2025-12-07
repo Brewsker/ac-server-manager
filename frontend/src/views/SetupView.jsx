@@ -675,7 +675,7 @@ function SetupView() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm text-gray-400 mb-1">Steam Username</label>
                     <input
@@ -709,35 +709,24 @@ function SetupView() {
                       )}
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">
+                      Steam Guard Code (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={steamGuardCode}
+                      onChange={(e) => setSteamGuardCode(e.target.value)}
+                      disabled={steamVerified}
+                      placeholder="Enter code if Steam Guard is enabled"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Steam Guard Code (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={steamGuardCode}
-                    onChange={(e) => setSteamGuardCode(e.target.value)}
-                    disabled={steamVerified}
-                    placeholder="Enter code if Steam Guard is enabled"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Required if your account has Steam Guard enabled. Get code from Steam app or
-                    email.
-                  </p>
-                </div>
-
-                {!steamVerified && (
-                  <button
-                    onClick={handleVerifyCredentials}
-                    disabled={verifyingCreds || !steamUser || !steamPass}
-                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
-                  >
-                    {verifyingCreds ? 'Verifying...' : 'Verify Credentials'}
-                  </button>
-                )}
+                <p className="text-xs text-gray-500">
+                  Steam Guard code required if your account has Steam Guard enabled. Get code from Steam app or email.
+                </p>
 
                 {verifyMessage && (
                   <div
