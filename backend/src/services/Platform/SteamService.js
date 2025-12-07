@@ -59,11 +59,22 @@ login ${steamUser} ${steamPass}`;
     const steamDir = path.join(process.env.HOME || '/root', '.steam');
     await fs.mkdir(steamDir, { recursive: true }).catch(() => {});
 
-    // Run SteamCMD with timeout
-    const { stdout, stderr } = await execAsync(`${steamcmdPath} +runscript ${scriptPath}`, {
-      maxBuffer: 1024 * 1024,
-      timeout: 30000, // 30 second timeout
-    });
+    // Run SteamCMD with timeout (rejection: false to handle exit codes manually)
+    let stdout = '';
+    let stderr = '';
+    try {
+      const result = await execAsync(`${steamcmdPath} +runscript ${scriptPath}`, {
+        maxBuffer: 1024 * 1024,
+        timeout: 30000, // 30 second timeout
+      });
+      stdout = result.stdout;
+      stderr = result.stderr;
+    } catch (error) {
+      // SteamCMD returns non-zero exit codes even for expected failures (wrong password, etc)
+      // So we need to capture output and check it rather than failing on exit code
+      stdout = error.stdout || '';
+      stderr = error.stderr || '';
+    }
 
     // Clean up
     await fs.unlink(scriptPath).catch(() => {});
