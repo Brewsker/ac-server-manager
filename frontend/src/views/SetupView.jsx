@@ -847,13 +847,12 @@ function SetupView() {
                       }}
                       disabled={downloadingACServer || !steamcmdInstalled || !steamVerified}
                       className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded transition-colors"
-                      title={!steamVerified ? 'Please verify Steam credentials first' : ''}
                     >
                       {downloadingACServer ? 'Downloading...' : 'Download'}
                     </button>
                     {!steamVerified && (
-                      <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 border border-yellow-600 rounded text-xs text-yellow-300 shadow-lg z-10">
-                        ⚠️ Steam credentials not verified. Click to expand and verify credentials.
+                      <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 border border-yellow-600 rounded text-xs text-yellow-300 shadow-lg z-50">
+                        ⚠️ Steam credentials not verified
                       </div>
                     )}
                     <svg
@@ -945,12 +944,6 @@ function SetupView() {
                     <option value="/srv/acserver">/srv/acserver</option>
                   </select>
                 </div>
-
-                {!steamVerified && (
-                  <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded text-sm text-yellow-300">
-                    ⚠️ Please verify your Steam credentials in the section above before downloading
-                  </div>
-                )}
               </div>
             )}
 
