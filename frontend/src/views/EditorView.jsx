@@ -189,10 +189,10 @@ function EditorView() {
       // Get preset name from current preset
       const currentPreset = data.presets.find((p) => p.id === data.currentPresetId);
       const presetName = currentPreset?.name || data.config?.SERVER?.NAME || '';
-      
+
       // Update UI state for potential future use
       updateUi({ presetName });
-      
+
       // Save directly with the preset name
       await confirmSavePreset(false, presetName);
     } else {
