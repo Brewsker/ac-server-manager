@@ -63,11 +63,10 @@ scripts/
 
 Scripts for setting up AC Server Manager on various platforms:
 
-- **`install-proxmox.sh`** - Install on Proxmox LXC container
-- **`install-proxmox-unified.sh`** - Unified Proxmox installer
-- **`install-server.sh`** - Install on bare metal Linux
-- **`install.ps1`** - Install on Windows
-- **`setup-server.js`** - Node.js setup helper
+- **`install-proxmox-unified.sh`** - Primary Proxmox LXC installer (automated container creation)
+- **`install-server.sh`** - Bare metal/inside container installer (called by unified)
+- **`install.ps1`** - Windows installation (experimental)
+- **`setup-server.js`** - Setup wizard server component
 
 ## Testing Scripts (`testing/`)
 

@@ -189,11 +189,10 @@ Keep last 2 builds in `/opt/ac-server-manager/frontend-backups/`
   ├── update-wizard.sh
   ├── README.md (documentation)
   ├── install/
-  │   ├── install-proxmox.sh
-  │   ├── install-proxmox-unified.sh
-  │   ├── install-server.sh
-  │   ├── install.ps1
-  │   └── setup-server.js
+  │   ├── install-proxmox-unified.sh (primary - Proxmox LXC installer)
+  │   ├── install-server.sh (bare metal/inside container)
+  │   ├── install.ps1 (Windows)
+  │   └── setup-server.js (wizard helper)
   ├── testing/
   │   ├── test-proxmox.sh
   │   ├── test-proxmox-dev.sh

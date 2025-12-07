@@ -9,15 +9,16 @@ Copy-paste these commands to deploy AC Server Manager.
 **Run on Proxmox HOST:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/multi-instance-manager/install-proxmox.sh | bash
+curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/scripts/install/install-proxmox-unified.sh" | bash
 ```
 
 **What it does:**
 
-- ✅ Creates Ubuntu 22.04 LXC container
-- ✅ Configures resources (2 CPU, 2GB RAM, 20GB disk)
-- ✅ Installs Docker or PM2 (you choose)
-- ✅ Installs AC Server Manager
+- ✅ Creates Ubuntu 22.04 LXC container (ID 999)
+- ✅ Configures resources (2 CPU, 4GB RAM, 60GB disk)
+- ✅ Installs Node.js 20 and PM2
+- ✅ Deploys AC Server Manager directly (no wizard)
+- ✅ Uses git-cache for fast installation
 - ✅ Optionally downloads AC via SteamCMD
 - ✅ Configures firewall
 - ✅ Auto-starts on boot

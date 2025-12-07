@@ -1262,9 +1262,9 @@ start_main_app() {
     pct exec $CTID -- npm install -g pm2 >> "$LOG_FILE" 2>&1
     debug "PM2 installed"
     
-    # Start app with PM2
+    # Start app with PM2 using ecosystem.config.cjs
     print_info "Starting application..."
-    pct exec $CTID -- bash -c "cd $APP_DIR/backend && pm2 start src/server.js --name ac-server-manager --node-args=\"--experimental-modules\"" >> "$LOG_FILE" 2>&1
+    pct exec $CTID -- bash -c "cd $APP_DIR/backend && pm2 start ecosystem.config.cjs" >> "$LOG_FILE" 2>&1
     debug "App started with PM2"
     
     # Save PM2 process list
