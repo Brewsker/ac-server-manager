@@ -54,6 +54,9 @@ function SetupView() {
   const [autoCleanup, setAutoCleanup] = React.useState(true);
   const [baseGameMessage, setBaseGameMessage] = React.useState(null);
 
+  // Track if component has mounted to avoid resetting on initial load
+  const hasMounted = React.useRef(false);
+
   React.useEffect(() => {
     loadCurrentVersion();
     checkSteamCMDStatus();
@@ -66,10 +69,16 @@ function SetupView() {
     const savedVerified = localStorage.getItem('steamVerified');
     if (savedUser) setSteamUser(savedUser);
     if (savedVerified === 'true') setSteamVerified(true);
+
+    // Mark as mounted after initial load
+    hasMounted.current = true;
   }, []);
 
-  // Reset verification if credentials change
+  // Reset verification if credentials change (after initial mount)
   React.useEffect(() => {
+    // Skip reset on initial mount
+    if (!hasMounted.current) return;
+
     if (steamVerified) {
       // If any credential field changes, reset verification
       setSteamVerified(false);
