@@ -183,8 +183,15 @@ function EditorView() {
 
   const handleSaveConfig = async () => {
     if (!data.config) return;
-    updateUi({ presetName: data.config?.SERVER?.NAME || '' });
-    updateModals({ showSave: true });
+    
+    // If we already have a preset loaded, save directly without showing modal
+    if (data.currentPresetId) {
+      await confirmSavePreset(false);
+    } else {
+      // First-time save: show modal to get preset name
+      updateUi({ presetName: data.config?.SERVER?.NAME || '' });
+      updateModals({ showSave: true });
+    }
   };
 
   const confirmSavePreset = async (applyToServer = false) => {
