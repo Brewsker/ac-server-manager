@@ -619,29 +619,41 @@ enable_ssh_password_auth() {
     set +e
     pct exec "$CTID" -- bash -c "
         if [ -f /etc/ssh/sshd_config ]; then
-            # Stop SSH service first to avoid port binding race
-            systemctl stop sshd 2>/dev/null || systemctl stop ssh 2>/dev/null || true
-            sleep 1
+            # Stop both possible SSH service names to ensure port is freed
+            systemctl stop sshd 2>/dev/null || true
+            systemctl stop ssh 2>/dev/null || true
+            
+            # Kill any orphaned sshd processes that might be holding port 22
+            pkill -9 sshd 2>/dev/null || true
+            
+            # Wait for port to be fully released
+            sleep 3
             
             # Modify configuration
             sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
             sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
             sed -i 's/^#\\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
             
-            # Start SSH service (not restart - it's already stopped)
-            systemctl start sshd 2>/dev/null || systemctl start ssh 2>/dev/null || true
-            sleep 1
-            
-            # Verify it started
-            if systemctl is-active --quiet sshd 2>/dev/null || systemctl is-active --quiet ssh 2>/dev/null; then
-                echo 'SSH configured and started'
-            else
-                echo 'SSH failed to start, retrying...'
-                sleep 2
+            # Start SSH service with retry logic
+            for i in 1 2 3; do
                 systemctl start sshd 2>/dev/null || systemctl start ssh 2>/dev/null || true
-            fi
+                sleep 2
+                
+                if systemctl is-active --quiet sshd 2>/dev/null || systemctl is-active --quiet ssh 2>/dev/null; then
+                    echo 'SSH configured and started successfully'
+                    exit 0
+                fi
+                
+                echo \"SSH start attempt \$i failed, retrying...\"
+                pkill -9 sshd 2>/dev/null || true
+                sleep 2
+            done
+            
+            echo 'SSH failed to start after 3 attempts'
+            exit 1
         else
             echo 'sshd_config not found'
+            exit 1
         fi
     " >> "$LOG_FILE" 2>&1
     local result=$?
