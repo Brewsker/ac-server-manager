@@ -453,6 +453,15 @@ export const deleteACContent = async (contentPath, type) => {
   return response.data;
 };
 
+export const verifySteamCredentials = async (username, password, guardCode) => {
+  const response = await client.post('/steam/verify-credentials', {
+    username,
+    password,
+    guardCode,
+  });
+  return response.data;
+};
+
 export default {
   getServerStatus,
   startServer,
@@ -530,7 +539,6 @@ export default {
   uninstallACServer,
   deleteACContent,
   verifySteamCredentials,
-  checkForUpdates,
   getUpdateStatus,
   applyUpdate,
   // Also export the axios instance for direct use
