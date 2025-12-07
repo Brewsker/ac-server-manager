@@ -260,6 +260,50 @@ quit
       await fs.access(acServerPath);
       await fs.chmod(acServerPath, 0o755); // Make executable
 
+      // Clean up empty content directories created by Steam
+      console.log('[SteamService] Cleaning up empty content directories...');
+      const contentPath = path.join(installPath, 'content');
+      const carsPath = path.join(contentPath, 'cars');
+      const tracksPath = path.join(contentPath, 'tracks');
+
+      // Remove empty car directories
+      try {
+        const carFolders = await fs.readdir(carsPath);
+        for (const folder of carFolders) {
+          const carPath = path.join(carsPath, folder);
+          const stat = await fs.stat(carPath);
+          if (stat.isDirectory()) {
+            // Check if directory is empty or has only empty subdirectories
+            const contents = await fs.readdir(carPath);
+            if (contents.length === 0) {
+              await fs.rm(carPath, { recursive: true });
+              console.log(`[SteamService] Removed empty car directory: ${folder}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('[SteamService] Could not clean car directories:', error.message);
+      }
+
+      // Remove empty track directories
+      try {
+        const trackFolders = await fs.readdir(tracksPath);
+        for (const folder of trackFolders) {
+          const trackPath = path.join(tracksPath, folder);
+          const stat = await fs.stat(trackPath);
+          if (stat.isDirectory()) {
+            // Check if directory is empty or has only empty subdirectories
+            const contents = await fs.readdir(trackPath);
+            if (contents.length === 0) {
+              await fs.rm(trackPath, { recursive: true });
+              console.log(`[SteamService] Removed empty track directory: ${folder}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('[SteamService] Could not clean track directories:', error.message);
+      }
+
       // Try to get version
       let version = 'Unknown';
       try {
