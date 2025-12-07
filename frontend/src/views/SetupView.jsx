@@ -179,9 +179,15 @@ function SetupView() {
         setSteamVerified(true);
         localStorage.setItem('steamUsername', steamUser);
         localStorage.setItem('steamVerified', 'true');
+        
+        // Show session caching message if applicable
+        const message = result.sessionCached
+          ? '✅ Credentials verified! Steam session cached - you can now download content without re-entering codes.'
+          : result.message || 'Credentials verified successfully!';
+        
         setVerifyMessage({
           type: 'success',
-          text: result.message || 'Credentials verified successfully!',
+          text: message,
         });
       } else {
         setSteamVerified(false);
@@ -423,10 +429,24 @@ function SetupView() {
       await checkContentStatus();
     } catch (error) {
       console.error('Failed to download/extract base game:', error);
-      setBaseGameMessage({
-        type: 'error',
-        text: error.response?.data?.message || error.message || 'Failed to download base game',
-      });
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to download base game';
+      
+      // Check if this is a session expiration error
+      if (errorMsg.includes('Steam session expired') || errorMsg.includes('re-verify')) {
+        // Reset verification state
+        setSteamVerified(false);
+        localStorage.removeItem('steamVerified');
+        
+        setBaseGameMessage({
+          type: 'error',
+          text: '🔐 Steam session expired. Please re-verify your credentials in the Setup → Server tab above, then try downloading again.',
+        });
+      } else {
+        setBaseGameMessage({
+          type: 'error',
+          text: errorMsg,
+        });
+      }
     } finally {
       setDownloadingBaseGame(false);
       setExtractingContent(false);
