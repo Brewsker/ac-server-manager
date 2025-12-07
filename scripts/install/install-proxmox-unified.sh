@@ -76,7 +76,7 @@ AC_SERVER_DIR="/opt/assetto-corsa-server"
 
 # GitHub settings
 GITHUB_REPO="Brewsker/ac-server-manager"
-GITHUB_BRANCH="feature/integrated-setup-wizard"  # Using feature branch for testing
+GITHUB_BRANCH="develop"  # Production branch
 CACHE_BUST="?t=$(date +%s)"
 GITHUB_RAW="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}"
 
