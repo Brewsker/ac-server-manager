@@ -20,7 +20,7 @@ function SetupView() {
   const [acServerPath, setAcServerPath] = React.useState('/opt/acserver');
   const [acServerInstalled, setAcServerInstalled] = React.useState(null);
   const [checkingAcServer, setCheckingAcServer] = React.useState(false);
-  const [steamUser, setSteamUser] = React.useState('');
+  const [steamUser, setSteamUser] = React.useState(() => localStorage.getItem('steamUsername') || '');
   const [steamPass, setSteamPass] = React.useState('');
   const [steamGuardCode, setSteamGuardCode] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
@@ -30,7 +30,7 @@ function SetupView() {
   const [copyingFromCache, setCopyingFromCache] = React.useState(false);
 
   // Steam credentials verification
-  const [steamVerified, setSteamVerified] = React.useState(false);
+  const [steamVerified, setSteamVerified] = React.useState(() => localStorage.getItem('steamVerified') === 'true');
   const [verifyingCreds, setVerifyingCreds] = React.useState(false);
   const [verifyMessage, setVerifyMessage] = React.useState(null);
 
@@ -63,12 +63,6 @@ function SetupView() {
     checkCacheStatus();
     checkContentStatus();
     checkAcServerStatus();
-
-    // Load saved credentials
-    const savedUser = localStorage.getItem('steamUsername');
-    const savedVerified = localStorage.getItem('steamVerified');
-    if (savedUser) setSteamUser(savedUser);
-    if (savedVerified === 'true') setSteamVerified(true);
   }, []);
 
   // Reset verification if credentials change (after initial mount)
