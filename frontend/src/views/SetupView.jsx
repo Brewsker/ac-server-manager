@@ -67,6 +67,16 @@ function SetupView() {
     if (savedVerified === 'true') setSteamVerified(true);
   }, []);
 
+  // Reset verification if credentials change
+  React.useEffect(() => {
+    if (steamVerified) {
+      // If any credential field changes, reset verification
+      setSteamVerified(false);
+      localStorage.removeItem('steamVerified');
+      setVerifyMessage(null);
+    }
+  }, [steamUser, steamPass, steamGuardCode]);
+
   const loadCurrentVersion = async () => {
     try {
       const data = await api.getCurrentVersion();
