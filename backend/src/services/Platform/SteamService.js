@@ -81,6 +81,17 @@ login ${steamUser} ${steamPass}`;
 
     const output = stdout + stderr;
 
+    // Check for Steam Guard requirement
+    if (output.includes('This computer has not been authenticated') || 
+        output.includes('Steam Guard') || 
+        output.includes('ERROR (Account Logon Denied)')) {
+      return {
+        success: false,
+        error: 'guard_code_required',
+        message: 'Steam Guard code required. Please enter the code from your email',
+      };
+    }
+
     // Check for various error conditions
     if (output.includes('FAILED login with result code Invalid Password')) {
       return {
