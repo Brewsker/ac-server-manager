@@ -35,6 +35,7 @@ function SetupView() {
   const [verifyMessage, setVerifyMessage] = React.useState(null);
 
   // Collapsible section states
+  const [steamCredsExpanded, setSteamCredsExpanded] = React.useState(false);
   const [steamCmdExpanded, setSteamCmdExpanded] = React.useState(false);
   const [acServerExpanded, setAcServerExpanded] = React.useState(false);
 
@@ -602,121 +603,156 @@ function SetupView() {
       {activeTab === 'server' && (
         <div className="space-y-4">
           {/* Steam Credentials Section */}
-          <SectionPanel title="Steam Credentials">
-            <div className="p-4 space-y-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-gray-400">
-                  Verify your Steam credentials before installing servers or content
-                </p>
-                {steamVerified && (
+          <div className="border border-gray-700 rounded-lg overflow-hidden">
+            {/* Collapsed Header */}
+            <button
+              onClick={() => setSteamCredsExpanded(!steamCredsExpanded)}
+              className="w-full px-4 py-3 flex items-center justify-between bg-gray-800 hover:bg-gray-750 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-orange-400 font-medium">Steam Credentials</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      steamVerified ? 'bg-emerald-500' : 'bg-red-500'
+                    }`}
+                  ></span>
+                  <span className="text-sm text-gray-300">
+                    {verifyingCreds
+                      ? 'Verifying...'
+                      : steamVerified
+                      ? 'Verified'
+                      : 'Not Verified'}
+                  </span>
+                </div>
+                {!steamVerified ? (
                   <button
-                    onClick={handleClearCredentials}
-                    className="px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleVerifyCredentials();
+                    }}
+                    disabled={verifyingCreds || !steamUser || !steamPass}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
                   >
-                    Clear
+                    {verifyingCreds ? 'Verifying...' : 'Verify'}
                   </button>
+                ) : (
+                  <svg
+                    className={`w-5 h-5 text-gray-400 transition-transform ${
+                      steamCredsExpanded ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 )}
               </div>
+            </button>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Steam Username</label>
-                  <input
-                    type="text"
-                    value={steamUser}
-                    onChange={(e) => {
-                      setSteamUser(e.target.value);
-                      setSteamVerified(false);
-                      localStorage.removeItem('steamVerified');
-                    }}
-                    disabled={steamVerified}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    placeholder="your_steam_username"
-                  />
+            {/* Expanded Details */}
+            {steamCredsExpanded && (
+              <div className="p-4 space-y-4 bg-gray-800/50 border-t border-gray-700">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-gray-400">
+                    Steam credentials required for downloading content
+                  </p>
+                  {steamVerified && (
+                    <button
+                      onClick={handleClearCredentials}
+                      className="px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
+                    >
+                      Clear & Re-verify
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Steam Password</label>
-                  <div className="relative">
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Steam Username</label>
                     <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={steamPass}
-                      onChange={(e) => {
-                        setSteamPass(e.target.value);
-                        setSteamVerified(false);
-                        localStorage.removeItem('steamVerified');
-                      }}
+                      type="text"
+                      value={steamUser}
+                      onChange={(e) => setSteamUser(e.target.value)}
                       disabled={steamVerified}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm pr-10 disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder="••••••••"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="your_steam_username"
                     />
-                    {!steamVerified && (
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                      >
-                        {showPassword ? '🙈' : '👁️'}
-                      </button>
-                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Steam Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={steamPass}
+                        onChange={(e) => setSteamPass(e.target.value)}
+                        disabled={steamVerified}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm pr-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="••••••••"
+                      />
+                      {!steamVerified && (
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                        >
+                          {showPassword ? '🙈' : '👁️'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">
-                  Steam Guard Code (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={steamGuardCode}
-                  onChange={(e) => {
-                    setSteamGuardCode(e.target.value);
-                    setSteamVerified(false);
-                    localStorage.removeItem('steamVerified');
-                  }}
-                  disabled={steamVerified}
-                  placeholder="Enter code if Steam Guard is enabled"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Required if your account has Steam Guard enabled. Get code from Steam app or
-                  email.
-                </p>
-              </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    Steam Guard Code (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={steamGuardCode}
+                    onChange={(e) => setSteamGuardCode(e.target.value)}
+                    disabled={steamVerified}
+                    placeholder="Enter code if Steam Guard is enabled"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Required if your account has Steam Guard enabled. Get code from Steam app or
+                    email.
+                  </p>
+                </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleVerifyCredentials}
-                  disabled={verifyingCreds || steamVerified || !steamUser || !steamPass}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
-                >
-                  {verifyingCreds
-                    ? 'Verifying...'
-                    : steamVerified
-                    ? '✓ Verified'
-                    : 'Verify Credentials'}
-                </button>
-                {steamVerified && (
-                  <span className="flex items-center gap-2 text-emerald-400 text-sm">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    Credentials verified
-                  </span>
+                {!steamVerified && (
+                  <button
+                    onClick={handleVerifyCredentials}
+                    disabled={verifyingCreds || !steamUser || !steamPass}
+                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                  >
+                    {verifyingCreds ? 'Verifying...' : 'Verify Credentials'}
+                  </button>
+                )}
+
+                {verifyMessage && (
+                  <div
+                    className={`p-3 rounded text-sm ${
+                      verifyMessage.type === 'success'
+                        ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700'
+                        : 'bg-red-900/50 text-red-300 border border-red-700'
+                    }`}
+                  >
+                    {verifyMessage.text}
+                  </div>
                 )}
               </div>
-
-              {verifyMessage && (
-                <div
-                  className={`p-3 rounded text-sm ${
-                    verifyMessage.type === 'success'
-                      ? 'bg-emerald-900/50 text-emerald-300 border border-emerald-700'
-                      : 'bg-red-900/50 text-red-300 border border-red-700'
-                  }`}
-                >
-                  {verifyMessage.text}
-                </div>
-              )}
-            </div>
-          </SectionPanel>
+            )}
+          </div>
 
           {/* SteamCMD Status */}
           <div className="border border-gray-700 rounded-lg overflow-hidden">
