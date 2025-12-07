@@ -2,67 +2,74 @@
 
 Modern web-based management interface for Assetto Corsa dedicated servers.
 
-STILL UNDER DEVELOPMENT. DOWNLOAD AT OWN RISK.
-Core functionality seems solid.
-Working to dial in the installer for local testing before development can continue.
+**Status:** Active Development  
+**Version:** 0.28.13+  
+**Platform:** Proxmox LXC, Linux, Windows
+
+---
 
 ## 🚀 Quick Start
 
-### Windows (Local Development)
+### Proxmox LXC (Recommended)
 
-**One-click installer:**
-
-```powershell
-.\install.ps1
-```
-
-Opens browser automatically, complete Setup Wizard, done!
-
-**Manual:** See [QUICKSTART.md](./QUICKSTART.md)
-
-### Linux Server (Production)
-
-**One-command installer:**
+**One-command installation:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yourusername/ac-server-manager/main/install-server.sh | sudo bash
+curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/scripts/install/install-proxmox-unified.sh" | bash
 ```
 
-Installs Node.js, PM2, optionally downloads AC server via Steam, configures everything!
+Creates container, installs everything, opens setup wizard at http://192.168.1.71:3001
 
-**Full guide:** See [SERVER_INSTALL.md](./SERVER_INSTALL.md)
-
-### Proxmox (Auto-Creates LXC Container)
-
-**One-command setup:**
+### Local Development (Windows/Mac/Linux)
 
 ```bash
-# Run on Proxmox HOST (creates container + installs everything)
-curl -sSL https://raw.githubusercontent.com/Brewsker/ac-server-manager/main/install-proxmox.sh | bash
+git clone https://github.com/Brewsker/ac-server-manager.git
+cd ac-server-manager
+cd backend && npm install
+cd ../frontend && npm install
+npm run dev  # Start both services
 ```
 
-Creates Ubuntu 22.04 LXC, installs app, optionally downloads AC via Steam!
+Access at http://localhost:5173
 
-**Manual Docker:** See [PROXMOX_DEPLOYMENT.md](./PROXMOX_DEPLOYMENT.md)
+### Linux Server
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/scripts/install/install-server.sh" | sudo bash
+```
 
 ---
 
 ## 📚 Documentation
 
-- 📖 **[QUICKSTART.md](./QUICKSTART.md)** - Get running in 5 minutes (Windows/local)
-- 🖥️ **[SERVER_INSTALL.md](./SERVER_INSTALL.md)** - Production server deployment (Linux)
-- 🐳 **[PROXMOX_DEPLOYMENT.md](./PROXMOX_DEPLOYMENT.md)** - Docker & Proxmox LXC guide
-- 🔄 **[UPDATE_SYSTEM.md](./UPDATE_SYSTEM.md)** - How updates work
-- 🔧 **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Common issues
-- 🚀 **[docs/API.md](./docs/API.md)** - API reference
+### For Users
+
+- 📖 **[USER_MANUAL.md](./docs/USER_MANUAL.md)** - Complete usage guide
+- 🚀 **[INSTALLATION.md](./docs/INSTALLATION.md)** - Installation instructions for all platforms
+- 🔧 **[TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- 📦 **[CONTENT_UPLOAD.md](./docs/CONTENT_UPLOAD.md)** - Uploading custom tracks/cars
+
+### For Developers
+
+- 🛠️ **[DEVELOPMENT_PROCEDURE.md](./docs/DEVELOPMENT_PROCEDURE.md)** - Development workflow and best practices
+- 🔄 **[VERSION_MANAGEMENT.md](./docs/VERSION_MANAGEMENT.md)** - Versioning and deployment
+- 🧪 **[TESTING_CHECKLIST.md](./docs/TESTING_CHECKLIST.md)** - QA procedures
+- 🌐 **[API.md](./docs/API.md)** - REST API reference
+- 🏗️ **[DEPLOYMENT_ARCHITECTURE.md](./docs/DEPLOYMENT_ARCHITECTURE.md)** - System architecture
+
+### Reference
+
+- 📋 **[COMMANDS.md](./docs/COMMANDS.md)** - Quick command reference
+- 🔄 **[UPDATE_SYSTEM.md](./docs/UPDATE_SYSTEM.md)** - Update system documentation
+- 📂 **[SERVER_INSTALL.md](./docs/SERVER_INSTALL.md)** - Bare-metal server installation
 
 ---
 
 ## Project Status
 
 **Current Phase:** Active Development  
-**Last Updated:** December 3, 2025  
-**Version:** 0.16.0  
+**Last Updated:** December 7, 2025  
+**Version:** 0.28.13  
 **Developer:** Brook
 
 ### Recent Updates (v0.16.0)
