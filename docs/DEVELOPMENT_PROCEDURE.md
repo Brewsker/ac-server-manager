@@ -2,6 +2,7 @@
 
 ## User Notes
 
+- Disable cache is always enabled on the Devs browser
 - UI is not to be modified unless explicitly understood to the user that this will in size/shape/function change the UI. We must maintain the current UI structure unless explicitly told to modify as part of development and progress.
 - SSH sleeps during troubleshooting. max time = 10sec
 - Always bash a during and install to monitor unless other tasks take time priority

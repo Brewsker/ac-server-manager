@@ -17,6 +17,7 @@ curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop
 ```
 
 **What happens:**
+
 1. Creates Ubuntu 22.04 LXC container (ID 999)
 2. Configures network (static IP: 192.168.1.71)
 3. Installs dependencies (Node.js 20, PM2)
@@ -47,6 +48,7 @@ Pre-configured for Proxmox installations. For custom setups, enter your network 
 Click **"Get Started"** → **"Continue"**
 
 The wizard will:
+
 - Clone application from repository
 - Install dependencies
 - Build frontend
@@ -73,35 +75,41 @@ The main dashboard shows:
 #### 1. Select Content
 
 **Tracks:**
+
 - Click **"Select Track"** button
 - Browse available tracks
 - Double-click to select or click + Select
 
 **Cars:**
-- Click **"Select Cars"** button  
+
+- Click **"Select Cars"** button
 - Choose one or multiple cars
 - Selected cars appear in the main editor
 
 #### 2. Configure Server Settings
 
 **Server Tab:**
+
 - Server name, password, admin password
 - Max clients, UDP/TCP ports
 - Session settings (practice, qualifying, race)
 
 **Session Tab:**
+
 - Practice length
 - Qualifying length
 - Race laps/time
 - Join type, allowed tires
 
 **Rules Tab:**
+
 - Damage multiplier
 - Fuel consumption
 - Tire wear
 - Assists allowed
 
 **Weather Tab:**
+
 - Select weather preset
 - Graphics settings
 - Ambient temperature
@@ -113,11 +121,13 @@ Click **"Save Preset"** to store your configuration for future use.
 ### Managing Presets
 
 **Sidebar:**
+
 - Lists all saved presets
 - Click any preset to load it
 - Edit and save changes
 
 **Actions:**
+
 - **Rename** - Right-click preset → Rename
 - **Delete** - Right-click preset → Delete
 - **Duplicate** - Load preset → Modify → Save As New
@@ -125,15 +135,18 @@ Click **"Save Preset"** to store your configuration for future use.
 ### Starting/Stopping the Server
 
 **Start Server:**
+
 1. Select or create a configuration
 2. Click **"Run"** or **"Start Server"**
 3. Wait for status to show "Running"
 
 **Stop Server:**
+
 1. Click **"Stop Server"** in dashboard
 2. Server shuts down gracefully
 
 **Restart Server:**
+
 1. Click **"Restart Server"**
 2. Applies configuration changes automatically
 
@@ -146,12 +159,14 @@ Click **"Save Preset"** to store your configuration for future use.
 **Location:** Settings → Content Management
 
 **Upload Track:**
+
 1. Prepare track as ZIP file
 2. Click "Choose File" under Track Upload
 3. Select ZIP file
 4. Upload automatically installs and makes available
 
 **Upload Car:**
+
 1. Prepare car as ZIP file
 2. Click "Choose File" under Car Upload
 3. Select ZIP file
@@ -174,9 +189,11 @@ If you manually add content to the AC server directory:
 ### Checking for Updates
 
 **Automatic Check:**
+
 - Version indicator shows "Update Available" badge when new version detected
 
 **Manual Check:**
+
 1. Click version number in sidebar
 2. Shows current version and latest available version
 
@@ -202,11 +219,13 @@ If you manually add content to the AC server directory:
 ### Server Won't Start
 
 **Check:**
+
 - Is another server using the same port?
 - Are UDP/TCP ports available (not blocked by firewall)?
 - Is Assetto Corsa server executable accessible?
 
 **Fix:**
+
 - Change ports in Server settings
 - Check firewall rules: `ufw allow 9600/udp`
 - Verify AC server path in Settings
@@ -214,11 +233,13 @@ If you manually add content to the AC server directory:
 ### Can't Join Server from Assetto Corsa
 
 **Check:**
+
 - Server status shows "Running"
 - Ports are open on firewall
 - Server not set to "Public Lobby" (requires registration with Kunos)
 
 **Fix:**
+
 1. Verify server IP address
 2. Check UDP port (default: 9600)
 3. Disable "Register to Lobby" in Server settings
@@ -227,6 +248,7 @@ If you manually add content to the AC server directory:
 ### Configuration Changes Not Applying
 
 **Solution:**
+
 1. Save the preset
 2. Restart the server
 3. Configuration files are written to disk on restart
@@ -234,6 +256,7 @@ If you manually add content to the AC server directory:
 ### Track/Car Not Appearing in Lists
 
 **Solution:**
+
 1. Verify content exists in AC server directories:
    - Tracks: `/opt/acserver/content/tracks/`
    - Cars: `/opt/acserver/content/cars/`
@@ -251,7 +274,7 @@ For more troubleshooting, see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md).
 The backend exposes a REST API on port 3001:
 
 - `/api/server/status` - Get server status
-- `/api/config` - Get/update configuration  
+- `/api/config` - Get/update configuration
 - `/api/content/tracks` - List available tracks
 - `/api/content/cars` - List available cars
 
@@ -260,16 +283,19 @@ See [API.md](./API.md) for complete endpoint documentation.
 ### Command Line Access
 
 **Check server status:**
+
 ```bash
 pm2 list
 ```
 
 **View logs:**
+
 ```bash
 pm2 logs ac-server-manager
 ```
 
 **Restart app:**
+
 ```bash
 pm2 restart ac-server-manager
 ```
@@ -283,6 +309,7 @@ pm2 restart ac-server-manager
 ## 🆘 Getting Help
 
 **Documentation:**
+
 - [Installation Guide](./INSTALLATION.md) - Detailed setup instructions
 - [Troubleshooting](./TROUBLESHOOTING.md) - Common issues and fixes
 - [API Documentation](./API.md) - REST API reference

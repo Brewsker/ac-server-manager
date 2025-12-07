@@ -36,7 +36,7 @@ export async function verifySteamCredentials(steamUser, steamPass = '', steamGua
         return {
           success: false,
           error: 'steamcmd_not_installed',
-          message: 'SteamCMD not installed. Please install it first'
+          message: 'SteamCMD not installed. Please install it first',
         };
       }
     }
@@ -71,7 +71,7 @@ login ${steamUser} ${steamPass}`;
       return {
         success: false,
         error: 'invalid_password',
-        message: 'Invalid Steam password'
+        message: 'Invalid Steam password',
       };
     }
 
@@ -79,7 +79,7 @@ login ${steamUser} ${steamPass}`;
       return {
         success: false,
         error: 'invalid_guard_code',
-        message: 'Invalid or expired Steam Guard code'
+        message: 'Invalid or expired Steam Guard code',
       };
     }
 
@@ -87,7 +87,7 @@ login ${steamUser} ${steamPass}`;
       return {
         success: false,
         error: 'expired_guard_code',
-        message: 'Steam Guard code has expired. Please generate a new code'
+        message: 'Steam Guard code has expired. Please generate a new code',
       };
     }
 
@@ -95,7 +95,7 @@ login ${steamUser} ${steamPass}`;
       return {
         success: false,
         error: 'guard_code_required',
-        message: 'Steam Guard code required but not provided or incorrect'
+        message: 'Steam Guard code required but not provided or incorrect',
       };
     }
 
@@ -103,7 +103,7 @@ login ${steamUser} ${steamPass}`;
       return {
         success: false,
         error: 'rate_limit',
-        message: 'Too many login attempts. Please wait a few minutes and try again'
+        message: 'Too many login attempts. Please wait a few minutes and try again',
       };
     }
 
@@ -111,7 +111,7 @@ login ${steamUser} ${steamPass}`;
       return {
         success: false,
         error: 'login_failed',
-        message: 'Login failed. Please check your credentials'
+        message: 'Login failed. Please check your credentials',
       };
     }
 
@@ -120,7 +120,7 @@ login ${steamUser} ${steamPass}`;
       return {
         success: true,
         message: 'Steam credentials verified successfully',
-        username: steamUser
+        username: steamUser,
       };
     }
 
@@ -128,24 +128,23 @@ login ${steamUser} ${steamPass}`;
     return {
       success: false,
       error: 'unknown',
-      message: 'Unable to verify credentials. Please try again'
+      message: 'Unable to verify credentials. Please try again',
     };
-
   } catch (error) {
     console.error('[SteamService] Credential verification error:', error);
-    
+
     if (error.killed) {
       return {
         success: false,
         error: 'timeout',
-        message: 'Verification timed out. Please check your internet connection'
+        message: 'Verification timed out. Please check your internet connection',
       };
     }
 
     return {
       success: false,
       error: 'exception',
-      message: error.message || 'Failed to verify credentials'
+      message: error.message || 'Failed to verify credentials',
     };
   }
 }

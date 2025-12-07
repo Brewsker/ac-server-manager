@@ -119,10 +119,12 @@ curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop
 The installer prompts for:
 
 1. **Installation Type:**
+
    - Full Installation (Node.js + PM2) - Recommended
    - App Only (assumes Node.js already installed)
 
 2. **AC Server Download:**
+
    - Yes - Downloads via SteamCMD (requires Steam credentials)
    - No - Use existing installation
 
@@ -241,6 +243,7 @@ Frontend assets are output to `frontend/dist/`.
 ### Proxmox Installation Issues
 
 **Container creation fails:**
+
 ```bash
 # Check available container IDs
 pct list
@@ -250,6 +253,7 @@ CONTAINER_ID=100 bash install-proxmox-unified.sh
 ```
 
 **Wizard not accessible:**
+
 ```bash
 # Check wizard service
 pct exec 999 -- systemctl status ac-setup-wizard
@@ -262,6 +266,7 @@ pct exec 999 -- systemctl restart ac-setup-wizard
 ```
 
 **Installation hangs:**
+
 ```bash
 # Check installation progress
 pct exec 999 -- tail -f /var/log/installer.log
@@ -273,6 +278,7 @@ pct exec 999 -- cat /var/log/ac-setup.log
 ### Linux Server Issues
 
 **Node.js version too old:**
+
 ```bash
 # Remove old Node.js
 sudo apt remove nodejs
@@ -286,6 +292,7 @@ node --version  # Should be v20.x.x
 ```
 
 **PM2 not found:**
+
 ```bash
 # Install PM2 globally
 sudo npm install -g pm2
@@ -296,6 +303,7 @@ sudo systemctl enable pm2-root
 ```
 
 **Port 3001 already in use:**
+
 ```bash
 # Find what's using the port
 sudo ss -tulpn | grep 3001
@@ -309,6 +317,7 @@ sudo kill -9 <PID>
 ### Local Development Issues
 
 **Dependencies fail to install:**
+
 ```powershell
 # Clear npm cache
 npm cache clean --force
@@ -319,6 +328,7 @@ npm install
 ```
 
 **Frontend won't connect to backend:**
+
 ```powershell
 # Check backend is running
 curl http://localhost:3001/health

@@ -742,7 +742,7 @@ function SetupView() {
                     disabled={installingSteamCmd}
                     className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
                   >
-                    {installingSteamCmd ? 'Installing...' : 'Install SteamCMD'}
+                    {installingSteamCmd ? 'Installing...' : 'Install'}
                   </button>
                 ) : (
                   <svg
@@ -815,24 +815,33 @@ function SetupView() {
                   </span>
                 </div>
                 {!acServerInstalled?.installed ? (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!steamVerified) {
-                        setSteamMessage({ type: 'error', text: 'Please verify your Steam credentials first' });
-                        return;
-                      }
-                      if (!acServerPath.trim()) {
-                        setSteamMessage({ type: 'error', text: 'Please select installation path' });
-                        return;
-                      }
-                      handleDownloadACServer();
-                    }}
-                    disabled={downloadingACServer || !steamcmdInstalled || !steamVerified}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
-                  >
-                    {downloadingACServer ? 'Downloading...' : 'Download AC Server'}
-                  </button>
+                  <div className="relative group">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!steamVerified) {
+                          setSteamMessage({ type: 'error', text: 'Please verify your Steam credentials first' });
+                          setAcServerExpanded(true);
+                          return;
+                        }
+                        if (!acServerPath.trim()) {
+                          setSteamMessage({ type: 'error', text: 'Please select installation path' });
+                          return;
+                        }
+                        handleDownloadACServer();
+                      }}
+                      disabled={downloadingACServer || !steamcmdInstalled || !steamVerified}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded transition-colors"
+                      title={!steamVerified ? 'Please verify Steam credentials first' : ''}
+                    >
+                      {downloadingACServer ? 'Downloading...' : 'Download'}
+                    </button>
+                    {!steamVerified && (
+                      <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 border border-yellow-600 rounded text-xs text-yellow-300 shadow-lg z-10">
+                        ⚠️ Steam credentials not verified. Click to expand and verify credentials.
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <svg
                     className={`w-5 h-5 text-gray-400 transition-transform ${

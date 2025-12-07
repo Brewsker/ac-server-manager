@@ -323,7 +323,11 @@ router.post('/verify-credentials', async (req, res) => {
       });
     }
 
-    const result = await steamService.verifySteamCredentials(username, password || '', guardCode || '');
+    const result = await steamService.verifySteamCredentials(
+      username,
+      password || '',
+      guardCode || ''
+    );
     res.json(result);
   } catch (error) {
     console.error('[SteamRoutes] Error verifying credentials:', error);

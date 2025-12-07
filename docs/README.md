@@ -29,6 +29,7 @@ Start here if you want to contribute or modify the codebase:
 ### User Documentation
 
 - **[INSTALLATION.md](./INSTALLATION.md)** - Installation for all platforms
+
   - Proxmox LXC one-command install
   - Linux server installation
   - Local development setup
@@ -36,6 +37,7 @@ Start here if you want to contribute or modify the codebase:
   - Troubleshooting installation issues
 
 - **[USER_MANUAL.md](./USER_MANUAL.md)** - Complete usage guide
+
   - Quick start
   - Setup wizard walkthrough
   - Creating/managing server configs
@@ -44,6 +46,7 @@ Start here if you want to contribute or modify the codebase:
   - Updates and maintenance
 
 - **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Common issues
+
   - Server won't start
   - Can't join from game
   - Configuration not applying
@@ -59,6 +62,7 @@ Start here if you want to contribute or modify the codebase:
 ### Developer Documentation
 
 - **[DEVELOPMENT_PROCEDURE.md](./DEVELOPMENT_PROCEDURE.md)** - Development workflow
+
   - Preferred workflow (commit → deploy → test)
   - Version management (automatic via git hooks)
   - Deployment to Proxmox
@@ -67,12 +71,14 @@ Start here if you want to contribute or modify the codebase:
   - AI agent guidelines
 
 - **[VERSION_MANAGEMENT.md](./VERSION_MANAGEMENT.md)** - Versioning system
+
   - Automatic version bumping via git hooks
   - Semantic versioning rules
   - Manual version management
   - Validation and troubleshooting
 
 - **[API.md](./API.md)** - REST API reference
+
   - Server control endpoints
   - Configuration management
   - Content scanning
@@ -80,6 +86,7 @@ Start here if you want to contribute or modify the codebase:
   - Update system
 
 - **[TESTING_CHECKLIST.md](./TESTING_CHECKLIST.md)** - QA procedures
+
   - Test environments
   - Test scenarios (fresh install, upgrade, Docker)
   - Error condition testing
@@ -95,6 +102,7 @@ Start here if you want to contribute or modify the codebase:
 ### Reference
 
 - **[COMMANDS.md](./COMMANDS.md)** - Quick command reference
+
   - Installation commands
   - Development commands
   - Deployment commands
@@ -102,6 +110,7 @@ Start here if you want to contribute or modify the codebase:
   - PM2 management
 
 - **[UPDATE_SYSTEM.md](./UPDATE_SYSTEM.md)** - Update system
+
   - How updates work
   - Git-based updates
   - Automatic dependency installation
