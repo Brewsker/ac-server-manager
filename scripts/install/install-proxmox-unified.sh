@@ -1245,7 +1245,7 @@ deploy_main_app() {
 NODE_ENV=production
 PORT=3001
 AC_SERVER_PATH=/opt/acserver
-AC_SERVER_CONFIG_PATH=/opt/acserver/cfg
+AC_SERVER_CONFIG_PATH=/opt/acserver/cfg/server_cfg.ini
 AC_ENTRY_LIST_PATH=/opt/acserver/cfg/entry_list.ini
 AC_CONTENT_PATH=/opt/acserver/content
 ENVEOF" >> "$LOG_FILE" 2>&1
