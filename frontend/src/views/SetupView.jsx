@@ -28,7 +28,7 @@ function SetupView() {
   const [steamMessage, setSteamMessage] = React.useState(null);
   const [cacheStatus, setCacheStatus] = React.useState(null);
   const [copyingFromCache, setCopyingFromCache] = React.useState(false);
-  
+
   // Steam credentials verification
   const [steamVerified, setSteamVerified] = React.useState(false);
   const [verifyingCreds, setVerifyingCreds] = React.useState(false);
@@ -136,9 +136,65 @@ function SetupView() {
     }
   };
 
+  const handleVerifyCredentials = async () => {
+    if (!steamUser) {
+      setVerifyMessage({ type: 'error', text: 'Please enter Steam username' });
+      return;
+    }
+
+    if (!steamPass) {
+      setVerifyMessage({ type: 'error', text: 'Please enter Steam password' });
+      return;
+    }
+
+    setVerifyingCreds(true);
+    setVerifyMessage(null);
+
+    try {
+      const result = await api.verifySteamCredentials(steamUser, steamPass, steamGuardCode);
+      
+      if (result.success) {
+        setSteamVerified(true);
+        localStorage.setItem('steamUsername', steamUser);
+        localStorage.setItem('steamVerified', 'true');
+        setVerifyMessage({ type: 'success', text: result.message || 'Credentials verified successfully!' });
+      } else {
+        setSteamVerified(false);
+        localStorage.removeItem('steamVerified');
+        setVerifyMessage({ type: 'error', text: result.message || 'Verification failed' });
+        
+        // Clear guard code if it was invalid
+        if (result.error?.includes('guard')) {
+          setSteamGuardCode('');
+        }
+      }
+    } catch (error) {
+      setSteamVerified(false);
+      localStorage.removeItem('steamVerified');
+      setVerifyMessage({ type: 'error', text: error.message || 'Failed to verify credentials' });
+    } finally {
+      setVerifyingCreds(false);
+    }
+  };
+
+  const handleClearCredentials = () => {
+    setSteamUser('');
+    setSteamPass('');
+    setSteamGuardCode('');
+    setSteamVerified(false);
+    setVerifyMessage(null);
+    localStorage.removeItem('steamUsername');
+    localStorage.removeItem('steamVerified');
+  };
+
   const handleDownloadACServer = async () => {
-    if (!acServerPath.trim() || !steamUser.trim() || !steamPass.trim()) {
-      setSteamMessage({ type: 'error', text: 'Please fill in all fields' });
+    if (!steamVerified) {
+      setSteamMessage({ type: 'error', text: 'Please verify your Steam credentials first' });
+      return;
+    }
+
+    if (!acServerPath.trim()) {
+      setSteamMessage({ type: 'error', text: 'Please enter installation path' });
       return;
     }
     setDownloadingACServer(true);
@@ -606,7 +662,8 @@ function SetupView() {
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Required if your account has Steam Guard enabled. Get code from Steam app or email.
+                  Required if your account has Steam Guard enabled. Get code from Steam app or
+                  email.
                 </p>
               </div>
 
@@ -616,7 +673,11 @@ function SetupView() {
                   disabled={verifyingCreds || steamVerified || !steamUser || !steamPass}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
                 >
-                  {verifyingCreds ? 'Verifying...' : steamVerified ? '✓ Verified' : 'Verify Credentials'}
+                  {verifyingCreds
+                    ? 'Verifying...'
+                    : steamVerified
+                    ? '✓ Verified'
+                    : 'Verify Credentials'}
                 </button>
                 {steamVerified && (
                   <span className="flex items-center gap-2 text-emerald-400 text-sm">
@@ -755,7 +816,10 @@ function SetupView() {
                 <button
                   onClick={handleDownloadACServer}
                   disabled={
-                    downloadingACServer || !steamcmdInstalled || acServerInstalled?.installed || !steamVerified
+                    downloadingACServer ||
+                    !steamcmdInstalled ||
+                    acServerInstalled?.installed ||
+                    !steamVerified
                   }
                   className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
                 >
@@ -935,7 +999,9 @@ function SetupView() {
               <div className="flex gap-3">
                 <button
                   onClick={handleDownloadBaseGame}
-                  disabled={downloadingBaseGame || extractingContent || cleaningUpBaseGame || !steamVerified}
+                  disabled={
+                    downloadingBaseGame || extractingContent || cleaningUpBaseGame || !steamVerified
+                  }
                   className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
                 >
                   {downloadingBaseGame
