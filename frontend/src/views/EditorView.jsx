@@ -201,7 +201,22 @@ function EditorView() {
       };
 
       await api.updateConfig(configToSave);
-      const result = await api.savePreset(ui.presetName, configToSave);
+
+      // Check if we're renaming an existing preset
+      const currentPreset = data.presets.find((p) => p.id === data.currentPresetId);
+      const isRename = currentPreset && currentPreset.name !== ui.presetName.trim();
+
+      let result;
+      if (isRename) {
+        // Rename the existing preset and save the updated config
+        result = await api.renamePreset(data.currentPresetId, ui.presetName.trim());
+        // Save the config to the renamed preset
+        await api.savePreset(ui.presetName, configToSave);
+        console.log('Preset renamed and saved:', currentPreset.name, '→', ui.presetName);
+      } else {
+        // Save as new or update existing preset with same name
+        result = await api.savePreset(ui.presetName, configToSave);
+      }
 
       if (applyToServer) {
         await api.applyConfig();
@@ -214,7 +229,7 @@ function EditorView() {
       updateData({
         config: { ...data.config, SERVER: { ...data.config.SERVER, NAME: ui.presetName } },
         presets: presetsData.presets || [],
-        currentPresetId: savedPreset?.id || result?.id || null,
+        currentPresetId: savedPreset?.id || result?.preset?.id || result?.id || data.currentPresetId,
       });
 
       updateModals({ showSave: false });
