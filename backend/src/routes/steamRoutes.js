@@ -228,4 +228,82 @@ router.post('/cleanup-base-game', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/steam/uninstall-steamcmd
+ * Uninstall SteamCMD completely
+ */
+router.post('/uninstall-steamcmd', async (req, res) => {
+  try {
+    const result = await steamService.uninstallSteamCMD();
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error uninstalling SteamCMD:', error);
+    res.status(500).json({
+      error: true,
+      message: error.message || 'Failed to uninstall SteamCMD',
+    });
+  }
+});
+
+/**
+ * POST /api/steam/uninstall-ac-server
+ * Uninstall AC Dedicated Server
+ * Body: { installPath }
+ */
+router.post('/uninstall-ac-server', async (req, res) => {
+  try {
+    const { installPath } = req.body;
+
+    if (!installPath) {
+      return res.status(400).json({
+        error: true,
+        message: 'installPath is required',
+      });
+    }
+
+    const result = await steamService.uninstallACServer(installPath);
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error uninstalling AC server:', error);
+    res.status(500).json({
+      error: true,
+      message: error.message || 'Failed to uninstall AC server',
+    });
+  }
+});
+
+/**
+ * POST /api/steam/delete-content
+ * Delete AC content (cars, tracks, or both)
+ * Body: { contentPath, type }
+ */
+router.post('/delete-content', async (req, res) => {
+  try {
+    const { contentPath, type } = req.body;
+
+    if (!contentPath) {
+      return res.status(400).json({
+        error: true,
+        message: 'contentPath is required',
+      });
+    }
+
+    if (!['cars', 'tracks', 'both'].includes(type)) {
+      return res.status(400).json({
+        error: true,
+        message: 'type must be "cars", "tracks", or "both"',
+      });
+    }
+
+    const result = await steamService.deleteACContent(contentPath, type);
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error deleting content:', error);
+    res.status(500).json({
+      error: true,
+      message: error.message || 'Failed to delete content',
+    });
+  }
+});
+
 export default router;

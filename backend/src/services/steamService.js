@@ -156,14 +156,15 @@ quit
       // Check if it might be Steam Guard related even if not explicitly mentioned
       if (!steamGuardCode || steamGuardCode.trim() === '') {
         throw new Error(
-          `❌ Steam Login Failed: Invalid credentials or Steam Guard required.\n\nPlease:\n1. Verify your password is correct (use the eye icon)\n2. If you have Steam Guard enabled, enter your current code\n3. For anonymous login, use username "anonymous" with empty password\n\nError code: ${error.code || 'unknown'}`
+          `❌ Steam Login Failed: Invalid credentials or Steam Guard required.\n\nPlease:\n1. Verify your password is correct (use the eye icon)\n2. If you have Steam Guard enabled, enter your current code\n3. For anonymous login, use username "anonymous" with empty password\n\nError code: ${
+            error.code || 'unknown'
+          }`
         );
       }
       throw new Error(
-        `❌ Steam Login Failed: Credentials rejected.\n\nPossible issues:\n1. Password is incorrect\n2. Steam Guard code expired (get a fresh one - they refresh every 30s)\n3. Wrong type of Steam Guard code (email vs mobile app)\n4. Account has restrictions\n\nError code: ${error.code || 'unknown'}\nSteam output: ${errorOutput.substring(
-          0,
-          800
-        )}`
+        `❌ Steam Login Failed: Credentials rejected.\n\nPossible issues:\n1. Password is incorrect\n2. Steam Guard code expired (get a fresh one - they refresh every 30s)\n3. Wrong type of Steam Guard code (email vs mobile app)\n4. Account has restrictions\n\nError code: ${
+          error.code || 'unknown'
+        }\nSteam output: ${errorOutput.substring(0, 800)}`
       );
     }
 
@@ -507,15 +508,23 @@ quit
     ) {
       if (!steamGuardCode || steamGuardCode.trim() === '') {
         throw new Error(
-          `❌ Steam Login Failed: Invalid credentials or Steam Guard required.\n\nError code: ${error.code || 'unknown'}`
+          `❌ Steam Login Failed: Invalid credentials or Steam Guard required.\n\nError code: ${
+            error.code || 'unknown'
+          }`
         );
       }
       throw new Error(
-        `❌ Steam Login Failed: Credentials rejected.\n\nPossible issues:\n1. Password is incorrect\n2. Steam Guard code expired\n3. Wrong Steam Guard type\n\nError code: ${error.code || 'unknown'}`
+        `❌ Steam Login Failed: Credentials rejected.\n\nPossible issues:\n1. Password is incorrect\n2. Steam Guard code expired\n3. Wrong Steam Guard type\n\nError code: ${
+          error.code || 'unknown'
+        }`
       );
     }
 
-    throw new Error(`SteamCMD failed to download AC base game (code ${error.code || 'unknown'}): ${errorOutput.substring(0, 1000)}`);
+    throw new Error(
+      `SteamCMD failed to download AC base game (code ${
+        error.code || 'unknown'
+      }): ${errorOutput.substring(0, 1000)}`
+    );
   }
 }
 
@@ -633,5 +642,163 @@ export async function cleanupACBaseGame(gameInstallPath) {
   } catch (error) {
     console.error('[SteamService] Failed to cleanup AC base game:', error);
     throw new Error(`Failed to cleanup: ${error.message}`);
+  }
+}
+
+/**
+ * Uninstall SteamCMD
+ * @returns {Promise<Object>}
+ */
+export async function uninstallSteamCMD() {
+  try {
+    console.log('[SteamService] Uninstalling SteamCMD...');
+
+    // Remove SteamCMD package
+    await execAsync('sudo apt-get remove -y steamcmd');
+    await execAsync('sudo apt-get autoremove -y');
+
+    // Remove Steam directories
+    const steamDirs = ['/root/Steam', '/root/.steam', '/root/.local/share/Steam'];
+    for (const dir of steamDirs) {
+      try {
+        await fs.rm(dir, { recursive: true, force: true });
+        console.log(`[SteamService] Removed ${dir}`);
+      } catch (error) {
+        // Directory might not exist, that's okay
+        console.log(`[SteamService] Skipped ${dir} (doesn't exist)`);
+      }
+    }
+
+    return {
+      success: true,
+      message: 'SteamCMD uninstalled successfully',
+    };
+  } catch (error) {
+    console.error('[SteamService] Failed to uninstall SteamCMD:', error);
+    throw new Error(`Failed to uninstall SteamCMD: ${error.message}`);
+  }
+}
+
+/**
+ * Uninstall AC Dedicated Server
+ * @param {string} installPath - Path where AC server is installed
+ * @returns {Promise<Object>}
+ */
+export async function uninstallACServer(installPath) {
+  try {
+    console.log(`[SteamService] Uninstalling AC Dedicated Server from ${installPath}...`);
+
+    // Safety check - don't delete if path looks suspicious
+    if (installPath === '/' || installPath === '/opt' || installPath.length < 5) {
+      throw new Error(`Refusing to delete suspicious path: ${installPath}`);
+    }
+
+    // Check if directory exists
+    try {
+      await fs.access(installPath);
+    } catch {
+      return {
+        success: false,
+        message: `Directory does not exist: ${installPath}`,
+      };
+    }
+
+    // Get size before deletion
+    let size = 'Unknown';
+    try {
+      const { stdout: sizeOutput } = await execAsync(`du -sh ${installPath} 2>/dev/null`);
+      size = sizeOutput.split('\t')[0];
+    } catch {
+      // Size check failed, continue anyway
+    }
+
+    // Remove directory
+    await fs.rm(installPath, { recursive: true, force: true });
+
+    console.log(`[SteamService] Uninstalled AC server, freed ${size}`);
+
+    return {
+      success: true,
+      message: `AC Dedicated Server uninstalled (freed ${size})`,
+      freedSpace: size,
+    };
+  } catch (error) {
+    console.error('[SteamService] Failed to uninstall AC server:', error);
+    throw new Error(`Failed to uninstall AC server: ${error.message}`);
+  }
+}
+
+/**
+ * Delete AC content folders (cars, tracks, or both)
+ * @param {string} contentPath - Path to AC server content folder
+ * @param {string} type - 'cars', 'tracks', or 'both'
+ * @returns {Promise<Object>}
+ */
+export async function deleteACContent(contentPath, type = 'both') {
+  try {
+    console.log(`[SteamService] Deleting ${type} from ${contentPath}...`);
+
+    // Safety check
+    if (contentPath === '/' || contentPath.length < 5) {
+      throw new Error(`Refusing to delete suspicious path: ${contentPath}`);
+    }
+
+    const results = {};
+    const foldersToDelete = [];
+
+    if (type === 'cars' || type === 'both') {
+      foldersToDelete.push(path.join(contentPath, 'cars'));
+    }
+    if (type === 'tracks' || type === 'both') {
+      foldersToDelete.push(path.join(contentPath, 'tracks'));
+    }
+
+    for (const folder of foldersToDelete) {
+      try {
+        await fs.access(folder);
+        
+        // Get size before deletion
+        let size = 'Unknown';
+        try {
+          const { stdout: sizeOutput } = await execAsync(`du -sh ${folder} 2>/dev/null`);
+          size = sizeOutput.split('\t')[0];
+        } catch {
+          // Continue anyway
+        }
+
+        // Count items
+        const items = await fs.readdir(folder);
+        const count = items.length;
+
+        // Remove folder
+        await fs.rm(folder, { recursive: true, force: true });
+
+        // Recreate empty folder
+        await fs.mkdir(folder, { recursive: true });
+
+        results[path.basename(folder)] = {
+          deleted: count,
+          freedSpace: size,
+        };
+
+        console.log(`[SteamService] Deleted ${count} items from ${folder}, freed ${size}`);
+      } catch (error) {
+        console.log(`[SteamService] Skipped ${folder}: ${error.message}`);
+        results[path.basename(folder)] = {
+          deleted: 0,
+          freedSpace: '0',
+          error: error.message,
+        };
+      }
+    }
+
+    return {
+      success: true,
+      message: `Deleted ${type} content successfully`,
+      results,
+    };
+  } catch (error) {
+    console.error('[SteamService] Failed to delete content:', error);
+    throw new Error(`Failed to delete content: ${error.message}`);
   }
 }

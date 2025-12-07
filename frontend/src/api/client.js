@@ -433,6 +433,26 @@ export const cleanupACBaseGame = async (gameInstallPath) => {
   return response.data;
 };
 
+export const uninstallSteamCMD = async () => {
+  const response = await client.post('/steam/uninstall-steamcmd');
+  return response.data;
+};
+
+export const uninstallACServer = async (installPath) => {
+  const response = await client.post('/steam/uninstall-ac-server', {
+    installPath,
+  });
+  return response.data;
+};
+
+export const deleteACContent = async (contentPath, type) => {
+  const response = await client.post('/steam/delete-content', {
+    contentPath,
+    type,
+  });
+  return response.data;
+};
+
 export default {
   getServerStatus,
   startServer,
@@ -496,6 +516,20 @@ export default {
   validateACPath,
   saveSetup,
   getCurrentVersion,
+  checkForUpdates,
+  checkSteamCMD,
+  installSteamCMD,
+  downloadACServer,
+  checkACServer,
+  checkACServerCache,
+  copyACServerFromCache,
+  downloadACBaseGame,
+  extractACContent,
+  cleanupACBaseGame,
+  uninstallSteamCMD,
+  uninstallACServer,
+  deleteACContent,
+};
   checkForUpdates,
   getUpdateStatus,
   applyUpdate,

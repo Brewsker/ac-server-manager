@@ -374,6 +374,114 @@ function SetupView() {
     }
   };
 
+  const handleUninstallSteamCMD = async () => {
+    if (
+      !window.confirm(
+        'Are you sure you want to uninstall SteamCMD?\n\nThis will remove SteamCMD and all Steam data. This cannot be undone!'
+      )
+    ) {
+      return;
+    }
+
+    setInstallingSteamCmd(true);
+    setSteamMessage(null);
+
+    try {
+      const result = await api.uninstallSteamCMD();
+      if (result.success) {
+        setSteamMessage({ type: 'success', text: 'SteamCMD uninstalled successfully!' });
+        setSteamcmdInstalled(false);
+      } else {
+        setSteamMessage({ type: 'error', text: result.message || 'Failed to uninstall SteamCMD' });
+      }
+    } catch (error) {
+      setSteamMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to uninstall SteamCMD',
+      });
+    } finally {
+      setInstallingSteamCmd(false);
+    }
+  };
+
+  const handleUninstallACServer = async () => {
+    if (!acServerPath.trim()) {
+      setSteamMessage({ type: 'error', text: 'Please enter installation path' });
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Are you sure you want to uninstall AC Dedicated Server from:\n${acServerPath}\n\nThis will delete all AC server files. This cannot be undone!`
+      )
+    ) {
+      return;
+    }
+
+    setDownloadingACServer(true);
+    setSteamMessage(null);
+
+    try {
+      const result = await api.uninstallACServer(acServerPath);
+      if (result.success) {
+        setSteamMessage({
+          type: 'success',
+          text: `AC Server uninstalled! Freed ${result.freedSpace}`,
+        });
+        await checkAcServerStatus();
+      } else {
+        setSteamMessage({ type: 'error', text: result.message || 'Failed to uninstall' });
+      }
+    } catch (error) {
+      setSteamMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to uninstall AC server',
+      });
+    } finally {
+      setDownloadingACServer(false);
+    }
+  };
+
+  const handleDeleteContent = async (type) => {
+    const contentPath = '/opt/acserver/content'; // Or make this configurable
+    const typeLabel = type === 'both' ? 'all cars and tracks' : type;
+
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${typeLabel}?\n\nThis will remove all ${typeLabel} from your AC server. This cannot be undone!`
+      )
+    ) {
+      return;
+    }
+
+    setUploadMessage({ type: 'info', text: `Deleting ${typeLabel}...` });
+
+    try {
+      const result = await api.deleteACContent(contentPath, type);
+      if (result.success) {
+        const { results } = result;
+        let message = `Deleted ${typeLabel} successfully!\n`;
+        
+        if (results.cars) {
+          message += `\nCars: ${results.cars.deleted} items, freed ${results.cars.freedSpace}`;
+        }
+        if (results.tracks) {
+          message += `\nTracks: ${results.tracks.deleted} items, freed ${results.tracks.freedSpace}`;
+        }
+        
+        setUploadMessage({ type: 'success', text: message });
+        await checkContentStatus();
+      } else {
+        setUploadMessage({ type: 'error', text: result.message || 'Failed to delete content' });
+      }
+    } catch (error) {
+      setUploadMessage({
+        type: 'error',
+        text: error.response?.data?.message || `Failed to delete ${typeLabel}`,
+      });
+    }
+  };
+
   const tabs = [
     { id: 'server', label: 'AC Server', icon: '🖥️' },
     { id: 'content', label: 'Content', icon: '📦' },
@@ -431,15 +539,25 @@ function SetupView() {
                       : 'Not Installed'}
                   </span>
                 </div>
-                {!steamcmdInstalled && (
-                  <button
-                    onClick={handleInstallSteamCMD}
-                    disabled={installingSteamCmd}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
-                  >
-                    {installingSteamCmd ? 'Installing...' : 'Install SteamCMD'}
-                  </button>
-                )}
+                <div className="flex gap-2">
+                  {!steamcmdInstalled ? (
+                    <button
+                      onClick={handleInstallSteamCMD}
+                      disabled={installingSteamCmd}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
+                    >
+                      {installingSteamCmd ? 'Installing...' : 'Install SteamCMD'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleUninstallSteamCMD}
+                      disabled={installingSteamCmd}
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
+                    >
+                      {installingSteamCmd ? 'Uninstalling...' : 'Uninstall SteamCMD'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </SectionPanel>
@@ -539,7 +657,9 @@ function SetupView() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Steam Guard Code (Optional)</label>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Steam Guard Code (Optional)
+                </label>
                 <input
                   type="text"
                   value={steamGuardCode}
@@ -550,13 +670,24 @@ function SetupView() {
                 <p className="text-xs text-gray-500 mt-1">Leave blank if not using Steam Guard</p>
               </div>
 
-              <button
-                onClick={handleDownloadACServer}
-                disabled={downloadingACServer || !steamcmdInstalled}
-                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
-              >
-                {downloadingACServer ? 'Downloading...' : 'Download AC Server'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDownloadACServer}
+                  disabled={downloadingACServer || !steamcmdInstalled || acServerInstalled?.installed}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                >
+                  {downloadingACServer ? 'Downloading...' : 'Download AC Server'}
+                </button>
+                {acServerInstalled?.installed && (
+                  <button
+                    onClick={handleUninstallACServer}
+                    disabled={downloadingACServer}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                  >
+                    {downloadingACServer ? 'Uninstalling...' : 'Uninstall'}
+                  </button>
+                )}
+              </div>
 
               {steamMessage && (
                 <div
@@ -579,7 +710,7 @@ function SetupView() {
         <div className="space-y-4">
           {/* Content Status */}
           <SectionPanel title="Installed Content">
-            <div className="p-4">
+            <div className="p-4 space-y-4">
               {checkingContent ? (
                 <div className="text-gray-400 text-center py-4">Checking content...</div>
               ) : contentStatus ? (
@@ -599,6 +730,33 @@ function SetupView() {
                 </div>
               ) : (
                 <div className="text-gray-500 text-center py-4">No content status available</div>
+              )}
+              
+              {/* Delete Content Buttons */}
+              {contentStatus && (contentStatus.trackCount > 0 || contentStatus.carCount > 0) && (
+                <div className="flex gap-2 pt-2 border-t border-gray-700">
+                  <button
+                    onClick={() => handleDeleteContent('cars')}
+                    disabled={!contentStatus.carCount}
+                    className="flex-1 px-3 py-2 bg-red-600/20 hover:bg-red-600/30 disabled:bg-gray-800 disabled:text-gray-600 text-red-300 text-sm rounded transition-colors"
+                  >
+                    🗑️ Delete All Cars
+                  </button>
+                  <button
+                    onClick={() => handleDeleteContent('tracks')}
+                    disabled={!contentStatus.trackCount}
+                    className="flex-1 px-3 py-2 bg-red-600/20 hover:bg-red-600/30 disabled:bg-gray-800 disabled:text-gray-600 text-red-300 text-sm rounded transition-colors"
+                  >
+                    🗑️ Delete All Tracks
+                  </button>
+                  <button
+                    onClick={() => handleDeleteContent('both')}
+                    disabled={!contentStatus.carCount && !contentStatus.trackCount}
+                    className="flex-1 px-3 py-2 bg-red-600/20 hover:bg-red-600/30 disabled:bg-gray-800 disabled:text-gray-600 text-red-300 text-sm rounded transition-colors"
+                  >
+                    🗑️ Delete All Content
+                  </button>
+                </div>
               )}
             </div>
           </SectionPanel>
