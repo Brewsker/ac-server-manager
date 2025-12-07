@@ -37,6 +37,7 @@ function Dashboard() {
     session: null,
     logs: [],
   });
+  const [appVersion, setAppVersion] = useState('--');
   const isMountedRef = useRef(true);
 
   // Persist selection to sessionStorage
@@ -54,6 +55,7 @@ function Dashboard() {
   useEffect(() => {
     isMountedRef.current = true;
     fetchRunningServers();
+    fetchAppVersion();
     const interval = setInterval(fetchRunningServers, 3000);
     return () => {
       isMountedRef.current = false;
@@ -81,6 +83,20 @@ function Dashboard() {
       console.error('Failed to fetch server statuses:', error);
     } finally {
       if (isMountedRef.current) setLoading(false);
+    }
+  };
+
+  const fetchAppVersion = async () => {
+    try {
+      const data = await api.getCurrentVersion();
+      if (isMountedRef.current) {
+        setAppVersion(data.version);
+      }
+    } catch (error) {
+      console.error('Failed to fetch app version:', error);
+      if (isMountedRef.current) {
+        setAppVersion('Unknown');
+      }
     }
   };
 
@@ -168,7 +184,7 @@ function Dashboard() {
       <div className="h-10 bg-gray-800 border-b border-gray-700 flex items-center px-4 justify-between shrink-0">
         <div className="flex items-center gap-4">
           <span className="text-orange-500 font-bold text-lg">AC Server Manager</span>
-          <span className="text-gray-400 text-sm">Virtual Environment</span>
+          <span className="text-gray-400 text-sm">v{appVersion}</span>
         </div>
         <div className="flex items-center gap-2">
           {selectedItem.type === 'server' && selectedServer && (
