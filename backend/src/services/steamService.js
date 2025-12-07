@@ -55,6 +55,10 @@ login ${steamUser} ${steamPass}`;
 
     await fs.writeFile(scriptPath, scriptContent);
 
+    // Ensure .steam directory exists (SteamCMD creates symlinks here)
+    const steamDir = path.join(process.env.HOME || '/root', '.steam');
+    await fs.mkdir(steamDir, { recursive: true }).catch(() => {});
+
     // Run SteamCMD with timeout
     const { stdout, stderr } = await execAsync(`${steamcmdPath} +runscript ${scriptPath}`, {
       maxBuffer: 1024 * 1024,

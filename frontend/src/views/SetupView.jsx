@@ -851,7 +851,10 @@ function SetupView() {
                       {downloadingACServer ? 'Downloading...' : 'Download'}
                     </button>
                     {!steamVerified && (
-                      <div className="fixed bottom-auto top-auto right-0 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 border border-yellow-600 rounded text-xs text-yellow-300 shadow-lg" style={{ zIndex: 9999 }}>
+                      <div
+                        className="fixed bottom-auto top-auto right-0 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 border border-yellow-600 rounded text-xs text-yellow-300 shadow-lg"
+                        style={{ zIndex: 9999 }}
+                      >
                         ⚠️ Steam credentials not verified
                       </div>
                     )}
