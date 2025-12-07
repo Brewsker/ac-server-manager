@@ -183,7 +183,7 @@ function EditorView() {
 
   const handleSaveConfig = async () => {
     if (!data.config) return;
-    
+
     // If we already have a preset loaded, save directly without showing modal
     if (data.currentPresetId) {
       await confirmSavePreset(false);
@@ -236,7 +236,8 @@ function EditorView() {
       updateData({
         config: { ...data.config, SERVER: { ...data.config.SERVER, NAME: ui.presetName } },
         presets: presetsData.presets || [],
-        currentPresetId: savedPreset?.id || result?.preset?.id || result?.id || data.currentPresetId,
+        currentPresetId:
+          savedPreset?.id || result?.preset?.id || result?.id || data.currentPresetId,
       });
 
       updateModals({ showSave: false });
