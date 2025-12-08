@@ -107,10 +107,14 @@ export async function startServer(presetId, config) {
 
   console.log(`[ServerProcess] Starting AC server for preset ${presetId}...`);
   console.log(`[ServerProcess] Server path: ${serverPath}`);
+  console.log(`[ServerProcess] Executable: ${executable}`);
   console.log(`[ServerProcess] Ports: UDP=${udpPort}, TCP=${tcpPort}, HTTP=${httpPort}`);
 
-  // Spawn the AC server process
-  const serverProcess = spawn(`./${executable}`, [], {
+  // Spawn the AC server process using full path to avoid shell interpretation issues
+  const executablePath = path.join(serverPath, executable);
+  console.log(`[ServerProcess] Full executable path: ${executablePath}`);
+  
+  const serverProcess = spawn(executablePath, [], {
     cwd: serverPath,
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false,
