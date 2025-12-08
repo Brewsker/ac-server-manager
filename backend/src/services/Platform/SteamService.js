@@ -887,7 +887,9 @@ quit
 
     if (!foundContentPath) {
       throw new Error(
-        `AC game download failed or incomplete. Content not found in: ${possibleContentPaths.join(', ')}`
+        `AC game download failed or incomplete. Content not found in: ${possibleContentPaths.join(
+          ', '
+        )}`
       );
     }
 
@@ -901,7 +903,9 @@ quit
     );
 
     console.log(
-      `[SteamService] Download complete: ${parseInt(carCount.trim()) - 1} cars, ${parseInt(trackCount.trim()) - 1} tracks`
+      `[SteamService] Download complete: ${parseInt(carCount.trim()) - 1} cars, ${
+        parseInt(trackCount.trim()) - 1
+      } tracks`
     );
 
     return {
@@ -1024,6 +1028,12 @@ export async function checkBaseGameDownloaded(gameInstallPath) {
       path.join(gameInstallPath, 'content'),
     ];
 
+    const possibleServerPaths = [
+      path.join(gameInstallPath, 'steamapps', 'common', 'assettocorsa', 'server'),
+      path.join(gameInstallPath, 'steamapps', 'downloading', '244210', 'server'),
+      path.join(gameInstallPath, 'server'),
+    ];
+
     for (const testPath of possibleContentPaths) {
       try {
         const carsPath = path.join(testPath, 'cars');
@@ -1043,6 +1053,18 @@ export async function checkBaseGameDownloaded(gameInstallPath) {
         const { stdout: sizeOutput } = await execAsync(`du -sh "${gameInstallPath}"`);
         const size = sizeOutput.split('\t')[0];
 
+        // Check if server files also exist
+        let serverFound = false;
+        for (const serverPath of possibleServerPaths) {
+          try {
+            await fs.access(path.join(serverPath, 'acServer'));
+            serverFound = true;
+            break;
+          } catch {
+            // Try next path
+          }
+        }
+
         return {
           installed: true,
           path: gameInstallPath,
@@ -1050,6 +1072,7 @@ export async function checkBaseGameDownloaded(gameInstallPath) {
           carCount: parseInt(carCount.trim()) - 1,
           trackCount: parseInt(trackCount.trim()) - 1,
           size,
+          serverFound,
         };
       } catch {
         // Try next path
@@ -1072,19 +1095,21 @@ export async function checkBaseGameDownloaded(gameInstallPath) {
 export async function extractACContent(gameInstallPath, serverContentPath) {
   try {
     console.log(
-      `[SteamService] Extracting content from ${gameInstallPath} to ${serverContentPath}...`
+      `[SteamService] Extracting server + content from ${gameInstallPath} to ${serverContentPath}...`
     );
+
+    const serverPath = path.dirname(serverContentPath); // e.g., /opt/acserver
 
     // SteamCMD installs to different paths depending on state
     // Try common locations for AC content
-    const possiblePaths = [
+    const possibleContentPaths = [
       path.join(gameInstallPath, 'steamapps', 'common', 'assettocorsa', 'content'),
       path.join(gameInstallPath, 'steamapps', 'downloading', '244210', 'content'),
       path.join(gameInstallPath, 'content'),
     ];
 
     let contentBasePath = null;
-    for (const p of possiblePaths) {
+    for (const p of possibleContentPaths) {
       try {
         await fs.access(path.join(p, 'cars'));
         contentBasePath = p;
@@ -1097,10 +1122,58 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
 
     if (!contentBasePath) {
       throw new Error(
-        `Could not find AC content in ${gameInstallPath}. Tried: ${possiblePaths.join(', ')}`
+        `Could not find AC content in ${gameInstallPath}. Tried: ${possibleContentPaths.join(', ')}`
       );
     }
 
+    // Also look for server files
+    const possibleServerPaths = [
+      path.join(gameInstallPath, 'steamapps', 'common', 'assettocorsa', 'server'),
+      path.join(gameInstallPath, 'steamapps', 'downloading', '244210', 'server'),
+      path.join(gameInstallPath, 'server'),
+    ];
+
+    let serverSourcePath = null;
+    for (const p of possibleServerPaths) {
+      try {
+        await fs.access(path.join(p, 'acServer'));
+        serverSourcePath = p;
+        console.log(`[SteamService] Found server files at: ${serverSourcePath}`);
+        break;
+      } catch {
+        // Try next path
+      }
+    }
+
+    if (!serverSourcePath) {
+      console.warn(
+        `[SteamService] Could not find AC server files in ${gameInstallPath}. Tried: ${possibleServerPaths.join(', ')}`
+      );
+      // Continue anyway - some installs may have content but not server
+    }
+
+    // Extract server files first (if found)
+    if (serverSourcePath) {
+      console.log('[SteamService] Copying server files...');
+      await fs.mkdir(serverPath, { recursive: true });
+      
+      // Copy all server files except content directory (we'll handle that separately)
+      await execAsync(`rsync -av "${serverSourcePath}/" "${serverPath}/" --exclude=content`, {
+        maxBuffer: 50 * 1024 * 1024,
+        timeout: 600000, // 10 minute timeout
+      });
+
+      // Verify server executable exists
+      const serverExe = path.join(serverPath, 'acServer');
+      try {
+        await fs.access(serverExe, fs.constants.X_OK);
+        console.log(`[SteamService] Server executable verified at: ${serverExe}`);
+      } catch {
+        console.warn(`[SteamService] Server executable not found or not executable at: ${serverExe}`);
+      }
+    }
+
+    // Extract content
     const gameCarsPath = path.join(contentBasePath, 'cars');
     const gameTracksPath = path.join(contentBasePath, 'tracks');
     const serverCarsPath = path.join(serverContentPath, 'cars');
@@ -1134,15 +1207,21 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
       `find "${serverTracksPath}" -maxdepth 1 -type d | wc -l`
     );
 
-    return {
+    const result = {
       success: true,
-      message: 'Content extracted successfully',
+      message: serverSourcePath 
+        ? 'Server and content extracted successfully'
+        : 'Content extracted successfully (server files not found)',
       carCount: parseInt(carCount.trim()) - 1,
       trackCount: parseInt(trackCount.trim()) - 1,
+      serverInstalled: !!serverSourcePath,
     };
+
+    console.log(`[SteamService] Extraction complete:`, result);
+    return result;
   } catch (error) {
     console.error('[SteamService] Failed to extract content:', error);
-    throw new Error(`Failed to extract content: ${error.message}`);
+    throw new Error(`Failed to extract server/content: ${error.message}`);
   }
 }
 
