@@ -462,7 +462,7 @@ function SetupView() {
 
       // Refresh content status to show new content
       await checkContentStatus();
-      
+
       // Refresh base game status
       await checkBaseGameStatus();
     } catch (error) {
@@ -486,7 +486,7 @@ function SetupView() {
           text: errorMsg,
         });
       }
-      
+
       // Check if base game was downloaded but extraction failed
       await checkBaseGameStatus();
     } finally {
@@ -499,7 +499,9 @@ function SetupView() {
   const checkBaseGameStatus = async () => {
     try {
       setCheckingBaseGame(true);
-      const result = await api.get(`/steam/check-base-game?path=${encodeURIComponent(baseGamePath)}`);
+      const result = await api.get(
+        `/steam/check-base-game?path=${encodeURIComponent(baseGamePath)}`
+      );
       setBaseGameInstalled(result.data);
     } catch (error) {
       console.error('Failed to check base game status:', error);
@@ -988,15 +990,15 @@ function SetupView() {
                 <div className="flex items-center gap-2">
                   <span
                     className={`w-2.5 h-2.5 rounded-full ${
-                      checkingBaseGame
+                      checkingAcServer || checkingBaseGame
                         ? 'bg-yellow-500'
-                        : baseGameInstalled?.installed
+                        : acServerInstalled?.exists
                         ? 'bg-emerald-500'
                         : 'bg-gray-500'
                     }`}
                   ></span>
                   <span className="text-sm text-gray-300">
-                    {checkingBaseGame
+                    {checkingAcServer || checkingBaseGame
                       ? 'Checking...'
                       : downloadingBaseGame
                       ? 'Downloading...'
@@ -1004,12 +1006,12 @@ function SetupView() {
                       ? 'Extracting...'
                       : cleaningUpBaseGame
                       ? 'Cleaning...'
-                      : baseGameInstalled?.installed
-                      ? 'Downloaded'
-                      : 'Not Downloaded'}
+                      : acServerInstalled?.exists
+                      ? 'Installed'
+                      : 'Not Installed'}
                   </span>
                 </div>
-                {!baseGameInstalled?.installed && !downloadingBaseGame && !extractingContent ? (
+                {!acServerInstalled?.exists && !downloadingBaseGame && !extractingContent ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1022,7 +1024,12 @@ function SetupView() {
                       }
                       handleDownloadBaseGame();
                     }}
-                    disabled={downloadingBaseGame || extractingContent || cleaningUpBaseGame || !steamVerified}
+                    disabled={
+                      downloadingBaseGame ||
+                      extractingContent ||
+                      cleaningUpBaseGame ||
+                      !steamVerified
+                    }
                     className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded transition-colors"
                   >
                     {downloadingBaseGame || extractingContent || cleaningUpBaseGame
@@ -1064,7 +1071,8 @@ function SetupView() {
                       </div>
                       <div className="text-xs text-gray-400 space-y-1">
                         <div>
-                          • This single download includes BOTH the server executable AND official content (180 cars, 21 tracks)
+                          • This single download includes BOTH the server executable AND official
+                          content (180 cars, 21 tracks)
                         </div>
                         <div>
                           • Download size: ~23GB, may take 20-60 minutes depending on connection
@@ -1128,14 +1136,16 @@ function SetupView() {
                         ? '⏳ Extracting...'
                         : `🔄 Resume/Re-Extract Server & Content (${baseGameInstalled.carCount} cars, ${baseGameInstalled.trackCount} tracks available)`}
                     </button>
-                    
+
                     {/* Cleanup Button */}
                     <button
                       onClick={handleCleanupBaseGame}
                       disabled={cleaningUpBaseGame || extractingContent}
                       className="w-full px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
                     >
-                      {cleaningUpBaseGame ? 'Cleaning up...' : `🗑️ Cleanup Base Game Files (${baseGameInstalled.size || '~23GB'})`}
+                      {cleaningUpBaseGame
+                        ? 'Cleaning up...'
+                        : `🗑️ Cleanup Base Game Files (${baseGameInstalled.size || '~23GB'})`}
                     </button>
                   </div>
                 ) : (
@@ -1143,7 +1153,10 @@ function SetupView() {
                     <button
                       onClick={handleDownloadBaseGame}
                       disabled={
-                        downloadingBaseGame || extractingContent || cleaningUpBaseGame || !steamVerified
+                        downloadingBaseGame ||
+                        extractingContent ||
+                        cleaningUpBaseGame ||
+                        !steamVerified
                       }
                       className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
                     >
