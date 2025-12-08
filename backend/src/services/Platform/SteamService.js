@@ -1127,7 +1127,7 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
       );
     }
 
-    // Also look for server files
+    // Also look for server files (Windows version has acServer.exe)
     const possibleServerPaths = [
       path.join(gameInstallPath, 'steamapps', 'common', 'assettocorsa', 'server'),
       path.join(gameInstallPath, 'steamapps', 'downloading', '244210', 'server'),
@@ -1137,10 +1137,20 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
     let serverSourcePath = null;
     for (const p of possibleServerPaths) {
       try {
-        await fs.access(path.join(p, 'acServer'));
-        serverSourcePath = p;
-        console.log(`[SteamService] Found server files at: ${serverSourcePath}`);
-        break;
+        // Check for both Windows (acServer.exe) and Linux (acServer) binaries
+        const windowsExe = path.join(p, 'acServer.exe');
+        const linuxBinary = path.join(p, 'acServer');
+        try {
+          await fs.access(windowsExe);
+          serverSourcePath = p;
+          console.log(`[SteamService] Found Windows server files at: ${serverSourcePath}`);
+          break;
+        } catch {
+          await fs.access(linuxBinary);
+          serverSourcePath = p;
+          console.log(`[SteamService] Found Linux server files at: ${serverSourcePath}`);
+          break;
+        }
       } catch {
         // Try next path
       }
@@ -1166,15 +1176,21 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
         timeout: 600000, // 10 minute timeout
       });
 
-      // Verify server executable exists
-      const serverExe = path.join(serverPath, 'acServer');
+      // Verify server executable exists (check both Windows and Linux versions)
+      const windowsExe = path.join(serverPath, 'acServer.exe');
+      const linuxExe = path.join(serverPath, 'acServer');
       try {
-        await fs.access(serverExe, fs.constants.X_OK);
-        console.log(`[SteamService] Server executable verified at: ${serverExe}`);
+        await fs.access(windowsExe);
+        console.log(`[SteamService] Windows server executable verified at: ${windowsExe}`);
       } catch {
-        console.warn(
-          `[SteamService] Server executable not found or not executable at: ${serverExe}`
-        );
+        try {
+          await fs.access(linuxExe, fs.constants.X_OK);
+          console.log(`[SteamService] Linux server executable verified at: ${linuxExe}`);
+        } catch {
+          console.warn(
+            `[SteamService] Server executable not found at: ${windowsExe} or ${linuxExe}`
+          );
+        }
       }
     }
 
@@ -1232,6 +1248,7 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
 
 /**
  * Remove AC base game files after content extraction
+ * NOTE: This preserves the server directory since it's needed to run the AC server via Wine
  * @param {string} gameInstallPath - Path where AC base game is installed
  * @returns {Promise<Object>} Cleanup status
  */
@@ -1248,14 +1265,60 @@ export async function cleanupACBaseGame(gameInstallPath) {
     const { stdout: sizeOutput } = await execAsync(`du -sh ${gameInstallPath}`);
     const size = sizeOutput.split('\t')[0];
 
-    // Remove directory
-    await fs.rm(gameInstallPath, { recursive: true, force: true });
+    // Find where the actual game files are (SteamCMD structure)
+    const possibleGamePaths = [
+      path.join(gameInstallPath, 'steamapps', 'common', 'assettocorsa'),
+      path.join(gameInstallPath, 'steamapps', 'downloading', '244210'),
+    ];
 
-    console.log(`[SteamService] Cleaned up ${size} from ${gameInstallPath}`);
+    let actualGamePath = null;
+    for (const p of possibleGamePaths) {
+      try {
+        await fs.access(p);
+        actualGamePath = p;
+        console.log(`[SteamService] Found game files at: ${actualGamePath}`);
+        break;
+      } catch {
+        // Try next path
+      }
+    }
+
+    if (actualGamePath) {
+      // Remove everything EXCEPT the server directory
+      console.log(`[SteamService] Cleaning up game files, preserving server directory...`);
+      const entries = await fs.readdir(actualGamePath);
+      
+      for (const entry of entries) {
+        if (entry === 'server') {
+          console.log(`[SteamService] Preserving server directory`);
+          continue; // Skip server directory
+        }
+        
+        const entryPath = path.join(actualGamePath, entry);
+        console.log(`[SteamService] Removing: ${entry}`);
+        await fs.rm(entryPath, { recursive: true, force: true });
+      }
+      
+      // Also clean up steamapps metadata but keep the game structure
+      const steamappsPath = path.join(gameInstallPath, 'steamapps');
+      const manifestsPath = path.join(steamappsPath, 'appmanifest_*.acf');
+      try {
+        await execAsync(`rm -f ${manifestsPath}`);
+      } catch {
+        // Ignore if manifests don't exist
+      }
+    } else {
+      // Fallback: If we can't find the standard structure, just delete everything
+      // (This shouldn't happen with normal SteamCMD installs)
+      console.warn(`[SteamService] Could not find standard game structure, removing entire directory`);
+      await fs.rm(gameInstallPath, { recursive: true, force: true });
+    }
+
+    console.log(`[SteamService] Cleaned up ${size} from ${gameInstallPath} (preserved server files)`);
 
     return {
       success: true,
-      message: `Removed AC base game files (freed ${size})`,
+      message: `Removed AC base game files (freed ${size}, preserved server directory)`,
       freedSpace: size,
     };
   } catch (error) {
