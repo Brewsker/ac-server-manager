@@ -829,6 +829,7 @@ export async function downloadACBaseGame(installPath, steamUser, steamPass, stea
     const scriptPath = '/tmp/install_ac_basegame.txt';
     let scriptContent = `@ShutdownOnFailedCommand 1
 @NoPromptForPassword 1
+@sSteamCmdForcePlatformType windows
 force_install_dir ${installPath}
 `;
 
@@ -1147,7 +1148,9 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
 
     if (!serverSourcePath) {
       console.warn(
-        `[SteamService] Could not find AC server files in ${gameInstallPath}. Tried: ${possibleServerPaths.join(', ')}`
+        `[SteamService] Could not find AC server files in ${gameInstallPath}. Tried: ${possibleServerPaths.join(
+          ', '
+        )}`
       );
       // Continue anyway - some installs may have content but not server
     }
@@ -1156,7 +1159,7 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
     if (serverSourcePath) {
       console.log('[SteamService] Copying server files...');
       await fs.mkdir(serverPath, { recursive: true });
-      
+
       // Copy all server files except content directory (we'll handle that separately)
       await execAsync(`rsync -av "${serverSourcePath}/" "${serverPath}/" --exclude=content`, {
         maxBuffer: 50 * 1024 * 1024,
@@ -1169,7 +1172,9 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
         await fs.access(serverExe, fs.constants.X_OK);
         console.log(`[SteamService] Server executable verified at: ${serverExe}`);
       } catch {
-        console.warn(`[SteamService] Server executable not found or not executable at: ${serverExe}`);
+        console.warn(
+          `[SteamService] Server executable not found or not executable at: ${serverExe}`
+        );
       }
     }
 
@@ -1209,7 +1214,7 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
 
     const result = {
       success: true,
-      message: serverSourcePath 
+      message: serverSourcePath
         ? 'Server and content extracted successfully'
         : 'Content extracted successfully (server files not found)',
       carCount: parseInt(carCount.trim()) - 1,
