@@ -1,6 +1,6 @@
 {
     "name":  "ac-server-manager-backend",
-    "version":  "0.32.3",
+    "version":  "0.34.0",
     "description":  "Backend API for AC Server Manager",
     "main":  "src/server.js",
     "type":  "module",

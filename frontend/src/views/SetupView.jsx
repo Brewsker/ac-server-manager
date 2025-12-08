@@ -79,6 +79,7 @@ function SetupView() {
     checkCacheStatus();
     checkContentStatus();
     checkAcServerStatus();
+    checkBaseGameStatus();
   }, []);
 
   // Reset verification if credentials change (after initial mount)
@@ -395,7 +396,7 @@ function SetupView() {
       // Step 1: Download base game
       setBaseGameMessage({
         type: 'info',
-        text: '📥 Downloading AC base game (~12GB). This may take 10-30 minutes...',
+        text: '📥 Downloading AC base game (~12-23GB). This may take 10-60 minutes depending on connection speed...',
       });
 
       const downloadResult = await api.downloadACBaseGame(
@@ -461,6 +462,9 @@ function SetupView() {
 
       // Refresh content status to show new content
       await checkContentStatus();
+      
+      // Refresh base game status
+      await checkBaseGameStatus();
     } catch (error) {
       console.error('Failed to download/extract base game:', error);
       const errorMsg =
@@ -482,10 +486,74 @@ function SetupView() {
           text: errorMsg,
         });
       }
+      
+      // Check if base game was downloaded but extraction failed
+      await checkBaseGameStatus();
     } finally {
       setDownloadingBaseGame(false);
       setExtractingContent(false);
       setCleaningUpBaseGame(false);
+    }
+  };
+
+  const checkBaseGameStatus = async () => {
+    try {
+      setCheckingBaseGame(true);
+      const result = await api.get(`/steam/check-base-game?path=${encodeURIComponent(baseGamePath)}`);
+      setBaseGameInstalled(result.data);
+    } catch (error) {
+      console.error('Failed to check base game status:', error);
+      setBaseGameInstalled({ installed: false });
+    } finally {
+      setCheckingBaseGame(false);
+    }
+  };
+
+  const handleResumeExtraction = async () => {
+    setExtractingContent(true);
+    setBaseGameMessage({
+      type: 'info',
+      text: `🔄 Resuming content extraction from ${baseGamePath}...`,
+    });
+
+    try {
+      const serverContentPath = process.env.AC_CONTENT_PATH || '/opt/acserver/content';
+      const extractResult = await api.extractACContent(baseGamePath, serverContentPath);
+
+      if (!extractResult.success) {
+        throw new Error(extractResult.message || 'Content extraction failed');
+      }
+
+      setBaseGameMessage({
+        type: 'success',
+        text: `✅ Extraction complete! ${extractResult.carCount} cars, ${extractResult.trackCount} tracks installed.`,
+      });
+
+      // Clear content cache and refresh
+      await api.post('/content/clear-cache');
+      await checkContentStatus();
+      await checkBaseGameStatus();
+
+      // Auto-cleanup if enabled
+      if (autoCleanup) {
+        setCleaningUpBaseGame(true);
+        const cleanupResult = await api.cleanupACBaseGame(baseGamePath);
+        if (cleanupResult.success) {
+          setBaseGameMessage({
+            type: 'success',
+            text: `🎉 Content installed and cleanup complete! Freed ${cleanupResult.freedSpace}.`,
+          });
+        }
+        setCleaningUpBaseGame(false);
+      }
+    } catch (error) {
+      console.error('Failed to extract content:', error);
+      setBaseGameMessage({
+        type: 'error',
+        text: error.response?.data?.message || error.message || 'Failed to extract content',
+      });
+    } finally {
+      setExtractingContent(false);
     }
   };
 
@@ -1331,13 +1399,27 @@ function SetupView() {
 
                 {/* Action Buttons */}
                 {baseGameInstalled?.installed ? (
-                  <button
-                    onClick={handleCleanupBaseGame}
-                    disabled={cleaningUpBaseGame}
-                    className="w-full px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
-                  >
-                    {cleaningUpBaseGame ? 'Cleaning up...' : '🗑️ Cleanup Base Game Files'}
-                  </button>
+                  <div className="space-y-3">
+                    {/* Resume Extraction Button - shows if base game downloaded but might not be fully extracted */}
+                    <button
+                      onClick={handleResumeExtraction}
+                      disabled={extractingContent || cleaningUpBaseGame}
+                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
+                    >
+                      {extractingContent
+                        ? '⏳ Extracting...'
+                        : `🔄 Resume/Re-Extract Content (${baseGameInstalled.carCount} cars, ${baseGameInstalled.trackCount} tracks available)`}
+                    </button>
+                    
+                    {/* Cleanup Button */}
+                    <button
+                      onClick={handleCleanupBaseGame}
+                      disabled={cleaningUpBaseGame || extractingContent}
+                      className="w-full px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                    >
+                      {cleaningUpBaseGame ? 'Cleaning up...' : `🗑️ Cleanup Base Game Files (${baseGameInstalled.size || '~23GB'})`}
+                    </button>
+                  </div>
                 ) : (
                   <div className="flex gap-3">
                     <button

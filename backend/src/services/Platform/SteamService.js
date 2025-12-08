@@ -855,43 +855,65 @@ quit
     await fs.writeFile(scriptPath, scriptContent);
 
     // Run SteamCMD
-    console.log('[SteamService] Starting AC base game download (~12GB, may take 10-30 minutes)...');
+    console.log('[SteamService] Starting AC base game download (~12GB, may take 10-60 minutes)...');
     const { stdout, stderr } = await execAsync(`${steamcmdPath} +runscript ${scriptPath}`, {
       maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large output
-      timeout: 1800000, // 30 minute timeout for large download
+      timeout: 7200000, // 2 hour timeout for large downloads (better for slow connections)
     });
 
     // Clean up script
-    await fs.unlink(scriptPath);
+    await fs.unlink(scriptPath).catch(() => {});
 
-    // Verify installation - check for content folder
-    const contentPath = path.join(installPath, 'content');
-    const carsPath = path.join(contentPath, 'cars');
-    const tracksPath = path.join(contentPath, 'tracks');
+    // Check if download completed (even if interrupted)
+    // SteamCMD may place content in different locations
+    const possibleContentPaths = [
+      path.join(installPath, 'steamapps', 'common', 'assettocorsa', 'content'),
+      path.join(installPath, 'steamapps', 'downloading', '244210', 'content'),
+      path.join(installPath, 'content'),
+    ];
 
-    try {
-      await fs.access(contentPath);
-      await fs.access(carsPath);
-      await fs.access(tracksPath);
-
-      // Count files to verify content
-      const { stdout: carCount } = await execAsync(`find ${carsPath} -type d -maxdepth 1 | wc -l`);
-      const { stdout: trackCount } = await execAsync(
-        `find ${tracksPath} -type d -maxdepth 1 | wc -l`
-      );
-
-      return {
-        success: true,
-        message: 'AC base game downloaded successfully',
-        path: installPath,
-        contentPath,
-        carCount: parseInt(carCount.trim()) - 1, // Subtract 1 for parent directory
-        trackCount: parseInt(trackCount.trim()) - 1,
-        output: stdout,
-      };
-    } catch (error) {
-      throw new Error(`AC game download completed but content folder not found at ${contentPath}`);
+    let foundContentPath = null;
+    for (const testPath of possibleContentPaths) {
+      try {
+        await fs.access(path.join(testPath, 'cars'));
+        await fs.access(path.join(testPath, 'tracks'));
+        foundContentPath = testPath;
+        console.log(`[SteamService] Found downloaded content at: ${foundContentPath}`);
+        break;
+      } catch {
+        // Try next path
+      }
     }
+
+    if (!foundContentPath) {
+      throw new Error(
+        `AC game download failed or incomplete. Content not found in: ${possibleContentPaths.join(', ')}`
+      );
+    }
+
+    // Count downloaded content
+    const carsPath = path.join(foundContentPath, 'cars');
+    const tracksPath = path.join(foundContentPath, 'tracks');
+
+    const { stdout: carCount } = await execAsync(`find "${carsPath}" -type d -maxdepth 1 | wc -l`);
+    const { stdout: trackCount } = await execAsync(
+      `find "${tracksPath}" -type d -maxdepth 1 | wc -l`
+    );
+
+    console.log(
+      `[SteamService] Download complete: ${parseInt(carCount.trim()) - 1} cars, ${parseInt(trackCount.trim()) - 1} tracks`
+    );
+
+    return {
+      success: true,
+      message: 'AC base game downloaded successfully',
+      path: installPath,
+      contentPath: foundContentPath,
+      carCount: parseInt(carCount.trim()) - 1, // Subtract 1 for parent directory
+      trackCount: parseInt(trackCount.trim()) - 1,
+      downloaded: true,
+      output: stdout,
+    };
   } catch (error) {
     console.error('[SteamService] Failed to download AC base game:', error);
 
@@ -986,6 +1008,58 @@ quit
         error.code || 'unknown'
       }): ${errorOutput.substring(0, 1000)}`
     );
+  }
+}
+
+/**
+ * Check if AC base game is downloaded and ready for extraction
+ * @param {string} gameInstallPath - Path where AC base game should be (e.g., /tmp/ac-basegame)
+ * @returns {Promise<Object>} Status of base game download
+ */
+export async function checkBaseGameDownloaded(gameInstallPath) {
+  try {
+    const possibleContentPaths = [
+      path.join(gameInstallPath, 'steamapps', 'common', 'assettocorsa', 'content'),
+      path.join(gameInstallPath, 'steamapps', 'downloading', '244210', 'content'),
+      path.join(gameInstallPath, 'content'),
+    ];
+
+    for (const testPath of possibleContentPaths) {
+      try {
+        const carsPath = path.join(testPath, 'cars');
+        const tracksPath = path.join(testPath, 'tracks');
+        await fs.access(carsPath);
+        await fs.access(tracksPath);
+
+        // Count content
+        const { stdout: carCount } = await execAsync(
+          `find "${carsPath}" -type d -maxdepth 1 | wc -l`
+        );
+        const { stdout: trackCount } = await execAsync(
+          `find "${tracksPath}" -type d -maxdepth 1 | wc -l`
+        );
+
+        // Get size
+        const { stdout: sizeOutput } = await execAsync(`du -sh "${gameInstallPath}"`);
+        const size = sizeOutput.split('\t')[0];
+
+        return {
+          installed: true,
+          path: gameInstallPath,
+          contentPath: testPath,
+          carCount: parseInt(carCount.trim()) - 1,
+          trackCount: parseInt(trackCount.trim()) - 1,
+          size,
+        };
+      } catch {
+        // Try next path
+      }
+    }
+
+    return { installed: false };
+  } catch (error) {
+    console.error('[SteamService] Error checking base game:', error);
+    return { installed: false };
   }
 }
 

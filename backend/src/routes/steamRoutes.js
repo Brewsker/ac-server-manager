@@ -339,4 +339,44 @@ router.post('/verify-credentials', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/steam/check-base-game
+ * Check if AC base game is already downloaded
+ * Query: ?path=/tmp/ac-basegame
+ */
+router.get('/check-base-game', async (req, res) => {
+  try {
+    const { path = '/tmp/ac-basegame' } = req.query;
+    const result = await steamService.checkBaseGameDownloaded(path);
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error checking base game:', error);
+    res.status(500).json({
+      error: true,
+      message: error.message || 'Failed to check base game',
+    });
+  }
+});
+
+/**
+ * POST /api/steam/extract-content
+ * Extract content from downloaded base game
+ * Body: { gameInstallPath, serverContentPath }
+ */
+router.post('/extract-content', async (req, res) => {
+  try {
+    const { gameInstallPath = '/tmp/ac-basegame', serverContentPath = '/opt/acserver/content' } =
+      req.body;
+
+    const result = await steamService.extractACContent(gameInstallPath, serverContentPath);
+    res.json(result);
+  } catch (error) {
+    console.error('[SteamRoutes] Error extracting content:', error);
+    res.status(500).json({
+      error: true,
+      message: error.message || 'Failed to extract content',
+    });
+  }
+});
+
 export default router;
