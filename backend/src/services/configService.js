@@ -89,6 +89,16 @@ export async function updateConfig(newConfig) {
     }
   }
 
+  // Remove problematic fields that cause issues with official content
+  // LEGAL_TYRES causes "illegal car" errors with encrypted data.acd files
+  // CONFIG_TRACK can also cause issues if set incorrectly
+  if (newConfig.SERVER) {
+    delete newConfig.SERVER.LEGAL_TYRES;
+    if (!newConfig.SERVER.CONFIG_TRACK || newConfig.SERVER.CONFIG_TRACK === '') {
+      delete newConfig.SERVER.CONFIG_TRACK;
+    }
+  }
+
   // Write INI file with custom handling for CARS field
   let configString = ini.stringify(newConfig);
   

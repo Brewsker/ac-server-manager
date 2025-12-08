@@ -99,7 +99,7 @@ function getComprehensiveDefaults() {
       AUTH_PLUGIN_ADDRESS: '',
       USE_CM_AS_PLUGIN: 0,
       WEB_LINK: '',
-      LEGAL_TYRES: '',
+      // LEGAL_TYRES: '', // Removed - causes "illegal car" errors with encrypted official content (data.acd)
     },
     DYNAMIC_TRACK: {
       SESSION_START: 95,
