@@ -705,7 +705,7 @@ function SetupView() {
   };
 
   const tabs = [
-    { id: 'server', label: 'AC Server', icon: '🖥️' },
+    { id: 'server', label: 'Server', icon: '🖥️' },
     { id: 'content', label: 'Content', icon: '📦' },
     { id: 'updates', label: 'Updates', icon: '🔄' },
     { id: 'appearance', label: 'Appearance', icon: '🎨' },
@@ -975,90 +975,65 @@ function SetupView() {
             )}
           </div>
 
-          {/* AC Server Download */}
+          {/* AC Server & Official Content */}
           <div className="border border-gray-700 rounded-lg overflow-hidden">
             {/* Collapsed Header */}
             <button
-              onClick={() => setAcServerExpanded(!acServerExpanded)}
+              onClick={() => setBaseGameExpanded(!baseGameExpanded)}
               className="w-full px-4 py-3 flex items-center justify-between bg-gray-800 hover:bg-gray-750 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="text-orange-400 font-medium">AC Dedicated Server</span>
+                <span className="text-orange-400 font-medium">AC Server & Official Content</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <span
                     className={`w-2.5 h-2.5 rounded-full ${
-                      checkingAcServer
+                      checkingBaseGame
                         ? 'bg-yellow-500'
-                        : acServerInstalled?.installed
+                        : baseGameInstalled?.installed
                         ? 'bg-emerald-500'
-                        : 'bg-red-500'
+                        : 'bg-gray-500'
                     }`}
                   ></span>
                   <span className="text-sm text-gray-300">
-                    {checkingAcServer
+                    {checkingBaseGame
                       ? 'Checking...'
-                      : acServerInstalled?.installed
-                      ? 'Installed'
-                      : 'Not Installed'}
+                      : downloadingBaseGame
+                      ? 'Downloading...'
+                      : extractingContent
+                      ? 'Extracting...'
+                      : cleaningUpBaseGame
+                      ? 'Cleaning...'
+                      : baseGameInstalled?.installed
+                      ? 'Downloaded'
+                      : 'Not Downloaded'}
                   </span>
                 </div>
-                {!acServerInstalled?.installed ? (
-                  <div className="relative group flex items-center gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!steamVerified) {
-                          setSteamMessage({
-                            type: 'error',
-                            text: 'Please verify your Steam credentials first',
-                          });
-                          setAcServerExpanded(true);
-                          return;
-                        }
-                        if (!acServerPath.trim()) {
-                          setSteamMessage({
-                            type: 'error',
-                            text: 'Please select installation path',
-                          });
-                          return;
-                        }
-                        handleDownloadACServer();
-                      }}
-                      disabled={downloadingACServer || !steamcmdInstalled || !steamVerified}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded transition-colors"
-                    >
-                      {downloadingACServer ? 'Downloading...' : 'Download'}
-                    </button>
-                    {!steamVerified && (
-                      <div
-                        className="fixed bottom-auto top-auto right-0 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 border border-yellow-600 rounded text-xs text-yellow-300 shadow-lg"
-                        style={{ zIndex: 9999 }}
-                      >
-                        ⚠️ Steam credentials not verified
-                      </div>
-                    )}
-                    <svg
-                      className={`w-5 h-5 text-gray-400 transition-transform ${
-                        acServerExpanded ? 'rotate-180' : ''
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </div>
+                {!baseGameInstalled?.installed && !downloadingBaseGame && !extractingContent ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!steamVerified) {
+                        setBaseGameMessage({
+                          type: 'error',
+                          text: 'Please verify your Steam credentials first',
+                        });
+                        return;
+                      }
+                      handleDownloadBaseGame();
+                    }}
+                    disabled={downloadingBaseGame || extractingContent || cleaningUpBaseGame || !steamVerified}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded transition-colors"
+                  >
+                    {downloadingBaseGame || extractingContent || cleaningUpBaseGame
+                      ? 'Processing...'
+                      : 'Download'}
+                  </button>
                 ) : (
                   <svg
                     className={`w-5 h-5 text-gray-400 transition-transform ${
-                      acServerExpanded ? 'rotate-180' : ''
+                      baseGameExpanded ? 'rotate-180' : ''
                     }`}
                     fill="none"
                     stroke="currentColor"
@@ -1076,72 +1051,137 @@ function SetupView() {
             </button>
 
             {/* Expanded Details */}
-            {acServerExpanded && acServerInstalled?.installed && (
+            {baseGameExpanded && (
               <div className="p-4 space-y-4 bg-gray-800/50 border-t border-gray-700">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Version</span>
-                    <span className="text-sm text-gray-300">
-                      {acServerInstalled.version || 'Unknown'}
-                    </span>
+                {/* Info Banner */}
+                <div className="p-4 bg-blue-900/30 border-l-4 border-blue-500 rounded">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">ℹ️</span>
+                    <div className="flex-1 space-y-2">
+                      <div className="font-medium text-blue-300">Steam Ownership Required</div>
+                      <div className="text-sm text-gray-300">
+                        You must own <strong>Assetto Corsa</strong> (App ID 244210) on Steam to
+                        download the AC server and official content.
+                      </div>
+                      <div className="text-xs text-gray-400 space-y-1">
+                        <div>
+                          • This single download includes BOTH the server executable AND official content (180 cars, 21 tracks)
+                        </div>
+                        <div>
+                          • Download size: ~23GB, may take 20-60 minutes depending on connection
+                        </div>
+                        <div>
+                          • Alternative: Upload custom content manually from RaceDepartment,
+                          AssettoLand, etc.
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
+                {!steamVerified && (
+                  <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded text-sm text-yellow-300">
+                    ⚠️ Please verify your Steam credentials above before downloading
+                  </div>
+                )}
+
+                {/* Download Path */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Installation Path</label>
-                  <select
-                    value={acServerPath}
-                    onChange={(e) => setAcServerPath(e.target.value)}
-                    disabled
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm cursor-not-allowed opacity-75"
-                  >
-                    <option value="/opt/acserver">/opt/acserver (Recommended)</option>
-                    <option value="/home/acserver">/home/acserver</option>
-                    <option value="/usr/local/acserver">/usr/local/acserver</option>
-                    <option value="/srv/acserver">/srv/acserver</option>
-                  </select>
+                  <label className="block text-sm text-gray-400 mb-1">Download Path</label>
+                  <input
+                    type="text"
+                    value={baseGamePath}
+                    onChange={(e) => setBaseGamePath(e.target.value)}
+                    disabled={downloadingBaseGame || extractingContent}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder="/tmp/ac-basegame"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Temporary location for base game download (can be deleted after extraction)
+                  </p>
                 </div>
 
-                <button
-                  onClick={handleUninstallACServer}
-                  disabled={downloadingACServer}
-                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
-                >
-                  {downloadingACServer ? 'Uninstalling...' : 'Uninstall'}
-                </button>
+                {/* Auto-cleanup checkbox */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="autoCleanup"
+                    checked={autoCleanup}
+                    onChange={(e) => setAutoCleanup(e.target.checked)}
+                    disabled={downloadingBaseGame || extractingContent}
+                    className="w-4 h-4 bg-gray-700 border-gray-600 rounded"
+                  />
+                  <label htmlFor="autoCleanup" className="text-sm text-gray-300">
+                    Auto-cleanup base game files after extraction (~23GB saved)
+                  </label>
+                </div>
+
+                {/* Action Buttons */}
+                {baseGameInstalled?.installed ? (
+                  <div className="space-y-3">
+                    {/* Resume Extraction Button - shows if base game downloaded but might not be fully extracted */}
+                    <button
+                      onClick={handleResumeExtraction}
+                      disabled={extractingContent || cleaningUpBaseGame}
+                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
+                    >
+                      {extractingContent
+                        ? '⏳ Extracting...'
+                        : `🔄 Resume/Re-Extract Server & Content (${baseGameInstalled.carCount} cars, ${baseGameInstalled.trackCount} tracks available)`}
+                    </button>
+                    
+                    {/* Cleanup Button */}
+                    <button
+                      onClick={handleCleanupBaseGame}
+                      disabled={cleaningUpBaseGame || extractingContent}
+                      className="w-full px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
+                    >
+                      {cleaningUpBaseGame ? 'Cleaning up...' : `🗑️ Cleanup Base Game Files (${baseGameInstalled.size || '~23GB'})`}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleDownloadBaseGame}
+                      disabled={
+                        downloadingBaseGame || extractingContent || cleaningUpBaseGame || !steamVerified
+                      }
+                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
+                    >
+                      {downloadingBaseGame
+                        ? 'Downloading...'
+                        : extractingContent
+                        ? 'Extracting...'
+                        : cleaningUpBaseGame
+                        ? 'Cleaning up...'
+                        : '📥 Download Server & Content'}
+                    </button>
+                    <button
+                      onClick={handleCleanupBaseGame}
+                      disabled={downloadingBaseGame || extractingContent || cleaningUpBaseGame}
+                      className="px-4 py-2 bg-red-700 hover:bg-red-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
+                      title="Clean up downloaded base game files"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Path selector when not installed */}
-            {!acServerInstalled?.installed && (
-              <div className="p-4 space-y-3 bg-gray-800/50 border-t border-gray-700">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Installation Path</label>
-                  <select
-                    value={acServerPath}
-                    onChange={(e) => setAcServerPath(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                  >
-                    <option value="/opt/acserver">/opt/acserver (Recommended)</option>
-                    <option value="/home/acserver">/home/acserver</option>
-                    <option value="/usr/local/acserver">/usr/local/acserver</option>
-                    <option value="/srv/acserver">/srv/acserver</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* Steam messages */}
-            {steamMessage && (
+            {/* Messages */}
+            {baseGameMessage && (
               <div className="p-4 bg-gray-800/50 border-t border-gray-700">
                 <div
                   className={`p-3 rounded text-sm ${
-                    steamMessage.type === 'success'
+                    baseGameMessage.type === 'success'
                       ? 'bg-emerald-900/50 text-emerald-300'
+                      : baseGameMessage.type === 'info'
+                      ? 'bg-blue-900/50 text-blue-300'
                       : 'bg-red-900/50 text-red-300'
                   }`}
                 >
-                  {steamMessage.text}
+                  {baseGameMessage.text}
                 </div>
               </div>
             )}
@@ -1254,219 +1294,6 @@ function SetupView() {
               )}
             </div>
           </SectionPanel>
-
-          {/* Official Content - Base Game */}
-          <div className="border border-gray-700 rounded-lg overflow-hidden">
-            {/* Collapsed Header */}
-            <button
-              onClick={() => setBaseGameExpanded(!baseGameExpanded)}
-              className="w-full px-4 py-3 flex items-center justify-between bg-gray-800 hover:bg-gray-750 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-orange-400 font-medium">Official Content (Base Game)</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      checkingBaseGame
-                        ? 'bg-yellow-500'
-                        : baseGameInstalled?.installed
-                        ? 'bg-emerald-500'
-                        : 'bg-gray-500'
-                    }`}
-                  ></span>
-                  <span className="text-sm text-gray-300">
-                    {checkingBaseGame
-                      ? 'Checking...'
-                      : downloadingBaseGame
-                      ? 'Downloading...'
-                      : extractingContent
-                      ? 'Extracting...'
-                      : cleaningUpBaseGame
-                      ? 'Cleaning...'
-                      : baseGameInstalled?.installed
-                      ? 'Downloaded'
-                      : 'Not Downloaded'}
-                  </span>
-                </div>
-                {!baseGameInstalled?.installed && !downloadingBaseGame && !extractingContent ? (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!steamVerified) {
-                        setBaseGameMessage({
-                          type: 'error',
-                          text: 'Please verify your Steam credentials in the Server tab first',
-                        });
-                        return;
-                      }
-                      handleDownloadBaseGame();
-                    }}
-                    disabled={downloadingBaseGame || extractingContent || cleaningUpBaseGame || !steamVerified}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded transition-colors"
-                  >
-                    {downloadingBaseGame || extractingContent || cleaningUpBaseGame
-                      ? 'Processing...'
-                      : 'Download'}
-                  </button>
-                ) : (
-                  <svg
-                    className={`w-5 h-5 text-gray-400 transition-transform ${
-                      baseGameExpanded ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                )}
-              </div>
-            </button>
-
-            {/* Expanded Details */}
-            {baseGameExpanded && (
-              <div className="p-4 space-y-4 bg-gray-800/50 border-t border-gray-700">
-                {/* Info Banner */}
-                <div className="p-4 bg-blue-900/30 border-l-4 border-blue-500 rounded">
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">ℹ️</span>
-                    <div className="flex-1 space-y-2">
-                      <div className="font-medium text-blue-300">Steam Ownership Required</div>
-                      <div className="text-sm text-gray-300">
-                        You must own <strong>Assetto Corsa</strong> (App ID 244210) on Steam to
-                        download official content.
-                      </div>
-                      <div className="text-xs text-gray-400 space-y-1">
-                        <div>
-                          • The AC Dedicated Server (App 302550) is FREE, but game content requires
-                          the full game
-                        </div>
-                        <div>
-                          • Download size: ~12GB, may take 10-30 minutes depending on connection
-                        </div>
-                        <div>
-                          • Alternative: Upload custom content manually from RaceDepartment,
-                          AssettoLand, etc.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {!steamVerified && (
-                  <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded text-sm text-yellow-300">
-                    ⚠️ Please verify your Steam credentials in the Server tab before downloading
-                  </div>
-                )}
-
-                {/* Download Path */}
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Download Path</label>
-                  <input
-                    type="text"
-                    value={baseGamePath}
-                    onChange={(e) => setBaseGamePath(e.target.value)}
-                    disabled={downloadingBaseGame || extractingContent}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    placeholder="/tmp/ac-basegame"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Temporary location for base game download (can be deleted after extraction)
-                  </p>
-                </div>
-
-                {/* Auto-cleanup checkbox */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="autoCleanup"
-                    checked={autoCleanup}
-                    onChange={(e) => setAutoCleanup(e.target.checked)}
-                    disabled={downloadingBaseGame || extractingContent}
-                    className="w-4 h-4 bg-gray-700 border-gray-600 rounded"
-                  />
-                  <label htmlFor="autoCleanup" className="text-sm text-gray-300">
-                    Auto-cleanup base game files after extraction (~12GB saved)
-                  </label>
-                </div>
-
-                {/* Action Buttons */}
-                {baseGameInstalled?.installed ? (
-                  <div className="space-y-3">
-                    {/* Resume Extraction Button - shows if base game downloaded but might not be fully extracted */}
-                    <button
-                      onClick={handleResumeExtraction}
-                      disabled={extractingContent || cleaningUpBaseGame}
-                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
-                    >
-                      {extractingContent
-                        ? '⏳ Extracting...'
-                        : `🔄 Resume/Re-Extract Content (${baseGameInstalled.carCount} cars, ${baseGameInstalled.trackCount} tracks available)`}
-                    </button>
-                    
-                    {/* Cleanup Button */}
-                    <button
-                      onClick={handleCleanupBaseGame}
-                      disabled={cleaningUpBaseGame || extractingContent}
-                      className="w-full px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded transition-colors"
-                    >
-                      {cleaningUpBaseGame ? 'Cleaning up...' : `🗑️ Cleanup Base Game Files (${baseGameInstalled.size || '~23GB'})`}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleDownloadBaseGame}
-                      disabled={
-                        downloadingBaseGame || extractingContent || cleaningUpBaseGame || !steamVerified
-                      }
-                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
-                    >
-                      {downloadingBaseGame
-                        ? 'Downloading...'
-                        : extractingContent
-                        ? 'Extracting...'
-                        : cleaningUpBaseGame
-                        ? 'Cleaning up...'
-                        : '📥 Download & Extract'}
-                    </button>
-                    <button
-                      onClick={handleCleanupBaseGame}
-                      disabled={downloadingBaseGame || extractingContent || cleaningUpBaseGame}
-                      className="px-4 py-2 bg-red-700 hover:bg-red-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors"
-                      title="Clean up downloaded base game files"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Messages */}
-            {baseGameMessage && (
-              <div className="p-4 bg-gray-800/50 border-t border-gray-700">
-                <div
-                  className={`p-3 rounded text-sm ${
-                    baseGameMessage.type === 'success'
-                      ? 'bg-emerald-900/50 text-emerald-300'
-                      : baseGameMessage.type === 'info'
-                      ? 'bg-blue-900/50 text-blue-300'
-                      : 'bg-red-900/50 text-red-300'
-                  }`}
-                >
-                  {baseGameMessage.text}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       )}
 
