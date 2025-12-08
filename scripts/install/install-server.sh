@@ -363,8 +363,47 @@ download_ac_server() {
     # Also create common alternate directory
     mkdir -p "/opt/acserver"
     
-    # Create SteamCMD script
-    cat > /tmp/install_ac.txt << EOF
+    # Check if Steam session exists (from web UI login)
+    STEAM_SESSION_EXISTS=0
+    if [ -d "/root/Steam/config" ] && [ -f "/root/Steam/config/config.vdf" ]; then
+        # Check if there's a cached login in the Steam config
+        if grep -q "Accounts" "/root/Steam/config/config.vdf" 2>/dev/null; then
+            STEAM_SESSION_EXISTS=1
+            print_success "Found existing Steam session - using cached credentials"
+        fi
+    fi
+    
+    # Create SteamCMD script based on whether we have a session
+    if [ $STEAM_SESSION_EXISTS -eq 1 ]; then
+        # Use existing session - SteamCMD will auto-login with cached credentials
+        # We still need to call login, but it will use the cached session
+        cat > /tmp/install_ac.txt << EOF
+@ShutdownOnFailedCommand 1
+@NoPromptForPassword 1
+force_install_dir $AC_SERVER_DIR
+login
+app_update 302550 validate
+quit
+EOF
+        print_info "Using cached Steam session from web UI login"
+    else
+        # No session - need credentials
+        if [ -z "$STEAM_USER" ] || [ -z "$STEAM_PASS" ]; then
+            print_warning "No Steam session found and no credentials provided"
+            print_info "You can either:"
+            print_info "1. Log in via the web UI first (Settings -> Setup -> Steam Credentials)"
+            print_info "2. Provide Steam credentials now"
+            echo ""
+            read -p "Steam username (or 'skip' to skip AC server download): " STEAM_USER
+            if [ "$STEAM_USER" == "skip" ]; then
+                print_warning "Skipping AC server download"
+                return
+            fi
+            read -sp "Steam password: " STEAM_PASS
+            echo ""
+        fi
+        
+        cat > /tmp/install_ac.txt << EOF
 @ShutdownOnFailedCommand 1
 @NoPromptForPassword 1
 force_install_dir $AC_SERVER_DIR
@@ -372,9 +411,12 @@ login $STEAM_USER $STEAM_PASS
 app_update 302550 validate
 quit
 EOF
+    fi
     
     print_info "This may take several minutes..."
-    print_warning "If Steam Guard is enabled, you'll be prompted for the code"
+    if [ $STEAM_SESSION_EXISTS -eq 0 ]; then
+        print_warning "If Steam Guard is enabled, you'll be prompted for the code"
+    fi
     echo ""
     
     # Run SteamCMD
