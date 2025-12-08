@@ -110,11 +110,22 @@ export async function startServer(presetId, config) {
   console.log(`[ServerProcess] Executable: ${executable}`);
   console.log(`[ServerProcess] Ports: UDP=${udpPort}, TCP=${tcpPort}, HTTP=${httpPort}`);
 
-  // Spawn the AC server process using full path to avoid shell interpretation issues
-  const executablePath = path.join(serverPath, executable);
-  console.log(`[ServerProcess] Full executable path: ${executablePath}`);
+  // AC Server is Windows-only, use Wine on Linux
+  let command, args;
+  if (process.platform === 'win32') {
+    // Windows: run directly
+    command = path.join(serverPath, executable);
+    args = [];
+  } else {
+    // Linux: run through Wine
+    command = 'wine';
+    args = [path.join(serverPath, 'acServer.exe')];
+  }
   
-  const serverProcess = spawn(executablePath, [], {
+  console.log(`[ServerProcess] Command: ${command}`);
+  console.log(`[ServerProcess] Args:`, args);
+  
+  const serverProcess = spawn(command, args, {
     cwd: serverPath,
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false,
