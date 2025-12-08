@@ -241,7 +241,7 @@ The task definitions remain in the repository for potential future use in differ
 
 ```bash
 # Step 1: Run unified installer from GitHub (on Proxmox host)
-curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/scripts/install/install-proxmox-unified.sh" | bash
+curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/scripts/install/install-proxmox-unified.sh" | TERM=xterm bash
 
 # The installer automatically:
 # 1. Creates LXC container (ID 999, Ubuntu 22.04, 60GB disk)
@@ -347,7 +347,7 @@ curl http://192.168.1.71:3001
    ssh root@192.168.1.199 "pct destroy 999 --purge --force"
 
    # Run unified installer from GitHub (tests actual user experience)
-   ssh root@192.168.1.199 'curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/scripts/install/install-proxmox-unified.sh" | bash'
+   ssh root@192.168.1.199 'curl -fsSL "https://raw.githubusercontent.com/Brewsker/ac-server-manager/develop/scripts/install/install-proxmox-unified.sh" | TERM=xterm bash'
 
    # Access wizard and complete installation
    # Open http://192.168.1.71:3001

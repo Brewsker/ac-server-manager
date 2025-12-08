@@ -206,9 +206,8 @@ function SetupView() {
         };
 
         // Show session caching message if applicable
-        const message = result.sessionCached
-          ? '✅ Credentials verified! Steam session cached - you can now download content without re-entering codes.'
-          : result.message || 'Credentials verified successfully!';
+        const message =
+          "✅ Credentials verified! Note: You'll need a fresh Steam Guard code for downloads (email codes are single-use).";
 
         setVerifyMessage({
           type: 'success',
@@ -262,8 +261,8 @@ function SetupView() {
     setSteamMessage(null);
     try {
       // AC Dedicated Server requires owning Assetto Corsa - use verified credentials
-      // Don't send Steam Guard code - use cached session from verification
-      const result = await api.downloadACServer(acServerPath, steamUser, steamPass, '');
+      // Email 2FA codes are single-use, so we need a fresh code for download
+      const result = await api.downloadACServer(acServerPath, steamUser, steamPass, steamGuardCode);
       if (result.success) {
         setSteamMessage({
           type: 'success',
@@ -782,22 +781,26 @@ function SetupView() {
                   </div>
                   <div>
                     <label className="block text-sm text-gray-400 mb-1">
-                      Steam Guard Code (Optional)
+                      Steam Guard Code {steamVerified && '(Required for download)'}
                     </label>
                     <input
                       type="text"
                       value={steamGuardCode}
                       onChange={(e) => setSteamGuardCode(e.target.value)}
-                      disabled={steamVerified}
-                      placeholder="Enter code if Steam Guard is enabled"
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder={
+                        steamVerified
+                          ? 'Enter fresh code for download'
+                          : 'Enter code if Steam Guard is enabled'
+                      }
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
                     />
                   </div>
                 </div>
 
                 <p className="text-xs text-gray-500">
-                  Steam Guard code required if your account has Steam Guard enabled. Get code from
-                  Steam app or email.
+                  {steamVerified
+                    ? '⚠️ Email Steam Guard codes are single-use. Get a fresh code from your email for the download.'
+                    : 'Steam Guard code required if your account has Steam Guard enabled. Get code from Steam app or email.'}
                 </p>
 
                 {verifyMessage && (

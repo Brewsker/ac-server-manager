@@ -101,8 +101,9 @@ export async function verifySteamCredentials(steamUser, steamPass = '', steamGua
 
     // Create temporary script for login test
     const scriptPath = '/tmp/verify_steam.txt';
+    // NOTE: Do NOT use @NoPromptForPassword for verification - it prevents credential caching
+    // We have all credentials (user/pass/guard code), so let Steam save the session
     let scriptContent = `@ShutdownOnFailedCommand 1
-@NoPromptForPassword 1
 `;
 
     // Set Steam Guard code BEFORE login if provided
@@ -310,20 +311,12 @@ export async function downloadACServer(
       // Continue anyway - initialization may have partially succeeded
     }
 
-    // Check if Steam session cache exists when credentials are empty
-    const steamConfigPath = path.join(process.env.HOME || '/root', 'Steam', 'config', 'config.vdf');
-    const hasSteamCache = await fs
-      .access(steamConfigPath)
-      .then(() => true)
-      .catch(() => false);
-
+    // For now, ALWAYS require full credentials for downloads
+    // Steam session caching with SteamCMD is unreliable - credentials are needed each time
     if (!steamUser || !steamPass) {
-      if (!hasSteamCache) {
-        throw new Error(
-          '🔐 No cached Steam session found. Please verify your Steam credentials first by clicking the "Login" button in the Steam Credentials section.'
-        );
-      }
-      console.log('[SteamService] Using cached Steam session for download');
+      throw new Error(
+        '🔐 Steam credentials required. Please verify your Steam credentials first by clicking the "Login" button in the Steam Credentials section.'
+      );
     }
 
     // Create install directory
@@ -336,25 +329,15 @@ export async function downloadACServer(
     let scriptContent = `@ShutdownOnFailedCommand 1
 @NoPromptForPassword 1
 force_install_dir ${installPath}
-`;
+login ${steamUser} ${steamPass}`;
 
-    // If we have a cached session, only use username (no password)
-    // This prevents re-authentication and Steam Guard prompts
-    if (hasSteamCache && (!steamPass || !steamGuardCode)) {
-      console.log('[SteamService] Using cached Steam session - login with username only');
-      scriptContent += `login ${steamUser}\n`;
-    } else {
-      // Fresh login with credentials
-      scriptContent += `login ${steamUser} ${steamPass}`;
-
-      // Add Steam Guard code if provided
-      if (steamGuardCode && steamGuardCode.trim()) {
-        scriptContent += ` ${steamGuardCode.trim()}`;
-      }
-      scriptContent += '\n';
+    // Add Steam Guard code if provided
+    if (steamGuardCode && steamGuardCode.trim()) {
+      scriptContent += ` ${steamGuardCode.trim()}`;
     }
 
-    scriptContent += `app_license_request 244210
+    scriptContent += `
+app_license_request 244210
 app_update 302550
 quit
 `;
