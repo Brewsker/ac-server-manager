@@ -992,7 +992,7 @@ function SetupView() {
                     className={`w-2.5 h-2.5 rounded-full ${
                       checkingAcServer || checkingBaseGame
                         ? 'bg-yellow-500'
-                        : acServerInstalled?.exists
+                        : acServerInstalled?.installed
                         ? 'bg-emerald-500'
                         : 'bg-gray-500'
                     }`}
@@ -1006,12 +1006,12 @@ function SetupView() {
                       ? 'Extracting...'
                       : cleaningUpBaseGame
                       ? 'Cleaning...'
-                      : acServerInstalled?.exists
+                      : acServerInstalled?.installed
                       ? 'Installed'
                       : 'Not Installed'}
                   </span>
                 </div>
-                {!acServerInstalled?.exists && !downloadingBaseGame && !extractingContent ? (
+                {!acServerInstalled?.installed && !downloadingBaseGame && !extractingContent ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
