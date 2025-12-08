@@ -38,7 +38,6 @@ function getACServerPath() {
   console.log('[ServerProcess] Using fallback path');
   return '/opt/acserver';
 }
-}
 
 /**
  * Get server executable name based on platform
