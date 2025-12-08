@@ -68,7 +68,6 @@ tar -czf $tempArchive `
 
 # Single scp of archive (much faster than multiple scps)
 scp $tempArchive root@${HostIP}:/tmp/ 2>&1 | Out-Null
-Remove-Item $tempArchive
 
 Write-Host "   Uploaded" -ForegroundColor Green
 
@@ -79,7 +78,10 @@ Write-Host "[5/6] Deploying..." -ForegroundColor Yellow
 ssh root@$HostIP "pct exec $ContainerId -- pm2 stop ac-server-manager" 2>&1 | Out-Null
 
 # Push tar into container and extract in place (suppress tar warnings about extended attributes)
-ssh root@$HostIP "pct push $ContainerId /tmp/$tempArchive /tmp/$tempArchive && pct exec $ContainerId -- bash -c 'cd /opt/ac-server-manager && tar -xzf /tmp/$tempArchive --strip-components=0 2>/dev/null && rm /tmp/$tempArchive' && rm /tmp/$tempArchive" 2>&1 | Out-Null
+ssh root@$HostIP "pct push $ContainerId /tmp/$tempArchive /tmp/$tempArchive && pct exec $ContainerId -- bash -c 'cd /opt/ac-server-manager && tar -xzf /tmp/$tempArchive 2>/dev/null && chmod -R 755 frontend/dist && rm /tmp/$tempArchive' && rm /tmp/$tempArchive" 2>&1 | Out-Null
+
+# Clean up local archive
+Remove-Item $tempArchive -ErrorAction SilentlyContinue
 
 Write-Host "   Deployed" -ForegroundColor Green
 
