@@ -1176,6 +1176,10 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
         timeout: 600000, // 10 minute timeout
       });
 
+      // Delete source server files immediately to free space
+      console.log('[SteamService] Removing source server files to free disk space...');
+      await fs.rm(serverSourcePath, { recursive: true, force: true });
+
       // Verify server executable exists (check both Windows and Linux versions)
       const windowsExe = path.join(serverPath, 'acServer.exe');
       const linuxExe = path.join(serverPath, 'acServer');
@@ -1214,11 +1218,19 @@ export async function extractACContent(gameInstallPath, serverContentPath) {
       timeout: 600000, // 10 minute timeout for large copies
     });
 
+    // Delete source cars immediately to free space
+    console.log('[SteamService] Removing source cars to free disk space...');
+    await fs.rm(gameCarsPath, { recursive: true, force: true });
+
     console.log('[SteamService] Copying tracks...');
     await execAsync(`rsync -av "${gameTracksPath}/" "${serverTracksPath}/"`, {
       maxBuffer: 50 * 1024 * 1024,
       timeout: 600000,
     });
+
+    // Delete source tracks immediately to free space
+    console.log('[SteamService] Removing source tracks to free disk space...');
+    await fs.rm(gameTracksPath, { recursive: true, force: true });
 
     // Count extracted content
     const { stdout: carCount } = await execAsync(
