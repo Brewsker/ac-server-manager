@@ -706,7 +706,6 @@ function SetupView() {
 
   const tabs = [
     { id: 'server', label: 'Server', icon: '🖥️' },
-    { id: 'content', label: 'Content', icon: '📦' },
     { id: 'updates', label: 'Updates', icon: '🔄' },
     { id: 'appearance', label: 'Appearance', icon: '🎨' },
   ];
@@ -1186,12 +1185,19 @@ function SetupView() {
               </div>
             )}
           </div>
-        </div>
-      )}
 
-      {/* Content Tab */}
-      {activeTab === 'content' && (
-        <div className="space-y-4">
+          {/* Section Divider */}
+          <div className="relative py-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-gray-900 px-4 text-sm text-gray-500 uppercase tracking-wider">
+                Content Management
+              </span>
+            </div>
+          </div>
+
           {/* Content Status */}
           <SectionPanel title="Installed Content">
             <div className="p-4 space-y-4">
