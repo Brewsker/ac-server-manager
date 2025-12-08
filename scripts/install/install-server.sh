@@ -356,6 +356,29 @@ install_steamcmd() {
     print_success "SteamCMD installed"
 }
 
+install_wine() {
+    print_step "Installing Wine (required for AC Server)"
+    
+    # Add 32-bit architecture support (if not already added)
+    dpkg --add-architecture i386 2>/dev/null || true
+    
+    # Update package lists
+    apt-get update -qq
+    
+    # Install Wine packages
+    print_info "Installing Wine with 32-bit and 64-bit support..."
+    DEBIAN_FRONTEND=noninteractive apt-get install -y wine wine32 wine64 > /dev/null 2>&1
+    
+    # Verify Wine installation
+    if command -v wine > /dev/null 2>&1; then
+        WINE_VERSION=$(wine --version 2>/dev/null || echo "unknown")
+        print_success "Wine installed ($WINE_VERSION)"
+    else
+        print_error "Wine installation failed"
+        exit 1
+    fi
+}
+
 download_ac_server() {
     print_step "Downloading Assetto Corsa Dedicated Server"
     
@@ -734,6 +757,7 @@ main() {
     # AC Server setup
     if [ "$INSTALL_AC_SERVER" = "yes" ]; then
         install_steamcmd
+        install_wine
         download_ac_server
     fi
     
