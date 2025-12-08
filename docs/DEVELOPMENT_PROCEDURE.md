@@ -2,6 +2,11 @@
 
 ## User Notes
 
+- Anon login for AC Dedicated Server is not acceptable/does not work
+- Caches, ie steam/git/any files sourced from local cache container, should not be incorporated in the unified installer/app function without an accesible fallback. Cache is for development only and is planned to be removed/disabled for production/public use.
+- We strickly use steam email 2fa codes. Modile auth/steam guard mobile has know problems with steamCMD.
+- AC Dedicated Server requires ownership of the base game
+- Developer uses a Steam account which owns the base game and does not have family sharing enabled or setup for any other user/account
 - Disable cache is always enabled on the Devs browser
 - UI is not to be modified unless explicitly understood to the user that this will in size/shape/function change the UI. We must maintain the current UI structure unless explicitly told to modify as part of development and progress.
 - SSH sleeps during troubleshooting. max time = 10sec

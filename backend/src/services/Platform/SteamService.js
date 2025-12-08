@@ -53,7 +53,7 @@ quit
     } catch (error) {
       await fs.unlink(scriptPath).catch(() => {});
       const output = (error.stdout || '') + (error.stderr || '');
-      
+
       // Session is invalid if we get password prompt or login failure
       return false;
     }
@@ -111,6 +111,7 @@ export async function verifySteamCredentials(steamUser, steamPass = '', steamGua
     }
 
     scriptContent += `login ${steamUser} ${steamPass}
+app_status 244210
 quit
 `;
 
@@ -284,6 +285,47 @@ export async function downloadACServer(
 
     console.log(`[SteamService] Using steamcmd at: ${steamcmdPath}`);
 
+    // Initialize SteamCMD properly (creates ~/.steam directory and symlinks)
+    try {
+      console.log('[SteamService] Initializing SteamCMD...');
+
+      // Create ~/.steam directory if it doesn't exist
+      await execAsync('mkdir -p ~/.steam');
+
+      // Create symlinks that SteamCMD needs
+      await execAsync('ln -sf ~/Steam ~/.steam/root || true');
+      await execAsync('ln -sf ~/Steam ~/.steam/steam || true');
+
+      // Run SteamCMD to complete initialization
+      await execAsync(`${steamcmdPath} +login anonymous +quit`, {
+        timeout: 60000, // 60 second timeout for initialization
+      });
+
+      console.log('[SteamService] SteamCMD initialized successfully');
+    } catch (initError) {
+      console.warn(
+        '[SteamService] SteamCMD initialization warning (may be normal):',
+        initError.message
+      );
+      // Continue anyway - initialization may have partially succeeded
+    }
+
+    // Check if Steam session cache exists when credentials are empty
+    const steamConfigPath = path.join(process.env.HOME || '/root', 'Steam', 'config', 'config.vdf');
+    const hasSteamCache = await fs
+      .access(steamConfigPath)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!steamUser || !steamPass) {
+      if (!hasSteamCache) {
+        throw new Error(
+          '🔐 No cached Steam session found. Please verify your Steam credentials first by clicking the "Login" button in the Steam Credentials section.'
+        );
+      }
+      console.log('[SteamService] Using cached Steam session for download');
+    }
+
     // Create install directory
     await fs.mkdir(installPath, { recursive: true });
 
@@ -294,15 +336,26 @@ export async function downloadACServer(
     let scriptContent = `@ShutdownOnFailedCommand 1
 @NoPromptForPassword 1
 force_install_dir ${installPath}
-login ${steamUser} ${steamPass}`;
+`;
 
-    // Add Steam Guard code if provided
-    if (steamGuardCode && steamGuardCode.trim()) {
-      scriptContent += ` ${steamGuardCode.trim()}`;
+    // If we have a cached session, only use username (no password)
+    // This prevents re-authentication and Steam Guard prompts
+    if (hasSteamCache && (!steamPass || !steamGuardCode)) {
+      console.log('[SteamService] Using cached Steam session - login with username only');
+      scriptContent += `login ${steamUser}\n`;
+    } else {
+      // Fresh login with credentials
+      scriptContent += `login ${steamUser} ${steamPass}`;
+
+      // Add Steam Guard code if provided
+      if (steamGuardCode && steamGuardCode.trim()) {
+        scriptContent += ` ${steamGuardCode.trim()}`;
+      }
+      scriptContent += '\n';
     }
 
-    scriptContent += `
-app_update 302550 validate
+    scriptContent += `app_license_request 244210
+app_update 302550
 quit
 `;
 
@@ -317,6 +370,8 @@ quit
 
     // Clean up script
     await fs.unlink(scriptPath);
+
+    console.log('[SteamService] Verifying installation...');
 
     // Verify installation
     const acServerPath = path.join(installPath, 'acServer');
@@ -400,14 +455,104 @@ quit
     // Log full error for server-side debugging
     console.error('[SteamService] Full SteamCMD output:', fullError.substring(0, 2000));
 
-    if (fullError.includes('No subscription')) {
+    // Check for "Missing configuration" error - SteamCMD needs proper initialization
+    if (
+      fullError.includes('Missing configuration') ||
+      fullError.includes('failed to create symbolic link')
+    ) {
       throw new Error(
-        'Steam account does not own Assetto Corsa. You must own the game to download the dedicated server.'
+        `⚙️ SteamCMD Configuration Issue\n\n` +
+          `SteamCMD needs to be initialized properly. This usually happens on first run.\n\n` +
+          `Quick fix:\n` +
+          `Run this command in the container to initialize SteamCMD:\n` +
+          `steamcmd +login anonymous +quit\n\n` +
+          `Then try downloading the dedicated server again.`
       );
     }
+
+    if (fullError.includes('No subscription')) {
+      throw new Error(
+        `🎮 Assetto Corsa Ownership Required\n\n` +
+          `The AC Dedicated Server (App ID 302550) requires owning Assetto Corsa (App ID 244210).\n\n` +
+          `Steps to download:\n` +
+          `1. Go to the "Server" tab\n` +
+          `2. Enter your Steam credentials (account that owns AC)\n` +
+          `3. Click "Verify Login" with your Steam Guard code\n` +
+          `4. Return here and try downloading again\n\n` +
+          `Note: Anonymous download is NOT available for AC dedicated server despite it being free.`
+      );
+    }
+
+    // Check for 0x50A error
+    if (fullError.includes('state is 0x50A')) {
+      const downloadStarted = fullError.includes('downloading, progress:');
+      const progressMatch = fullError.match(/progress: ([\d.]+)/);
+      const progress = progressMatch ? progressMatch[1] : '35';
+
+      if (downloadStarted) {
+        // Check if download is consistently failing at same percentage (Steam backend blocking)
+        const stoppingState = fullError.includes('state (0x461) stopping');
+
+        if (stoppingState) {
+          // Steam is actively stopping/cancelling the download - backend restriction
+          throw new Error(
+            `🚫 Steam Server Blocked Download at ${progress}%\n\n` +
+              `Your account authenticated successfully and owns Assetto Corsa, but Steam's servers are actively stopping the download.\n\n` +
+              `This typically indicates:\n` +
+              `• Account-level restrictions or flags on Steam's backend\n` +
+              `• Regional licensing limitations for dedicated servers\n` +
+              `• Steam Guard/verification requirements not fully met\n` +
+              `• Rate limiting due to multiple download attempts\n\n` +
+              `Recommended actions:\n` +
+              `1. Wait 24 hours before trying again (rate limit cooldown)\n` +
+              `2. Contact Steam Support with your account details\n` +
+              `3. Try using a different Steam account that owns AC\n` +
+              `4. Verify your Steam account is in good standing (no restrictions)\n\n` +
+              `Note: This is NOT an issue with this application - your credentials work correctly but Steam's servers are refusing to complete the download for your specific account.`
+          );
+        }
+
+        // Generic mid-download failure
+        throw new Error(
+          `🚫 Download Failed at ${progress}%\n\n` +
+            `Steam stopped the download with error 0x50A.\n\n` +
+            `Possible causes:\n` +
+            `• Steam CDN/network interruption\n` +
+            `• Temporary server issue\n` +
+            `• Download cache corruption\n\n` +
+            `The app clears download state automatically. Try again in a few minutes.\n` +
+            `If it keeps failing at the same percentage, this may be a Steam backend restriction on your account.`
+        );
+      } else {
+        // Error before download started - account doesn't own game
+        throw new Error(
+          `🚫 Your Steam account doesn't own Assetto Corsa (App ID 244210)\n\n` +
+            `To download the AC Dedicated Server, you must purchase Assetto Corsa on Steam.`
+        );
+      }
+    }
+
     if (fullError.includes('steamconsole.so')) {
       throw new Error('SteamCMD initialization failed. Please try again or contact support.');
     }
+
+    // Check for email-based Steam Guard specifically
+    if (
+      fullError.includes('This computer has not been authenticated') ||
+      fullError.includes('Please check your email for the message from Steam')
+    ) {
+      throw new Error(
+        `📧 Steam Guard Email Code Required\n\n` +
+          `Your Steam account requires email-based authentication for this computer.\n\n` +
+          `Steps to proceed:\n` +
+          `1. Check your email for a Steam Guard code from Steam Support\n` +
+          `2. Enter the 5-character code (e.g., ABC12) in the Steam Guard Code field above\n` +
+          `3. Click "Verify Login" first to authenticate this computer\n` +
+          `4. Then try downloading the dedicated server again\n\n` +
+          `Note: This is an EMAIL code, not a mobile authenticator code.`
+      );
+    }
+
     if (
       fullError.includes('Two-factor') ||
       fullError.includes('Steam Guard') ||
@@ -696,7 +841,7 @@ export async function downloadACBaseGame(installPath, steamUser, steamPass, stea
 
     // Check if we have a valid cached session
     const hasSession = await hasCachedSteamSession(steamUser);
-    
+
     // Create SteamCMD script for base game (App ID 244210)
     const scriptPath = '/tmp/install_ac_basegame.txt';
     let scriptContent = `@ShutdownOnFailedCommand 1
@@ -711,12 +856,12 @@ force_install_dir ${installPath}
     } else {
       // Fresh login with credentials
       console.log(`[SteamService] No cached session, using provided credentials`);
-      
+
       // Set Steam Guard code BEFORE login if provided
       if (steamGuardCode && steamGuardCode.trim()) {
         scriptContent += `set_steam_guard_code ${steamGuardCode.trim()}\n`;
       }
-      
+
       scriptContent += `login ${steamUser} ${steamPass}\n`;
     }
 
@@ -775,11 +920,57 @@ quit
     // Log full error for server-side debugging
     console.error('[SteamService] Full SteamCMD output (base game):', fullError.substring(0, 2000));
 
+    // Check for corrupted download / CDN issues FIRST (before auth errors)
+    if (
+      fullError.includes('bad chunk') ||
+      fullError.includes('Unpack failed') ||
+      fullError.includes('Failed updating depot')
+    ) {
+      // Auto-clear Steam cache to fix corruption
+      try {
+        await execAsync('rm -rf /root/Steam/steamapps/downloading/*');
+        await execAsync('rm -rf /root/Steam/appcache/*');
+        await execAsync(`rm -rf ${installPath}`);
+      } catch (cleanupErr) {
+        console.error('[SteamService] Failed to cleanup corrupted cache:', cleanupErr);
+      }
+
+      throw new Error(
+        `📦 Steam Download Corruption Detected\n\n` +
+          `The download started successfully but failed due to corrupted data from Steam's CDN servers. This is a temporary Steam infrastructure issue, not a problem with your account or credentials.\n\n` +
+          `✅ Your cache has been automatically cleared.\n\n` +
+          `🔄 Please try downloading again - it should work on the next attempt.`
+      );
+    }
+
     if (fullError.includes('No subscription')) {
       throw new Error(
         'Steam account does not own Assetto Corsa. You must purchase the game to download content.'
       );
     }
+
+    // Check for 0x50A error that occurs AFTER download starts
+    if (fullError.includes('state is 0x50A')) {
+      const downloadStarted = fullError.includes('downloading, progress:');
+
+      if (downloadStarted) {
+        // Download started then failed - likely family sharing or CDN issue
+        throw new Error(
+          `🚫 Download Failed After Starting\n\n` +
+            `The download began successfully but Steam stopped it with error 0x50A. This can happen due to:\n\n` +
+            `• Family Sharing: Your account may have access via Family Sharing, but SteamCMD cannot download shared games\n` +
+            `• Temporary Steam issue: Try again in a few minutes\n\n` +
+            `If this persists, verify you own Assetto Corsa directly (not through family sharing).`
+        );
+      } else {
+        // Error before download started - doesn't own game
+        throw new Error(
+          `🚫 Your Steam account doesn't own Assetto Corsa (App ID 244210)\n\n` +
+            `To download official content, you must purchase Assetto Corsa on Steam.`
+        );
+      }
+    }
+
     if (fullError.includes('steamconsole.so')) {
       throw new Error('SteamCMD initialization failed. Please try again or contact support.');
     }

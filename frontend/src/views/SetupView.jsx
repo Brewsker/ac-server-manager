@@ -23,7 +23,9 @@ function SetupView() {
   const [steamUser, setSteamUser] = React.useState(
     () => localStorage.getItem('steamUsername') || ''
   );
-  const [steamPass, setSteamPass] = React.useState('');
+  const [steamPass, setSteamPass] = React.useState(
+    () => localStorage.getItem('steamPassword') || ''
+  );
   const [steamGuardCode, setSteamGuardCode] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [downloadingACServer, setDownloadingACServer] = React.useState(false);
@@ -61,6 +63,13 @@ function SetupView() {
   // Track initial load to prevent reset during mount
   const isInitialMount = React.useRef(true);
 
+  // Store initial credential values to compare against
+  const initialCreds = React.useRef({
+    user: localStorage.getItem('steamUsername') || '',
+    pass: localStorage.getItem('steamPassword') || '',
+    guard: '', // Guard codes never persist, always start empty
+  });
+
   React.useEffect(() => {
     loadCurrentVersion();
     checkSteamCMDStatus();
@@ -70,6 +79,7 @@ function SetupView() {
   }, []);
 
   // Reset verification if credentials change (after initial mount)
+  // Only reset verification if user changes credentials while verified
   React.useEffect(() => {
     // Skip reset on initial mount
     if (isInitialMount.current) {
@@ -77,13 +87,20 @@ function SetupView() {
       return;
     }
 
+    // Only reset if verified AND credentials actually changed from initial saved values
     if (steamVerified) {
-      // If any credential field changes, reset verification
-      setSteamVerified(false);
-      localStorage.removeItem('steamVerified');
-      setVerifyMessage(null);
+      const userChanged = steamUser !== initialCreds.current.user;
+      const passChanged = steamPass !== initialCreds.current.pass;
+
+      if (userChanged || passChanged) {
+        // User is changing credentials while verified - reset verification
+        setSteamVerified(false);
+        localStorage.removeItem('steamVerified');
+        localStorage.removeItem('steamPassword');
+        setVerifyMessage(null);
+      }
     }
-  }, [steamUser, steamPass, steamGuardCode]);
+  }, [steamUser, steamPass]); // Don't include steamVerified - only watch credential changes
 
   const loadCurrentVersion = async () => {
     try {
@@ -178,13 +195,21 @@ function SetupView() {
       if (result.success) {
         setSteamVerified(true);
         localStorage.setItem('steamUsername', steamUser);
+        localStorage.setItem('steamPassword', steamPass);
         localStorage.setItem('steamVerified', 'true');
-        
+
+        // Update initial creds to current values so changes are tracked from this baseline
+        initialCreds.current = {
+          user: steamUser,
+          pass: steamPass,
+          guard: steamGuardCode,
+        };
+
         // Show session caching message if applicable
         const message = result.sessionCached
           ? '✅ Credentials verified! Steam session cached - you can now download content without re-entering codes.'
           : result.message || 'Credentials verified successfully!';
-        
+
         setVerifyMessage({
           type: 'success',
           text: message,
@@ -192,6 +217,7 @@ function SetupView() {
       } else {
         setSteamVerified(false);
         localStorage.removeItem('steamVerified');
+        localStorage.removeItem('steamPassword');
         setVerifyMessage({ type: 'error', text: result.message || 'Verification failed' });
 
         // Clear guard code if it was invalid
@@ -215,12 +241,16 @@ function SetupView() {
     setSteamVerified(false);
     setVerifyMessage(null);
     localStorage.removeItem('steamUsername');
+    localStorage.removeItem('steamPassword');
     localStorage.removeItem('steamVerified');
   };
 
   const handleDownloadACServer = async () => {
     if (!steamVerified) {
-      setSteamMessage({ type: 'error', text: 'Please verify your Steam credentials first' });
+      setSteamMessage({
+        type: 'error',
+        text: 'AC Dedicated Server requires Steam login. Please verify your credentials first.',
+      });
       return;
     }
 
@@ -231,7 +261,9 @@ function SetupView() {
     setDownloadingACServer(true);
     setSteamMessage(null);
     try {
-      const result = await api.downloadACServer(acServerPath, steamUser, steamPass, steamGuardCode);
+      // AC Dedicated Server requires owning Assetto Corsa - use verified credentials
+      // Don't send Steam Guard code - use cached session from verification
+      const result = await api.downloadACServer(acServerPath, steamUser, steamPass, '');
       if (result.success) {
         setSteamMessage({
           type: 'success',
@@ -429,14 +461,15 @@ function SetupView() {
       await checkContentStatus();
     } catch (error) {
       console.error('Failed to download/extract base game:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to download base game';
-      
+      const errorMsg =
+        error.response?.data?.message || error.message || 'Failed to download base game';
+
       // Check if this is a session expiration error
       if (errorMsg.includes('Steam session expired') || errorMsg.includes('re-verify')) {
         // Reset verification state
         setSteamVerified(false);
         localStorage.removeItem('steamVerified');
-        
+
         setBaseGameMessage({
           type: 'error',
           text: '🔐 Steam session expired. Please re-verify your credentials in the Setup → Server tab above, then try downloading again.',
@@ -658,7 +691,11 @@ function SetupView() {
                     }`}
                   ></span>
                   <span className="text-sm text-gray-300">
-                    {verifyingCreds ? 'Logging in...' : steamVerified ? 'Logged In' : 'Not Logged In'}
+                    {verifyingCreds
+                      ? 'Logging in...'
+                      : steamVerified
+                      ? 'Logged In'
+                      : 'Not Logged In'}
                   </span>
                 </div>
                 {!steamVerified ? (
@@ -1149,7 +1186,33 @@ function SetupView() {
             <div className="p-4 space-y-4">
               <div className="text-sm text-gray-400 mb-2">
                 Download and extract official cars and tracks from the AC base game via Steam.
-                Requires owning Assetto Corsa on Steam.
+              </div>
+
+              {/* Ownership Warning */}
+              <div className="p-4 bg-blue-900/30 border-l-4 border-blue-500 rounded">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">ℹ️</span>
+                  <div className="flex-1 space-y-2">
+                    <div className="font-medium text-blue-300">Steam Ownership Required</div>
+                    <div className="text-sm text-gray-300">
+                      You must own <strong>Assetto Corsa</strong> (App ID 244210) on Steam to
+                      download official content.
+                    </div>
+                    <div className="text-xs text-gray-400 space-y-1">
+                      <div>
+                        • The AC Dedicated Server (App 302550) is FREE, but game content requires
+                        the full game
+                      </div>
+                      <div>
+                        • Download size: ~12GB, may take 10-30 minutes depending on connection
+                      </div>
+                      <div>
+                        • Alternative: Upload custom content manually from RaceDepartment,
+                        AssettoLand, etc.
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {!steamVerified && (
