@@ -465,6 +465,9 @@ function SetupView() {
 
       // Refresh base game status
       await checkBaseGameStatus();
+
+      // Refresh AC server status to show installation
+      await checkAcServerStatus();
     } catch (error) {
       console.error('Failed to download/extract base game:', error);
       const errorMsg =
@@ -489,6 +492,9 @@ function SetupView() {
 
       // Check if base game was downloaded but extraction failed
       await checkBaseGameStatus();
+      
+      // Also check if server files were extracted before failure
+      await checkAcServerStatus();
     } finally {
       setDownloadingBaseGame(false);
       setExtractingContent(false);
