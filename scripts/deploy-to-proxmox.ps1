@@ -57,8 +57,12 @@ Write-Host "   Cleaned" -ForegroundColor Green
 Write-Host "[4/6] Uploading..." -ForegroundColor Yellow
 $tempArchive = "ac-deploy-$(Get-Date -Format 'yyyyMMddHHmmss').tar.gz"
 
-# Create tar archive of all files to deploy
-tar -czf $tempArchive `
+# Remove readonly attribute from frontend/dist before archiving (Windows compatibility)
+attrib -r frontend\dist /s /d 2>&1 | Out-Null
+
+# Create tar archive with --dereference to follow OneDrive reparse points
+# This ensures actual file content is archived, not just placeholders
+tar --dereference -czf $tempArchive `
     frontend/dist `
     backend/src `
     backend/data/default_config.ini `
