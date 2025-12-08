@@ -25,19 +25,19 @@ function getACServerPath() {
     return serverPath;
   }
 
-  // Derive from AC_CONTENT_PATH (remove /content, add /server)
+  // Derive from AC_CONTENT_PATH (content is subdirectory of server root)
   if (process.env.AC_CONTENT_PATH) {
     const contentPath = process.env.AC_CONTENT_PATH;
-    // Remove /content from the end and add /server
-    const basePath = contentPath.replace(/[\/\\]content\s*$/, '');
-    const serverPath = path.join(basePath, 'server');
-    console.log('[ServerProcess] Derived server path:', serverPath);
+    // Remove /content from the end to get server root
+    const serverPath = contentPath.replace(/[\/\\]content\s*$/, '');
+    console.log('[ServerProcess] Derived server path from AC_CONTENT_PATH:', serverPath);
     return serverPath;
   }
 
   // Last resort fallback
   console.log('[ServerProcess] Using fallback path');
-  return path.join(process.cwd(), '..', 'acServer');
+  return '/opt/acserver';
+}
 }
 
 /**
